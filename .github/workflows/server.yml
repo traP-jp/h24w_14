@@ -1,0 +1,36 @@
+name: server CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'server/**'
+
+env:
+  PROTOC_VERSION: '29.3'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: 'server -> target'
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: |
+          PROTOC_ZIP="protoc-$PROTOC_VERSION-linux-x86_64.zip"
+          curl -fvLO \
+            "https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOC_VERSION/$PROTOC_ZIP"
+          sudo unzip -o "$PROTOC_ZIP" -d /usr/local bin/protoc
+          sudo unzip -o "$PROTOC_ZIP" -d /usr/local 'include/*'
+          rm "$PROTOC_ZIP"
+      - run: |
+          cd server
+          cargo build
+          cargo fmt --all -- --check
+          cargo clippy -- -D warnings
