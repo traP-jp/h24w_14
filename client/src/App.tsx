@@ -1,9 +1,9 @@
-import "./App.css";
 import { useMemo } from "react";
+import "./App.css";
 
+import { Container, Sprite, Stage, Text } from "@pixi/react";
 import { BlurFilter, TextStyle } from "pixi.js";
-import { Stage, Container, Sprite, Text } from "@pixi/react";
-import { Button } from "antd";
+import { Timeline } from "./timeline/timeline";
 
 const App = () => {
   const blurFilter = useMemo(() => new BlurFilter(2), []);
@@ -36,10 +36,7 @@ const App = () => {
           />
         </Container>
       </Stage>
-      <div>
-        タイムライン
-        <Button type="primary">Primary Button</Button>
-      </div>
+      <Timeline />
     </div>
   );
 };
