@@ -128,4 +128,6 @@ service ExploreService {
 
     // スピーカーフォンの作成
     rpc CreateSpeakerPhone(CreateSpeakerPhoneRequest) returns (CreateSpeakerPhoneResponse);
+
+    // TODO: スピーカーフォンの編集、削除
 }

@@ -17,8 +17,6 @@ message SpeakerPhone {
     google.protobuf.Timestamp created_at = 4;
     // 更新日時
     google.protobuf.Timestamp updated_at = 5;
-    // 有効期限
-    google.protobuf.Timestamp expires_at = 6;
 }
 
 message GetSpeakerPhoneRequest {
