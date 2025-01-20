@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package reaction;
+
+import "world.proto";
+
+message Reaction {
+    // UUID
+    string id = 1;
+    // リアクションをしたユーザーのID
+    string user_id = 2;
+    // リアクションをした座標
+    world.Coordinate position = 3;
+    // リアクションの種類
+    string kind = 4;
+    // リアクションをした日時 RFC3339 と ISO8601 に準拠
+    string created_at = 5;
+    // 有効期限
+    // TODO: このフィールドは必要か？
+    string expires_at = 6;
+}
+
+message GetReactionRequest {
+    string id = 1;
+}
+
+message GetReactionResponse {
+    Reaction reaction = 1;
+}
+
+service ReactionService {
+    rpc GetReaction(GetReactionRequest) returns (GetReactionResponse);
+
+    // リアクションの作成はフィールド探索(explore.proto)に記述
+    // rpc CreateReaction(CreateReactionRequest) returns (CreateReactionResponse);
+
+    // リアクションの編集、削除はしない
+    // rpc UpdateReaction(UpdateReactionRequest) returns (UpdateReactionResponse);
+    // rpc DeleteReaction(DeleteReactionRequest) returns (DeleteReactionResponse);
+}

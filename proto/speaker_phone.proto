@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package speaker_phone;
+
+import "world.proto";
+
+message SpeakerPhone {
+    // UUID
+    string id = 1;
+    // 座標
+    world.Coordinate position = 2;
+    // traQチャンネルのパス
+    string channel_path = 3;
+    // 送信日時 RFC3339 と ISO8601 に準拠
+    string created_at = 4;
+    // 更新日時
+    string updated_at = 5;
+    // 有効期限
+    string expires_at = 6;
+}
+
+message GetSpeakerPhoneRequest {
+    string id = 1;
+}
+
+message GetSpeakerPhoneResponse {
+    SpeakerPhone speaker_phone = 1;
+}
+
+service SpeakerPhoneService {
+    rpc GetSpeakerPhone(GetSpeakerPhoneRequest) returns (GetSpeakerPhoneResponse);
+
+    // スピーカーフォンの作成、編集、削除はフィールド探索(explore.proto)に記述
+    // rpc CreateSpeakerPhone(CreateSpeakerPhoneRequest) returns (CreateSpeakerPhoneResponse);
+    // rpc UpdateSpeakerPhone(UpdateSpeakerPhoneRequest) returns (UpdateSpeakerPhoneResponse);
+    // rpc DeleteSpeakerPhone(DeleteSpeakerPhoneRequest) returns (DeleteSpeakerPhoneResponse);
+}

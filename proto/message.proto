@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+// messageだと予約後に衝突するため
+package msg;
+
+import "world.proto";
+
+message Message {
+    // UUID
+    string id = 1;
+    // 送信者のユーザーID
+    string user_id = 2;
+    // メッセージの座標
+    world.Coordinate position = 3;
+    // メッセージの内容
+    string content = 4;
+    // 送信日時 RFC3339 と ISO8601 に準拠
+    string created_at = 5;
+    // 更新日時
+    string updated_at = 6;
+    // 有効期限
+    string expires_at = 7;
+}
+
+message GetMessageRequest {
+    string id = 1;
+}
+
+message GetMessageResponse {
+    Message message = 1;
+}
+
+service MessageService {
+    rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+
+    // メッセージの作成はフィールド探索(explore.proto)に記述
+    // rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
+
+    // メッセージの編集、削除はしない
+    // rpc UpdateMessage(UpdateMessageRequest) returns (UpdateMessageResponse);
+    // rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+}

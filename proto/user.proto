@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package user;
+
+message User {
+    // UUID
+    string id = 1;
+    // nameとdisplay_nameの違いはtraQと同様
+    string name = 2;
+    string display_name = 3;
+    // 作成日時 RFC3339 と ISO8601 に準拠
+    string created_at = 4;
+}
+
+message GetUserRequest {
+    // UUID
+    string id = 1;
+}
+
+message GetUserResponse {
+    User user = 1;
+}
+
+service UserService {
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+    // ユーザーのアイコンはtraQのpublic APIから取得する
+    // rpc GetUserIcon(GetUserIconRequest) returns (GetUserIconResponse);
+
+    // ユーザー作成はOAuth2でtraQと連携する際に行う
+    // rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+}

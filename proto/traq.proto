@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package traq;
+
+// traQ APIのプロキシ
+
+message Channel {
+    // traQのチャンネルID
+    string id = 1;
+    // traQのチャンネル名 (パスではない)
+    string name = 2;
+    // traQの親チャンネルID
+    optional string parent_id = 3;
+    // traQのチャンネルがアーカイブされているか
+    bool archived = 4;
+    // traQの子チャンネルIDリスト
+    repeated string children = 5;
+}
+
+message GetChannelsRequest {
+}
+
+message GetChannelsResponse {
+    // traQのチャンネルIDリスト
+    repeated string channels = 1;
+}
+
+message GetChannelPathRequest {
+    // traQのチャンネルID
+    string channel_id = 1;
+}
+
+message GetChannelPathResponse {
+    // traQのチャンネルパス
+    string channel_path = 1;
+}
+
+service TraqService {
+    rpc GetChannels(GetChannelsRequest) returns (GetChannelsResponse);
+
+    rpc GetChannelPath(GetChannelPathRequest) returns (GetChannelPathResponse);
+}
