@@ -23,8 +23,7 @@ message World {
     Size size = 1;
 }
 
-message GetWorldRequest {
-}
+message GetWorldRequest {}
 
 message GetWorldResponse {
     World world = 1;

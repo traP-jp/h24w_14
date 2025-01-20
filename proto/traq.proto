@@ -17,8 +17,7 @@ message Channel {
     repeated string children = 5;
 }
 
-message GetChannelsRequest {
-}
+message GetChannelsRequest {}
 
 message GetChannelsResponse {
     // traQのチャンネルIDリスト
@@ -35,8 +34,7 @@ message GetChannelPathResponse {
     string channel_path = 1;
 }
 
-message AuthRequest {
-}
+message AuthRequest {}
 
 message AuthResponse {
     // リダイレクト先
