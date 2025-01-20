@@ -13,6 +13,7 @@ async-stream = "0.3.6"
 async-trait = "0.1.85"
 axum.version = "0.8.1"
 axum.features = ["http2", "ws"]
+# axum-extra = { version = "0.10.0", features = [] }
 bytes = "1.9.0"
 chrono = { version = "0.4.39", features = ["serde"] }
 futures = "0.3.31"
@@ -21,8 +22,13 @@ http-body = "1.0.1"
 http-body-util = "0.1.2"
 hyper = { version = "1.5.2", features = ["server", "http1", "http2"] }
 hyper-util = { version = "0.1.10", features = ["tokio", "server-auto", "server-graceful", "service"] }
+jsonwebtoken = "9.3.0"
+percent-encoding = "2.3.1"
 prost = "0.13.4"
 prost-types = "0.13.4"
+reqwest.version = "0.12.12"
+reqwest.default-features = false
+reqwest.features = ["http2", "rustls-tls", "charset", "json", "macos-system-configuration"]
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.135"
 sqlx.version = "0.8.3"
@@ -62,8 +68,11 @@ http-body.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
+jsonwebtoken.workspace = true
+percent-encoding.workspace = true
 prost.workspace = true
 prost-types.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
