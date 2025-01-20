@@ -1,10 +1,13 @@
-[package]
-name = "h24w14"
+[workspace]
+resolver = "2"
+members = ["./."]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
 publish = false
 
-[dependencies]
+[workspace.dependencies]
 anyhow = { version = "1.0.95", features = ["backtrace"] }
 async-stream = "0.3.6"
 async-trait = "0.1.85"
@@ -28,6 +31,7 @@ thiserror = "2.0.11"
 tonic.version = "0.12.3"
 tonic.default-features = false
 tonic.features = ["codegen", "prost", "channel"]
+tonic-build = "0.12.3"
 tonic-types = "0.12.3"
 tonic-web = "0.12.3"
 tokio = { version = "1.43.0", features = ["full"] }
@@ -39,5 +43,42 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 uuid = { version = "1.12.0", features = ["v7", "serde"] }
 
+[package]
+name = "h24w14"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-stream.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+bytes.workspace = true
+chrono.workspace = true
+futures.workspace = true
+http.workspace = true
+http-body.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+prost.workspace = true
+prost-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tonic.workspace = true
+tonic-types.workspace = true
+tonic-web.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tokio-util.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
 [build-dependencies]
-tonic-build = "0.12.3"
+tonic-build.workspace = true
