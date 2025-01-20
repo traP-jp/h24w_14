@@ -45,10 +45,7 @@ export const Timeline: React.FC = () => {
   }, []);
 
   return (
-    <div
-      id="scrollableDiv"
-      className="h-[400px] overflow-auto py-0 px-4 border border-solid border-[rgba(140,140,140,0.35)]"
-    >
+    <div id="scrollableDiv" className="h-96 overflow-auto px-4">
       <InfiniteScroll
         dataLength={data.length}
         next={loadMoreData}
