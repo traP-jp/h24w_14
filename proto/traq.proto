@@ -35,7 +35,19 @@ message GetChannelPathResponse {
     string channel_path = 1;
 }
 
+message AuthRequest {
+}
+
+message AuthResponse {
+    // リダイレクト先
+    string location = 1;
+}
+
 service TraqService {
+    // traQ OAuth認証
+    // レスポンスのlocationにリダイレクトすることでtraQのOAuth認証を行う
+    rpc Auth(AuthRequest) returns (AuthResponse);
+
     rpc GetChannels(GetChannelsRequest) returns (GetChannelsResponse);
 
     rpc GetChannelPath(GetChannelPathRequest) returns (GetChannelPathResponse);
