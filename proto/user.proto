@@ -2,14 +2,16 @@ syntax = "proto3";
 
 package user;
 
+import "google/protobuf/timestamp.proto";
+
 message User {
     // UUID
     string id = 1;
     // nameとdisplay_nameの違いはtraQと同様
     string name = 2;
     string display_name = 3;
-    // 作成日時 RFC3339 と ISO8601 に準拠
-    string created_at = 4;
+    // 作成日時
+    google.protobuf.Timestamp created_at = 4;
 }
 
 message GetUserRequest {

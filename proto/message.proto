@@ -3,6 +3,8 @@ syntax = "proto3";
 // messageだと予約後に衝突するため
 package msg;
 
+import "google/protobuf/timestamp.proto";
+
 import "world.proto";
 
 message Message {
@@ -14,12 +16,12 @@ message Message {
     world.Coordinate position = 3;
     // メッセージの内容
     string content = 4;
-    // 送信日時 RFC3339 と ISO8601 に準拠
-    string created_at = 5;
+    // 送信日時
+    google.protobuf.Timestamp created_at = 5;
     // 更新日時
-    string updated_at = 6;
+    google.protobuf.Timestamp updated_at = 6;
     // 有効期限
-    string expires_at = 7;
+    google.protobuf.Timestamp expires_at = 7;
 }
 
 message GetMessageRequest {

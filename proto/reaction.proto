@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package reaction;
 
+import "google/protobuf/timestamp.proto";
+
 import "world.proto";
 
 message Reaction {
@@ -13,11 +15,11 @@ message Reaction {
     world.Coordinate position = 3;
     // リアクションの種類
     string kind = 4;
-    // リアクションをした日時 RFC3339 と ISO8601 に準拠
-    string created_at = 5;
+    // リアクションをした日時
+    google.protobuf.Timestamp created_at = 5;
     // 有効期限
     // TODO: このフィールドは必要か？
-    string expires_at = 6;
+    google.protobuf.Timestamp expires_at = 6;
 }
 
 message GetReactionRequest {
