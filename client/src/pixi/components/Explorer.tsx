@@ -6,8 +6,7 @@ export interface Props {
   displayPosition: DisplayPosition;
 }
 
-const Explorer = (props: Props) => {
-  const { displayPosition, imgURL } = props;
+const Explorer: React.FC<Props> = ({ displayPosition, imgURL }) => {
   return (
     <Sprite
       image={imgURL}

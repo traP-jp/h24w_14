@@ -2,15 +2,14 @@ import { Container, Sprite } from "@pixi/react";
 import Rectangle from "./components/Rectangle";
 import "@pixi/events";
 import { DisplayPosition, Position } from "./Position";
+import React from "react";
 
 interface Props {
   userPosition: Position;
   userDisplayPosition: DisplayPosition;
 }
 
-const World = (props: Props) => {
-  const { userPosition, userDisplayPosition } = props;
-
+const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
   return (
     <Container
       width={2000}

@@ -1,6 +1,12 @@
 import { Stage } from "@pixi/react";
 import World from "./World";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Position,
   DisplayPosition,
@@ -18,7 +24,7 @@ const calcNewPosition = (position: Position, diff: Position): Position => {
   return { x, y };
 };
 
-const Canvas = (props: Props) => {
+const Canvas: React.FC<Props> = (props) => {
   const [userPosition, setUserPosition] = useState<Position | null>(null);
   const [fieldSize, setFieldSize] = useState<{
     width: number;
