@@ -9,7 +9,7 @@ export interface DisplayPosition {
 }
 
 export const displayPositionToPosition = (
-  dispayPosition: DisplayPosition,
+  displayPosition: DisplayPosition,
   userPosition: Position,
   userDisplayPosition: DisplayPosition
 ): Position => {
