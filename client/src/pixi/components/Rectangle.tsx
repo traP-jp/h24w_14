@@ -2,7 +2,7 @@ import { Graphics } from "@pixi/react";
 import { useCallback } from "react";
 import * as PIXI from "pixi.js";
 
-interface RectangleProps {
+interface Props {
   lineWidth: number;
   color: number;
   width: number;
@@ -11,7 +11,7 @@ interface RectangleProps {
   fillAlpha?: number;
 }
 
-const Rectangle: React.FC<RectangleProps> = (props) => {
+const Rectangle: React.FC<Props> = (props) => {
   const draw = useCallback(
     (g: PIXI.Graphics) => {
       g.clear();

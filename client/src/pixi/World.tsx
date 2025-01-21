@@ -3,12 +3,12 @@ import Rectangle from "./components/Rectangle";
 import "@pixi/events";
 import { DisplayPosition, Position } from "./Position";
 
-interface WorldProps {
+interface Props {
   userPosition: Position;
   userDisplayPosition: DisplayPosition;
 }
 
-const World = (props: WorldProps) => {
+const World = (props: Props) => {
   const { userPosition, userDisplayPosition } = props;
 
   return (

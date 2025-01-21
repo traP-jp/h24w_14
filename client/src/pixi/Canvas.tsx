@@ -8,7 +8,7 @@ import {
 } from "./Position";
 import Explorer from "./components/Explorer";
 
-interface CanvasProps {
+interface Props {
   className?: string;
 }
 
@@ -18,7 +18,7 @@ const calcNewPosition = (position: Position, diff: Position): Position => {
   return { x, y };
 };
 
-const Canvas = (props: CanvasProps) => {
+const Canvas = (props: Props) => {
   const [userPosition, setUserPosition] = useState<Position | null>(null);
   const [fieldSize, setFieldSize] = useState<{
     width: number;
