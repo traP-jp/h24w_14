@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . --fix --cache",
     "lint:nofix": "eslint . --cache",
-    "format": "prettier --write .",
-    "format:nofix": "prettier --check .",
+    "format": "prettier --write . --cache",
+    "format:nofix": "prettier --check . --cache",
     "preview": "vite preview"
   },
   "dependencies": {
