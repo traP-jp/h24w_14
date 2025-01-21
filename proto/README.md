@@ -14,8 +14,4 @@ graph LR
     Reaction --> World
     Message --> World
     Explore --> World
-    Explore --> SpeakerPhone
-    Explore --> Reaction
-    Explore --> Message
-    Explore --> User
 ```
