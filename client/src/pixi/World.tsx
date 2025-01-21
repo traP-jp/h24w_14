@@ -29,7 +29,7 @@ const World = (props: WorldProps) => {
         color={0xffffff}
         width={2000}
         height={2000}
-        fillColor={0xffffff}
+        fillColor={0xeeeeee}
         fillAlpha={1}
       />
       <Sprite

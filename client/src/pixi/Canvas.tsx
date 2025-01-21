@@ -8,11 +8,8 @@ interface CanvasProps {
 
 const Canvas = (props: CanvasProps) => {
   const [userPosition, setUserPosition] = useState({ x: 400, y: 300 });
-  const [userTargetPosition, setUserTargetPosition] = useState({
-    x: 400,
-    y: 300,
-  });
   const [fieldSize, setFieldSize] = useState({ width: 1000, height: 600 });
+  const [intervalID, setIntervalID] = useState<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
 
   const userDisplayPosition = {
@@ -32,11 +29,10 @@ const Canvas = (props: CanvasProps) => {
       x: width / 2,
       y: height / 2,
     });
-    setUserTargetPosition({ x: width / 2, y: height / 2 });
     // TODO: リサイズオブザーバー入れる
   }, []);
 
-  const updatePosition = (
+  const calcNewPosition = (
     position: { x: number; y: number },
     diff: { x: number; y: number }
   ): { x: number; y: number } => {
@@ -45,23 +41,43 @@ const Canvas = (props: CanvasProps) => {
     return { x, y };
   };
 
-  //TODO: setIntervalにする
-  setTimeout(() => {
-    setUserPosition((position) => {
-      const diff = {
-        x: userTargetPosition.x - position.x,
-        y: userTargetPosition.y - position.y,
-      };
-      if (Math.abs(diff.x) < 1 && Math.abs(diff.y) < 1) {
-        return userTargetPosition;
-      }
-      const nextPosition = updatePosition(position, {
-        x: diff.x / 30,
-        y: diff.y / 30,
+  const onFieldClick = (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+    if (stageRef.current === null) {
+      return;
+    }
+    const stage = stageRef.current;
+    const stageRect = stage.getBoundingClientRect();
+    const clickDisplayPosition = {
+      x: e.clientX - stageRect.left,
+      y: e.clientY - stageRect.top,
+    };
+
+    const clickWorldPosition = {
+      x: clickDisplayPosition.x + userPosition.x - userDisplayPosition.x,
+      y: clickDisplayPosition.y + userPosition.y - userDisplayPosition.y,
+    };
+
+    if (intervalID !== null) {
+      clearInterval(intervalID);
+    }
+    const id = setInterval(() => {
+      setUserPosition((position) => {
+        const diff = {
+          x: clickWorldPosition.x - position.x,
+          y: clickWorldPosition.y - position.y,
+        };
+        if (Math.abs(diff.x) < 3 && Math.abs(diff.y) < 3) {
+          return clickWorldPosition;
+        }
+        const nextPosition = calcNewPosition(position, {
+          x: diff.x / 10,
+          y: diff.y / 10,
+        });
+        return nextPosition;
       });
-      return nextPosition;
-    });
-  }, 1000 / 60);
+    }, 1000 / 60);
+    setIntervalID(id);
+  };
 
   return (
     <div ref={stageRef}>
@@ -69,22 +85,7 @@ const Canvas = (props: CanvasProps) => {
         {...fieldSize}
         options={{ background: 0x1099bb }}
         className={props.className}
-        onClick={(e) => {
-          if (stageRef.current === null) {
-            return;
-          }
-          const stage = stageRef.current;
-          const rect = stage.getBoundingClientRect();
-          const clickDisplayPosition = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          };
-          const clickWorldPosition = {
-            x: clickDisplayPosition.x + userPosition.x - userDisplayPosition.x,
-            y: clickDisplayPosition.y + userPosition.y - userDisplayPosition.y,
-          };
-          setUserTargetPosition(clickWorldPosition);
-        }}
+        onClick={onFieldClick}
       >
         <World
           userPosition={userPosition}
@@ -96,6 +97,7 @@ const Canvas = (props: CanvasProps) => {
         <Sprite
           image={"https://pixijs.io/pixi-react/img/bunny.png"}
           {...userDisplayPosition}
+          anchor={{ x: 0.5, y: 0.5 }}
         />
       </Stage>
     </div>
