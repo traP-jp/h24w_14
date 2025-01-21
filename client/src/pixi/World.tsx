@@ -3,6 +3,7 @@ import Rectangle from "./components/Rectangle";
 import "@pixi/events";
 import { DisplayPosition, Position } from "./Position";
 import React from "react";
+import Message from "./components/Message";
 
 interface Props {
   userPosition: Position;
@@ -55,6 +56,7 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         width={100}
         height={100}
       />
+      <Message />
     </Container>
   );
 };
