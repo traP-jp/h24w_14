@@ -10,6 +10,7 @@
     "lint:nofix": "eslint . --cache",
     "format": "prettier --write . --cache",
     "format:nofix": "prettier --check . --cache",
+    "typecheck": "tsc -b --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
