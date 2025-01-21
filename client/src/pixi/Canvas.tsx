@@ -15,6 +15,11 @@ const Canvas = (props: CanvasProps) => {
   const [fieldSize, setFieldSize] = useState({ width: 1000, height: 600 });
   const stageRef = useRef<HTMLDivElement>(null);
 
+  const userDisplayPosition = {
+    x: fieldSize.width / 2,
+    y: fieldSize.height / 2,
+  };
+
   useEffect(() => {
     const width = (window.innerWidth * 3) / 5;
     const height = window.innerHeight;
@@ -75,8 +80,8 @@ const Canvas = (props: CanvasProps) => {
             y: e.clientY - rect.top,
           };
           const clickWorldPosition = {
-            x: clickDisplayPosition.x + userPosition.x - fieldSize.width / 2,
-            y: clickDisplayPosition.y + userPosition.y - fieldSize.height / 2,
+            x: clickDisplayPosition.x + userPosition.x - userDisplayPosition.x,
+            y: clickDisplayPosition.y + userPosition.y - userDisplayPosition.y,
           };
           setUserTargetPosition(clickWorldPosition);
         }}
@@ -90,8 +95,7 @@ const Canvas = (props: CanvasProps) => {
         />
         <Sprite
           image={"https://pixijs.io/pixi-react/img/bunny.png"}
-          x={fieldSize.width / 2}
-          y={fieldSize.height / 2}
+          {...userDisplayPosition}
         />
       </Stage>
     </div>
