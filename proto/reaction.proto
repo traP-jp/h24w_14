@@ -32,12 +32,10 @@ message GetReactionResponse {
 
 // リアクションの作成
 message CreateReactionRequest {
-    // リアクションをするメッセージのID
-    string message_id = 1;
-    // リアクションの種類
-    string kind = 2;
     // リアクションをする座標
-    world.Coordinate position = 3;
+    world.Coordinate position = 2;
+    // リアクションの種類
+    string kind = 1;
 }
 
 message CreateReactionResponse {

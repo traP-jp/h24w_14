@@ -11,7 +11,7 @@ message SpeakerPhone {
     string id = 1;
     // 座標
     world.Coordinate position = 2;
-    // メッセージを受信できる範囲
+    // メッセージを受信できる範囲(半径)
     uint32 receive_range = 3;
     // SpeakerPhoneの種類
     reserved 4;
@@ -34,11 +34,11 @@ message GetSpeakerPhoneResponse {
 }
 
 message CreateSpeakerPhoneRequest {
+    // スピーカーフォンの座標
+    world.Coordinate position = 1;
     // SpeakerPhoneの名前
     // 必ず`#`から始まる
-    string name = 1;
-    // スピーカーフォンの座標
-    world.Coordinate position = 2;
+    string name = 2;
 }
 
 message CreateSpeakerPhoneResponse {
