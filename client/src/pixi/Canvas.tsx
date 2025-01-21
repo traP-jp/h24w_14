@@ -1,6 +1,6 @@
 import { Stage } from "@pixi/react";
 import World from "./World";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Position,
   DisplayPosition,
@@ -11,6 +11,12 @@ import Explorer from "./components/Explorer";
 interface CanvasProps {
   className?: string;
 }
+
+const calcNewPosition = (position: Position, diff: Position): Position => {
+  const x = Math.max(Math.min(position.x + diff.x, 2000), 0);
+  const y = Math.max(Math.min(position.y + diff.y, 2000), 0);
+  return { x, y };
+};
 
 const Canvas = (props: CanvasProps) => {
   const [userPosition, setUserPosition] = useState<Position | null>(null);
@@ -46,21 +52,7 @@ const Canvas = (props: CanvasProps) => {
     };
   }, [fieldSize]);
 
-  const calcNewPosition = (position: Position, diff: Position): Position => {
-    const x = Math.max(Math.min(position.x + diff.x, 2000), 0);
-    const y = Math.max(Math.min(position.y + diff.y, 2000), 0);
-    return { x, y };
-  };
-
-  if (
-    fieldSize === null ||
-    userPosition === null ||
-    userDisplayPosition === null
-  ) {
-    return;
-  }
-
-  const updateUserPosition = (targetPosition: Position) => {
+  const updateUserPosition = useCallback((targetPosition: Position) => {
     setUserPosition((position) => {
       if (position === null) {
         return null;
@@ -78,36 +70,51 @@ const Canvas = (props: CanvasProps) => {
       });
       return nextPosition;
     });
-  };
+  }, []);
 
-  const onFieldClick = (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
-    if (stageRef.current === null) {
-      return;
-    }
-    const stage = stageRef.current;
-    const stageRect = stage.getBoundingClientRect();
+  const onFieldClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+      if (stageRef.current === null) {
+        return;
+      }
+      const stage = stageRef.current;
+      const stageRect = stage.getBoundingClientRect();
 
-    // クリックされた位置の、左画面の左上からの座標
-    const clickDisplayPosition: DisplayPosition = {
-      left: e.clientX - stageRect.left,
-      top: e.clientY - stageRect.top,
-    };
+      // クリックされた位置の、左画面の左上からの座標
+      const clickDisplayPosition: DisplayPosition = {
+        left: e.clientX - stageRect.left,
+        top: e.clientY - stageRect.top,
+      };
 
-    // クリックされた場所に対応するワールド上の座標
-    const clickPosition = displayPositionToPosition(
-      clickDisplayPosition,
-      userPosition,
-      userDisplayPosition,
-    );
+      if (userPosition === null || userDisplayPosition === null) {
+        return;
+      }
 
-    if (intervalID !== null) {
-      clearInterval(intervalID);
-    }
-    const id = setInterval(() => {
-      updateUserPosition(clickPosition);
-    }, 1000 / 60);
-    setIntervalID(id);
-  };
+      // クリックされた場所に対応するワールド上の座標
+      const clickPosition = displayPositionToPosition(
+        clickDisplayPosition,
+        userPosition,
+        userDisplayPosition,
+      );
+
+      if (intervalID !== null) {
+        clearInterval(intervalID);
+      }
+      const id = setInterval(() => {
+        updateUserPosition(clickPosition);
+      }, 1000 / 60);
+      setIntervalID(id);
+    },
+    [intervalID, updateUserPosition, userDisplayPosition, userPosition],
+  );
+
+  if (
+    fieldSize === null ||
+    userPosition === null ||
+    userDisplayPosition === null
+  ) {
+    return;
+  }
 
   return (
     <div ref={stageRef}>
