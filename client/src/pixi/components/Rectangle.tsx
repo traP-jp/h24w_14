@@ -23,13 +23,13 @@ const Rectangle: React.FC<Props> = (props) => {
         props.lineWidth,
         props.lineWidth,
         props.width - 2 * props.lineWidth,
-        props.height - 2 * props.lineWidth
+        props.height - 2 * props.lineWidth,
       );
       if (props.fillColor !== undefined) {
         g.endFill();
       }
     },
-    [props]
+    [props],
   );
 
   return <Graphics draw={draw} />;
