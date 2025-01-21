@@ -113,9 +113,9 @@ message CreateSpeakerPhoneResponse {
 
 service ExploreService {
     // 探索ストリーム
-    // ExploreField: 探索者が移動する度に送信する
-    // ExploreFieldEvents: 他の探索者の移動、メッセージの投稿等のイベントを送信する
-    //     ExploreFieldの更新に伴うイベントも送信する
+    // ExploreField: 探索者が移動する度にクライアントから送信する
+    // ExploreFieldEvents: 他の探索者の移動、メッセージの投稿等のイベントを受信する
+    //     ExploreFieldの更新に伴って既存の探索者、既存のメッセージも受信する
     rpc Explore(stream ExploreField) returns (stream ExploreFieldEvents);
 
     // メッセージの作成
