@@ -1,6 +1,6 @@
 import { Stage } from "@pixi/react";
 import World from "./World";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Position,
   DisplayPosition,
@@ -36,20 +36,29 @@ const Canvas = (props: CanvasProps) => {
     // TODO: リサイズオブザーバー入れる
   }, []);
 
-  if (fieldSize === null || userPosition === null) {
-    return;
-  }
-
-  const userDisplayPosition = {
-    left: fieldSize.width / 2,
-    top: fieldSize.height / 2,
-  };
+  const userDisplayPosition = useMemo(() => {
+    if (fieldSize === null) {
+      return null;
+    }
+    return {
+      left: fieldSize.width / 2,
+      top: fieldSize.height / 2,
+    };
+  }, [fieldSize]);
 
   const calcNewPosition = (position: Position, diff: Position): Position => {
     const x = Math.max(Math.min(position.x + diff.x, 2000), 0);
     const y = Math.max(Math.min(position.y + diff.y, 2000), 0);
     return { x, y };
   };
+
+  if (
+    fieldSize === null ||
+    userPosition === null ||
+    userDisplayPosition === null
+  ) {
+    return;
+  }
 
   const updateUserPosition = (targetPosition: Position) => {
     setUserPosition((position) => {
