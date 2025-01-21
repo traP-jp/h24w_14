@@ -56,10 +56,10 @@ message ExplorerUpdate {
 // フィールド探索中のイベント
 message ExplorationFieldEvents {
     // 新しいメッセージのIDリスト
-    // 直近に投稿されたメッセージ、以前に投稿されたがUserFieldに入ったメッセージを含む
+    // 直近に投稿されたメッセージ、以前に投稿されたがExplorationFieldに入ったメッセージを含む
     repeated string messages = 1;
     // 新しいスピーカーフォンのIDリスト
-    // 直近に設置されたスピーカーフォン、以前に設置されたがUserFieldに入ったスピーカーフォンを含む
+    // 直近に設置されたスピーカーフォン、以前に設置されたがExplorationFieldに入ったスピーカーフォンを含む
     repeated string speaker_phones = 2;
     // 新しいリアクションのIDリスト
     // 直近のリアクションのみを含む
@@ -68,6 +68,8 @@ message ExplorationFieldEvents {
     // 探索者の更新全般
     // 新しくオンラインになったユーザー、既にオンラインで移動したユーザー、オフラインになったユーザーを含む
     repeated ExplorerUpdate explorers_update = 4;
+    // 整合性チェックのために追加するかも
+    // world.Coordinate position = 5;
 }
 
 service ExploreService {
