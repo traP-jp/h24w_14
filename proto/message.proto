@@ -33,11 +33,21 @@ message GetMessageResponse {
     Message message = 1;
 }
 
+message CreateMessageRequest {
+    // メッセージの座標
+    world.Coordinate position = 1;
+    // メッセージの内容
+    string content = 2;
+}
+
+message CreateMessageResponse {
+    Message message = 1;
+}
+
 service MessageService {
     rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
 
-    // メッセージの作成はフィールド探索(explore.proto)に記述
-    // rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
+    rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
 
     // メッセージの編集、削除はしない
     // rpc UpdateMessage(UpdateMessageRequest) returns (UpdateMessageResponse);

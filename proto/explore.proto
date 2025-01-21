@@ -3,9 +3,6 @@ syntax = "proto3";
 package explore;
 
 import "world.proto";
-import "message.proto";
-import "reaction.proto";
-import "speaker_phone.proto";
 
 // 探索者; 探索中のユーザー
 message Explorer {
@@ -73,59 +70,10 @@ message ExplorationFieldEvents {
     repeated ExplorerUpdate explorers_update = 4;
 }
 
-// メッセージの作成
-message CreateMessageRequest {
-    // メッセージの内容
-    string content = 1;
-    // メッセージの座標
-    world.Coordinate position = 2;
-}
-
-message CreateMessageResponse {
-    msg.Message message = 1;
-}
-
-// リアクションの作成
-message CreateReactionRequest {
-    // リアクションをするメッセージのID
-    string message_id = 1;
-    // リアクションの種類
-    string kind = 2;
-    // リアクションをする座標
-    world.Coordinate position = 3;
-}
-
-message CreateReactionResponse {
-    reaction.Reaction reaction = 1;
-}
-
-// スピーカーフォンの作成
-message CreateSpeakerPhoneRequest {
-    // traQチャンネルのパス
-    string channel_path = 1;
-    // スピーカーフォンの座標
-    world.Coordinate position = 2;
-}
-
-message CreateSpeakerPhoneResponse {
-    speaker_phone.SpeakerPhone speaker_phone = 1;
-}
-
 service ExploreService {
     // 探索ストリーム
     // ExplorationField: 探索者が移動する度にクライアントから送信する
     // ExplorationFieldEvents: 他の探索者の移動、メッセージの投稿等のイベントを受信する
     //     ExplorationFieldの更新に伴って既存の探索者、既存のメッセージも受信する
     rpc Explore(stream ExplorationField) returns (stream ExplorationFieldEvents);
-
-    // メッセージの作成
-    rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
-
-    // リアクションの作成
-    rpc CreateReaction(CreateReactionRequest) returns (CreateReactionResponse);
-
-    // スピーカーフォンの作成
-    rpc CreateSpeakerPhone(CreateSpeakerPhoneRequest) returns (CreateSpeakerPhoneResponse);
-
-    // TODO: スピーカーフォンの編集、削除
 }
