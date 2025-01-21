@@ -4,7 +4,7 @@
 graph LR
     World[world.proto]
     User[user.proto]
-    Traq[traq.proto]
+    Auth[auth.proto]
     SpeakerPhone[speaker_phone.proto]
     Reaction[reaction.proto]
     Message[message.proto]

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package traq;
+package auth;
 
 message AuthRequest {}
 
@@ -9,8 +9,8 @@ message AuthResponse {
     string location = 1;
 }
 
-service TraqService {
-    // traQ OAuth認証
-    // レスポンスのlocationにリダイレクトすることでtraQのOAuth認証を行う
+service AuthService {
+    // OAuth認証
+    // レスポンスのlocationにリダイレクトすることでOAuth認証を行う
     rpc Auth(AuthRequest) returns (AuthResponse);
 }
