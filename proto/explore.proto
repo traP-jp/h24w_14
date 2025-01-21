@@ -23,7 +23,7 @@ message ExplorationField {
     world.Size size = 2;
 }
 
-message ExplorerUpdate {
+message ExplorerAction {
     // 探索者がオンラインになった時
     message Arrive {
         // 探索者のID
@@ -46,7 +46,7 @@ message ExplorerUpdate {
         string id = 1;
     }
 
-    oneof update {
+    oneof action {
         Arrive arrive = 1;
         Move move = 2;
         Leave leave = 3;
@@ -67,7 +67,7 @@ message ExplorationFieldEvents {
     repeated string reactions = 3;
     // 探索者の更新全般
     // 新しくオンラインになったユーザー、既にオンラインで移動したユーザー、オフラインになったユーザーを含む
-    repeated ExplorerUpdate explorers_update = 4;
+    repeated ExplorerAction explorer_actions = 4;
     // 整合性チェックのために追加するかも
     // world.Coordinate position = 5;
 }
