@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package reaction;
+
+import "google/protobuf/timestamp.proto";
+
+import "world.proto";
+
+message Reaction {
+    // UUID
+    string id = 1;
+    // リアクションをしたユーザーのID
+    string user_id = 2;
+    // リアクションをした座標
+    world.Coordinate position = 3;
+    // リアクションの種類
+    string kind = 4;
+    // リアクションをした日時
+    google.protobuf.Timestamp created_at = 5;
+    // ユーザーがアクセスできる期限
+    // TODO: このフィールドは必要か？
+    google.protobuf.Timestamp expires_at = 6;
+}
+
+message GetReactionRequest {
+    string id = 1;
+}
+
+message GetReactionResponse {
+    Reaction reaction = 1;
+}
+
+// リアクションの作成
+message CreateReactionRequest {
+    // リアクションをする座標
+    world.Coordinate position = 2;
+    // リアクションの種類
+    string kind = 1;
+}
+
+message CreateReactionResponse {
+    reaction.Reaction reaction = 1;
+}
+
+service ReactionService {
+    rpc GetReaction(GetReactionRequest) returns (GetReactionResponse);
+
+    rpc CreateReaction(CreateReactionRequest) returns (CreateReactionResponse);
+
+    // リアクションの編集、削除はしない
+    // rpc UpdateReaction(UpdateReactionRequest) returns (UpdateReactionResponse);
+    // rpc DeleteReaction(DeleteReactionRequest) returns (DeleteReactionResponse);
+}
