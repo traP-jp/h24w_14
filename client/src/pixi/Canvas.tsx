@@ -13,18 +13,13 @@ interface CanvasProps {
 }
 
 const Canvas = (props: CanvasProps) => {
-  const [userPosition, setUserPosition] = useState<Position>({
-    x: 400,
-    y: 300,
-  });
-  const [fieldSize, setFieldSize] = useState({ width: 1000, height: 600 });
+  const [userPosition, setUserPosition] = useState<Position | null>(null);
+  const [fieldSize, setFieldSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const [intervalID, setIntervalID] = useState<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-
-  const userDisplayPosition = {
-    left: fieldSize.width / 2,
-    top: fieldSize.height / 2,
-  };
 
   useEffect(() => {
     const width = (window.innerWidth * 3) / 5;
@@ -41,6 +36,15 @@ const Canvas = (props: CanvasProps) => {
     // TODO: リサイズオブザーバー入れる
   }, []);
 
+  if (fieldSize === null || userPosition === null) {
+    return;
+  }
+
+  const userDisplayPosition = {
+    left: fieldSize.width / 2,
+    top: fieldSize.height / 2,
+  };
+
   const calcNewPosition = (position: Position, diff: Position): Position => {
     const x = Math.max(Math.min(position.x + diff.x, 2000), 0);
     const y = Math.max(Math.min(position.y + diff.y, 2000), 0);
@@ -49,6 +53,9 @@ const Canvas = (props: CanvasProps) => {
 
   const updateUserPosition = (targetPosition: Position) => {
     setUserPosition((position) => {
+      if (position === null) {
+        return null;
+      }
       const diff = {
         x: targetPosition.x - position.x,
         y: targetPosition.y - position.y,
@@ -81,7 +88,7 @@ const Canvas = (props: CanvasProps) => {
     const clickPosition = displayPositionToPosition(
       clickDisplayPosition,
       userPosition,
-      userDisplayPosition
+      userDisplayPosition,
     );
 
     if (intervalID !== null) {
