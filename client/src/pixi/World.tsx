@@ -1,15 +1,11 @@
 import { Container, Sprite } from "@pixi/react";
 import Rectangle from "./components/Rectangle";
 import "@pixi/events";
-
-interface Point {
-  x: number;
-  y: number;
-}
+import { DisplayPosition, Position } from "./Position";
 
 interface WorldProps {
-  userPosition: Point;
-  userDisplayPosition: Point;
+  userPosition: Position;
+  userDisplayPosition: DisplayPosition;
 }
 
 const World = (props: WorldProps) => {
@@ -19,8 +15,8 @@ const World = (props: WorldProps) => {
     <Container
       width={2000}
       height={2000}
-      x={-userPosition.x + userDisplayPosition.x}
-      y={-userPosition.y + userDisplayPosition.y}
+      x={-userPosition.x + userDisplayPosition.left}
+      y={-userPosition.y + userDisplayPosition.top}
       anchor={{ x: 0, y: 0 }}
       interactive={true}
     >
