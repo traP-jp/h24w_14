@@ -65,8 +65,8 @@ message ExploreFieldEvents {
     // 直近に設置されたスピーカーフォン、以前に設置されたがUserFieldに入ったスピーカーフォンを含む
     repeated string speaker_phones = 2;
     // 新しいリアクションのIDリスト
-    // 直近にリアクションされたメッセージのみを含む
-    // 以前にリアクションされたメッセージは含まない; すぐに揮発して見えなくなるため
+    // 直近のリアクションのみを含む
+    // 以前のリアクションは含まない; すぐに揮発して見えなくなるため
     repeated string reactions = 3;
     // 探索者の更新全般
     // 新しくオンラインになったユーザー、既にオンラインで移動したユーザー、オフラインになったユーザーを含む
@@ -105,8 +105,6 @@ message CreateSpeakerPhoneRequest {
     string channel_path = 1;
     // スピーカーフォンの座標
     world.Coordinate position = 2;
-    // 有効期限
-    string expires_at = 3;
 }
 
 message CreateSpeakerPhoneResponse {

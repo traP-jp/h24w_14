@@ -17,7 +17,7 @@ message Reaction {
     string kind = 4;
     // リアクションをした日時
     google.protobuf.Timestamp created_at = 5;
-    // 有効期限
+    // ユーザーがアクセスできる期限
     // TODO: このフィールドは必要か？
     google.protobuf.Timestamp expires_at = 6;
 }

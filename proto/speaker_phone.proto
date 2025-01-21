@@ -11,12 +11,14 @@ message SpeakerPhone {
     string id = 1;
     // 座標
     world.Coordinate position = 2;
+    // メッセージを受信できる範囲
+    uint32 receive_range = 3;
     // traQチャンネルのパス
-    string channel_path = 3;
+    string channel_path = 4;
     // 送信日時
-    google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp created_at = 5;
     // 更新日時
-    google.protobuf.Timestamp updated_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
 }
 
 message GetSpeakerPhoneRequest {

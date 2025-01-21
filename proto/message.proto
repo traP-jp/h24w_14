@@ -19,8 +19,9 @@ message Message {
     // 送信日時
     google.protobuf.Timestamp created_at = 5;
     // 更新日時
+    // 今の所メッセージの更新はしないが、将来的には更新できるようにするかも
     google.protobuf.Timestamp updated_at = 6;
-    // 有効期限
+    // ユーザーがアクセスできる期限
     google.protobuf.Timestamp expires_at = 7;
 }
 
