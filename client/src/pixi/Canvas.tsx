@@ -1,4 +1,4 @@
-import { Sprite, Stage } from "@pixi/react";
+import { Stage } from "@pixi/react";
 import World from "./World";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -6,6 +6,7 @@ import {
   DisplayPosition,
   displayPositionToPosition,
 } from "./Position";
+import Explorer from "./components/Explorer";
 
 interface CanvasProps {
   className?: string;
@@ -104,11 +105,9 @@ const Canvas = (props: CanvasProps) => {
           userPosition={userPosition}
           userDisplayPosition={userDisplayPosition}
         />
-        <Sprite
-          image={"https://pixijs.io/pixi-react/img/bunny.png"}
-          x={userDisplayPosition.left}
-          y={userDisplayPosition.top}
-          anchor={{ x: 0.5, y: 0.5 }}
+        <Explorer
+          imgURL="https://q.trap.jp/api/v3/public/icon/ikura-hamu"
+          displayPosition={userDisplayPosition}
         />
       </Stage>
     </div>
