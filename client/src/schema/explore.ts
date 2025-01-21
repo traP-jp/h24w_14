@@ -27,8 +27,8 @@ export interface Explorer {
 export interface ExplorationField {
   /** 中心座標 */
   position:
-  | Coordinate
-  | undefined;
+    | Coordinate
+    | undefined;
   /** 表示範囲 */
   size: Size | undefined;
 }
@@ -683,30 +683,6 @@ export const ExplorationFieldEvents: MessageFns<ExplorationFieldEvents> = {
     return message;
   },
 };
-
-/**
- * 探索ストリーム
- * ExplorationField: 探索者が移動する度にクライアントから送信する
- * ExplorationFieldEvents: 他の探索者の移動、メッセージの投稿等のイベントを受信する
- *     ExplorationFieldの更新に伴って既存の探索者、既存のメッセージも受信する
- * rpc Explore(stream ExplorationField) returns (stream ExplorationFieldEvents);
- */
-export interface ExploreService {
-}
-
-export const ExploreServiceServiceName = "explore.ExploreService";
-export class ExploreServiceClientImpl implements ExploreService {
-  private readonly rpc: Rpc;
-  private readonly service: string;
-  constructor(rpc: Rpc, opts?: { service?: string }) {
-    this.service = opts?.service || ExploreServiceServiceName;
-    this.rpc = rpc;
-  }
-}
-
-interface Rpc {
-  request(service: string, method: string, data: Uint8Array): Promise<Uint8Array>;
-}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
