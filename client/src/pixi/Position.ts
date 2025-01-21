@@ -11,10 +11,10 @@ export interface DisplayPosition {
 export const displayPositionToPosition = (
   displayPosition: DisplayPosition,
   userPosition: Position,
-  userDisplayPosition: DisplayPosition
+  userDisplayPosition: DisplayPosition,
 ): Position => {
   return {
-    x: dispayPosition.left + userPosition.x - userDisplayPosition.left,
-    y: dispayPosition.top + userPosition.y - userDisplayPosition.top,
+    x: displayPosition.left + userPosition.x - userDisplayPosition.left,
+    y: displayPosition.top + userPosition.y - userDisplayPosition.top,
   };
 };
