@@ -13,8 +13,9 @@ message SpeakerPhone {
     world.Coordinate position = 2;
     // メッセージを受信できる範囲
     uint32 receive_range = 3;
-    // traQチャンネルのパス
-    string channel_path = 4;
+    // SpeakerPhoneの名前
+    // 必ず`#`から始まる
+    string name = 4;
     // 送信日時
     google.protobuf.Timestamp created_at = 5;
     // 更新日時
@@ -30,8 +31,9 @@ message GetSpeakerPhoneResponse {
 }
 
 message CreateSpeakerPhoneRequest {
-    // traQチャンネルのパス
-    string channel_path = 1;
+    // SpeakerPhoneの名前
+    // 必ず`#`から始まる
+    string name = 1;
     // スピーカーフォンの座標
     world.Coordinate position = 2;
 }
@@ -40,11 +42,31 @@ message CreateSpeakerPhoneResponse {
     speaker_phone.SpeakerPhone speaker_phone = 1;
 }
 
+message GetAvailableChannelsRequest {}
+
+message GetAvailableChannelsResponse {
+    repeated string channels = 1;
+}
+
+message SearchChannelsRequest {
+    string name = 1;
+}
+
+message SearchChannelsResponse {
+    repeated string hits = 1;
+}
 
 service SpeakerPhoneService {
     rpc GetSpeakerPhone(GetSpeakerPhoneRequest) returns (GetSpeakerPhoneResponse);
 
     rpc CreateSpeakerPhone(CreateSpeakerPhoneRequest) returns (CreateSpeakerPhoneResponse);
+
+    // SpeakerPhoneの名前として使用可能な文字列のリストを取得する
+    // 例: `#general`, `#random`
+    rpc GetAvailableChannels(GetAvailableChannelsRequest) returns (GetAvailableChannelsResponse);
+
+    // SpeakerPhoneの名前を検索する
+    rpc SearchChannels(SearchChannelsRequest) returns (SearchChannelsResponse);
 
     // TODO
     // rpc UpdateSpeakerPhone(UpdateSpeakerPhoneRequest) returns (UpdateSpeakerPhoneResponse);
