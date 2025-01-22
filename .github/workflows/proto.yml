@@ -1,0 +1,24 @@
+name: Protobuf Check
+
+on:
+  pull_request:
+    paths:
+      - "proto/*.proto"
+  push:
+    branches:
+      - main
+    paths:
+      - "proto/*.proto"
+
+jobs:
+  protobuf-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler clang-format
+      - run: protoc --proto_path=. --cpp_out=/tmp *.proto
+        working-directory: "proto"
+      - run: clang-format --style=file --dry-run --Werror *.proto
+        working-directory: "proto"
