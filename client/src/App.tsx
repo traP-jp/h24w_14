@@ -1,7 +1,7 @@
 import "./App.css";
 
-import { Timeline } from "./timeline/timeline";
 import Canvas from "./pixi/Canvas";
+import { Timeline } from "./timeline/timeline";
 
 const App = () => {
   return (
