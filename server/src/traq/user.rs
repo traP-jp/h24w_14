@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(transparent)]
 pub struct TraqUserId(pub uuid::Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -34,7 +35,6 @@ pub trait TraqUserService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         req: GetTraqUser,
     ) -> BoxFuture<'a, Result<TraqUser, Self::Error>>;
-
     fn register_traq_user<'a>(
         &'a self,
         ctx: &'a Context,
