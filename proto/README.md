@@ -10,6 +10,9 @@ graph LR
     Message[message.proto]
     Explore[explore.proto]
 
+    Explore --> SpeakerPhone
+    Explore --> Reaction
+    Explore --> Message
     SpeakerPhone --> World
     Reaction --> World
     Message --> World
