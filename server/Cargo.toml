@@ -23,7 +23,6 @@ http-body = "1.0.1"
 http-body-util = "0.1.2"
 hyper = { version = "1.5.2", features = ["server", "http1", "http2"] }
 hyper-util = { version = "0.1.10", features = ["tokio", "server-auto", "server-graceful", "service"] }
-jsonwebtoken = "9.3.0"
 oauth2.version = "5.0.0"
 oauth2.default-features = false
 oauth2.features = ["reqwest", "rustls-tls"]
@@ -73,7 +72,6 @@ http-body.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
 hyper-util.workspace = true
-jsonwebtoken.workspace = true
 oauth2.workspace = true
 percent-encoding.workspace = true
 prost.workspace = true
