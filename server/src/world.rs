@@ -1,9 +1,17 @@
 //! `world.proto`
 
+pub mod error;
+pub mod grpc;
+mod r#impl;
+
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Size {
@@ -78,5 +86,17 @@ pub trait ProvideWorldService: Send + Sync + 'static {
         self.world_service().check_coordinate(ctx, req)
     }
 
-    // TODO: build_server(this: Arc<Self>) -> WorldServiceServer<...>
+    fn build_server(this: Arc<Self>) -> WorldServiceServer<Self>
+    where
+        Self: Sized,
+    {
+        let service = grpc::ServiceImpl::new(this);
+        WorldServiceServer::new(service)
+    }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct WorldServiceImpl;
+
+pub type WorldServiceServer<State> =
+    schema::world::world_service_server::WorldServiceServer<grpc::ServiceImpl<State>>;
