@@ -1,18 +1,28 @@
 import React from "react";
 import speakerPhone from "../../assets/speakerPhone.svg";
-import { Sprite } from "@pixi/react";
+import { Container, Sprite } from "@pixi/react";
+import Circle from "./Circle";
+import { themeColors } from "../theme";
 
 const speakerPhoneIconSize = 30;
 
 const SpeakerPhone: React.FC = () => {
   return (
-    <Sprite
-      image={speakerPhone}
-      x={200}
-      y={200}
-      width={speakerPhoneIconSize}
-      height={speakerPhoneIconSize}
-    />
+    <Container x={200} y={200}>
+      <Circle
+        x={0}
+        y={0}
+        radius={200}
+        lineWidth={2}
+        color={themeColors.accentSecondary}
+      />
+      <Sprite
+        image={speakerPhone}
+        width={speakerPhoneIconSize}
+        height={speakerPhoneIconSize}
+        anchor={0.5}
+      />
+    </Container>
   );
 };
 
