@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+// messageだと予約後に衝突するため
+package msg;
+
+import "google/protobuf/timestamp.proto";
+
+import "world.proto";
+
+message Message {
+    // UUID
+    string id = 1;
+    // 送信者のユーザーID
+    string user_id = 2;
+    // メッセージの座標
+    world.Coordinate position = 3;
+    // メッセージの内容
+    string content = 4;
+    // 送信日時
+    google.protobuf.Timestamp created_at = 5;
+    // 更新日時
+    // 今の所メッセージの更新はしないが、将来的には更新できるようにするかも
+    google.protobuf.Timestamp updated_at = 6;
+    // ユーザーがアクセスできる期限
+    google.protobuf.Timestamp expires_at = 7;
+}
+
+message GetMessageRequest {
+    string id = 1;
+}
+
+message GetMessageResponse {
+    Message message = 1;
+}
+
+message CreateMessageRequest {
+    // メッセージの座標
+    world.Coordinate position = 1;
+    // メッセージの内容
+    string content = 2;
+}
+
+message CreateMessageResponse {
+    Message message = 1;
+}
+
+service MessageService {
+    rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+
+    rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
+
+    // メッセージの編集、削除はしない
+    // rpc UpdateMessage(UpdateMessageRequest) returns (UpdateMessageResponse);
+    // rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+}

@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package explore;
+
+import "world.proto";
+
+// 探索者; 探索中のユーザー
+message Explorer {
+    // UUID (ULIDかも) ユーザーIDとは別物
+    string id = 1;
+    // ユーザーID
+    // ユーザーの情報はuser.protoに記述
+    string user_id = 2;
+    // そのユーザーの現在地 座標
+    world.Coordinate position = 3;
+}
+
+// 探索者が一度に表示できる領域
+message ExplorationField {
+    // 中心座標
+    world.Coordinate position = 1;
+    // 表示範囲
+    world.Size size = 2;
+}
+
+message ExplorerAction {
+    // 探索者がオンラインになった時
+    message Arrive {
+        // 探索者のID
+        string id = 1;
+        // 探索者の現在地
+        world.Coordinate position = 2;
+    }
+
+    // 探索者が移動した時
+    message Move {
+        // 探索者のID
+        string id = 1;
+        // 探索者の現在地
+        world.Coordinate position = 2;
+    }
+
+    // 探索者がオフラインになった時
+    message Leave {
+        // 探索者のID
+        string id = 1;
+    }
+
+    oneof action {
+        Arrive arrive = 1;
+        Move move = 2;
+        Leave leave = 3;
+    }
+}
+
+// フィールド探索中のイベント
+message ExplorationFieldEvents {
+    // 新しいメッセージのIDリスト
+    // 直近に投稿されたメッセージ、以前に投稿されたがExplorationFieldに入ったメッセージを含む
+    repeated string messages = 1;
+    // 新しいスピーカーフォンのIDリスト
+    // 直近に設置されたスピーカーフォン、以前に設置されたがExplorationFieldに入ったスピーカーフォンを含む
+    repeated string speaker_phones = 2;
+    // 新しいリアクションのIDリスト
+    // 直近のリアクションのみを含む
+    // 以前のリアクションは含まない; すぐに揮発して見えなくなるため
+    repeated string reactions = 3;
+    // 探索者の更新全般
+    // 新しくオンラインになったユーザー、既にオンラインで移動したユーザー、オフラインになったユーザーを含む
+    repeated ExplorerAction explorer_actions = 4;
+    // 整合性チェックのために追加するかも
+    // world.Coordinate position = 5;
+}
+
+// NOTE: 不要なコードを生成させないためにドキュメントとしてのみ残してある
+// service ExploreService {
+//     // 探索ストリーム
+//     // ExplorationField: 探索者が移動する度にクライアントから送信する
+//     // ExplorationFieldEvents: 他の探索者の移動、メッセージの投稿等のイベントを受信する
+//     //     ExplorationFieldの更新に伴って既存の探索者、既存のメッセージも受信する
+//     rpc Explore(stream ExplorationField) returns (stream ExplorationFieldEvents);
+// }

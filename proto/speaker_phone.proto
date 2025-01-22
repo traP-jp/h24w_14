@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package speaker_phone;
+
+import "google/protobuf/timestamp.proto";
+
+import "world.proto";
+
+message SpeakerPhone {
+    // UUID
+    string id = 1;
+    // 座標
+    world.Coordinate position = 2;
+    // メッセージを受信できる範囲(半径)
+    uint32 receive_range = 3;
+    // SpeakerPhoneの種類
+    reserved 4;
+    reserved "type", "name_type";
+    // SpeakerPhoneの名前
+    // 必ず`#`から始まる
+    string name = 5;
+    // 送信日時
+    google.protobuf.Timestamp created_at = 6;
+    // 更新日時
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+message GetSpeakerPhoneRequest {
+    string id = 1;
+}
+
+message GetSpeakerPhoneResponse {
+    SpeakerPhone speaker_phone = 1;
+}
+
+message CreateSpeakerPhoneRequest {
+    // スピーカーフォンの座標
+    world.Coordinate position = 1;
+    // SpeakerPhoneの名前
+    // 必ず`#`から始まる
+    string name = 2;
+}
+
+message CreateSpeakerPhoneResponse {
+    speaker_phone.SpeakerPhone speaker_phone = 1;
+}
+
+message GetAvailableChannelsRequest {}
+
+message GetAvailableChannelsResponse {
+    repeated string channels = 1;
+}
+
+message SearchChannelsRequest {
+    string name = 1;
+}
+
+message SearchChannelsResponse {
+    repeated string hits = 1;
+}
+
+service SpeakerPhoneService {
+    rpc GetSpeakerPhone(GetSpeakerPhoneRequest) returns (GetSpeakerPhoneResponse);
+
+    rpc CreateSpeakerPhone(CreateSpeakerPhoneRequest) returns (CreateSpeakerPhoneResponse);
+
+    // SpeakerPhoneの名前として使用可能な文字列のリストを取得する
+    // 例: `#general`, `#random`
+    rpc GetAvailableChannels(GetAvailableChannelsRequest) returns (GetAvailableChannelsResponse);
+
+    // SpeakerPhoneの名前を検索する
+    rpc SearchChannels(SearchChannelsRequest) returns (SearchChannelsResponse);
+
+    // TODO
+    // rpc UpdateSpeakerPhone(UpdateSpeakerPhoneRequest) returns (UpdateSpeakerPhoneResponse);
+    // rpc DeleteSpeakerPhone(DeleteSpeakerPhoneRequest) returns (DeleteSpeakerPhoneResponse);
+}
