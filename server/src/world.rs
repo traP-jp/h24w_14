@@ -1,9 +1,14 @@
 //! `world.proto`
 
+pub mod error;
+mod r#impl;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Size {
