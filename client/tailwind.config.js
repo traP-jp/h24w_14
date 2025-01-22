@@ -4,9 +4,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        "background-default-default": "#FFFFFF",
-        "background-default-secondary": "#F5F5F5",
-        "background-default-tertiary": "#D9D9D9",
+        "background-primary": "#FFFFFF",
+        "background-secondary": "#F5F5F5",
+        "background-tertiary": "#D9D9D9",
         "text-primary": "#1E1E1E",
         "text-secondary": "#757575",
         "text-tertiary": "#B3B3B3",
