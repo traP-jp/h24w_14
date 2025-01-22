@@ -3,6 +3,7 @@ import Rectangle from "./components/Rectangle";
 import "@pixi/events";
 import { DisplayPosition, Position } from "./Position";
 import React from "react";
+import Message from "./components/Message";
 
 interface Props {
   userPosition: Position;
@@ -54,6 +55,14 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         y={1900}
         width={100}
         height={100}
+      />
+      <Message
+        messageText={"メッセージ".repeat(20)}
+        displayPosition={{ left: 100, top: 100 }}
+        user={{
+          name: "ikura-hamu",
+          iconUrl: "https://q.trap.jp/api/v3/public/icon/ikura-hamu",
+        }}
       />
     </Container>
   );
