@@ -29,24 +29,20 @@ message ExplorationField {
 message ExplorerAction {
     // 探索者がオンラインになった時
     message Arrive {
-        // 探索者のID
-        string id = 1;
-        // 探索者の現在地
-        world.Coordinate position = 2;
+        // 探索者
+        Explorer explorer = 1;
     }
 
     // 探索者が移動した時
     message Move {
-        // 探索者のID
-        string id = 1;
-        // 探索者の現在地
-        world.Coordinate position = 2;
+        // 探索者
+        Explorer explorer = 1;
     }
 
     // 探索者がオフラインになった時
     message Leave {
-        // 探索者のID
-        string id = 1;
+        // 探索者
+        Explorer explorer = 1;
     }
 
     oneof action {
