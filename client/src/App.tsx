@@ -1,4 +1,3 @@
-import "./App.css";
 import { Button } from "antd";
 import Canvas from "./pixi/Canvas";
 
