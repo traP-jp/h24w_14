@@ -41,8 +41,8 @@ message ExplorerAction {
 
     // 探索者がオフラインになった時
     message Leave {
-        // 探索者
-        Explorer explorer = 1;
+        // 探索者のID
+        string id = 1;
     }
 
     oneof action {
