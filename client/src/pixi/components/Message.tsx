@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Graphics as PIXIGraphics, TextStyle } from "pixi.js";
 import PIXI from "pixi.js";
 import { DisplayPosition } from "../Position";
+import { themeColors } from "../theme";
 
 const messageIconSize = 30;
 
@@ -17,7 +18,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = (props) => {
     (g: PIXIGraphics) => {
       g.clear();
       g.lineStyle(2, 0x000000);
-      g.beginFill(0xffffff);
+      g.beginFill(themeColors.backgroundPrimary);
       g.drawRoundedRect(0, 0, props.width, props.height, 10);
       g.endFill();
     },
