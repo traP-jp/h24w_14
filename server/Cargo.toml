@@ -13,7 +13,8 @@ async-stream = "0.3.6"
 async-trait = "0.1.85"
 axum.version = "0.8.1"
 axum.features = ["http2", "ws"]
-# axum-extra = { version = "0.10.0", features = [] }
+axum-extra.version = "0.10.0"
+axum-extra.features = ["cookie", "cookie-private", "cookie-signed", "query", "typed-header"]
 bytes = "1.9.0"
 chrono = { version = "0.4.39", features = ["serde"] }
 futures = "0.3.31"
@@ -60,6 +61,7 @@ anyhow.workspace = true
 async-stream.workspace = true
 async-trait.workspace = true
 axum.workspace = true
+axum-extra.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 futures.workspace = true
