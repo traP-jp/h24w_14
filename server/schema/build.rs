@@ -3,9 +3,11 @@ use std::path::Path;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto_dir = Path::new("../../proto").canonicalize()?;
     let proto_files = std::fs::read_dir(&proto_dir)?
-        .filter_map(Result::ok)
-        .filter(|entry| entry.path().extension().and_then(|ext| ext.to_str()) == Some("proto"))
-        .map(|entry| entry.path())
+        .filter_map(|entry| {
+            let entry = entry.ok()?.path();
+            let ext = entry.extension()?.to_str()?;
+            (ext == "proto").then_some(entry)
+        })
         .collect::<Vec<_>>();
 
     tonic_build::configure()
