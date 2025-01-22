@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package explore;
 
+import "message.proto";
+import "reaction.proto";
+import "speaker_phone.proto";
 import "world.proto";
 
 // 探索者; 探索中のユーザー
@@ -55,16 +58,16 @@ message ExplorerAction {
 
 // フィールド探索中のイベント
 message ExplorationFieldEvents {
-    // 新しいメッセージのIDリスト
+    // 新しいメッセージのリスト
     // 直近に投稿されたメッセージ、以前に投稿されたがExplorationFieldに入ったメッセージを含む
-    repeated string messages = 1;
-    // 新しいスピーカーフォンのIDリスト
+    repeated msg.Message messages = 1;
+    // 新しいスピーカーフォンのリスト
     // 直近に設置されたスピーカーフォン、以前に設置されたがExplorationFieldに入ったスピーカーフォンを含む
-    repeated string speaker_phones = 2;
-    // 新しいリアクションのIDリスト
+    repeated speaker_phone.SpeakerPhone speaker_phones = 2;
+    // 新しいリアクションのリスト
     // 直近のリアクションのみを含む
     // 以前のリアクションは含まない; すぐに揮発して見えなくなるため
-    repeated string reactions = 3;
+    repeated reaction.Reaction reactions = 3;
     // 探索者の更新全般
     // 新しくオンラインになったユーザー、既にオンラインで移動したユーザー、オフラインになったユーザーを含む
     repeated ExplorerAction explorer_actions = 4;
