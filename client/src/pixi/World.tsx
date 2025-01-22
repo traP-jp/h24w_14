@@ -56,7 +56,14 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         width={100}
         height={100}
       />
-      <Message />
+      <Message
+        messageText={"メッセージ".repeat(20)}
+        displayPosition={{ left: 100, top: 100 }}
+        user={{
+          name: "ikura-hamu",
+          iconUrl: "https://q.trap.jp/api/v3/public/icon/ikura-hamu",
+        }}
+      />
     </Container>
   );
 };
