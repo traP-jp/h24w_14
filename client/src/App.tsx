@@ -1,5 +1,3 @@
-import "./App.css";
-
 import Canvas from "./pixi/Canvas";
 import { Timeline } from "./timeline/timeline";
 
