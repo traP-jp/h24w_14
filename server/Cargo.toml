@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["./."]
+members = ["./.", "./schema"]
 
 [workspace.package]
 version = "0.1.0"
@@ -89,5 +89,4 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 uuid.workspace = true
 
-[build-dependencies]
-tonic-build.workspace = true
+schema.path = "./schema"
