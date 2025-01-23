@@ -78,7 +78,7 @@ async fn create_user(
     .bind(display_name)
     .execute(pool)
     .await?;
-
+    tracing::info!(id = %id, "Created a user");
     let user = get_user(
         pool,
         super::GetUser {
