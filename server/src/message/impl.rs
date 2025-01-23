@@ -77,10 +77,11 @@ impl From<MessageRow> for super::Message {
 async fn get_message(pool: &MySqlPool, id: Uuid) -> Result<super::Message, super::Error> {
     sqlx::query_as::<_, MessageRow>("SELECT * FROM `messages` WHERE `id` = ?")
         .bind(id)
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
+        .map_err(super::Error::Sqlx)?
+        .ok_or(super::Error::NotFound)
         .map(|row| row.into())
-        .map_err(super::Error::Sqlx)
 }
 
 async fn get_messages_in_area(
