@@ -26,10 +26,10 @@ pub struct Coordinate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetWorldSize {}
+pub struct GetWorldSizeParams {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct CheckCoordinate {
+pub struct CheckCoordinateParams {
     pub coordinate: Coordinate,
 }
 
@@ -50,12 +50,12 @@ pub trait WorldService<Context>: Send + Sync + 'static {
     fn get_world_size<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetWorldSize,
+        params: GetWorldSizeParams,
     ) -> BoxFuture<'a, Result<Size, Self::Error>>;
     fn check_coordinate<'a>(
         &'a self,
         ctx: &'a Context,
-        req: CheckCoordinate,
+        params: CheckCoordinateParams,
     ) -> BoxFuture<'a, Result<CheckCoordinateAnswer, Self::Error>>;
 }
 
@@ -69,21 +69,21 @@ pub trait ProvideWorldService: Send + Sync + 'static {
 
     fn get_world_size(
         &self,
-        req: GetWorldSize,
+        params: GetWorldSizeParams,
     ) -> BoxFuture<'_, Result<Size, <Self::WorldService as WorldService<Self::Context>>::Error>>
     {
         let ctx = self.context();
-        self.world_service().get_world_size(ctx, req)
+        self.world_service().get_world_size(ctx, params)
     }
     fn check_coordinate(
         &self,
-        req: CheckCoordinate,
+        params: CheckCoordinateParams,
     ) -> BoxFuture<
         '_,
         Result<CheckCoordinateAnswer, <Self::WorldService as WorldService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.world_service().check_coordinate(ctx, req)
+        self.world_service().check_coordinate(ctx, params)
     }
 
     fn build_server(this: Arc<Self>) -> WorldServiceServer<Self>

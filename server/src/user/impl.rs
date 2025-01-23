@@ -13,17 +13,17 @@ where
     fn get_user<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::GetUser,
+        params: super::GetUserParams,
     ) -> BoxFuture<'a, Result<super::User, Self::Error>> {
-        get_user(ctx.as_ref(), req).boxed()
+        get_user(ctx.as_ref(), params).boxed()
     }
 
     fn create_user<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::CreateUser,
+        params: super::CreateUserParams,
     ) -> BoxFuture<'a, Result<super::User, Self::Error>> {
-        create_user(ctx.as_ref(), req).boxed()
+        create_user(ctx.as_ref(), params).boxed()
     }
 }
 
@@ -50,8 +50,11 @@ impl From<UserRow> for super::User {
     }
 }
 
-async fn get_user(pool: &MySqlPool, request: super::GetUser) -> Result<super::User, super::Error> {
-    let super::GetUser {
+async fn get_user(
+    pool: &MySqlPool,
+    request: super::GetUserParams,
+) -> Result<super::User, super::Error> {
+    let super::GetUserParams {
         id: super::UserId(id),
     } = request;
     let user: Option<UserRow> = sqlx::query_as(r#"SELECT * FROM `users` WHERE `id` = ?"#)
@@ -63,9 +66,9 @@ async fn get_user(pool: &MySqlPool, request: super::GetUser) -> Result<super::Us
 
 async fn create_user(
     pool: &MySqlPool,
-    request: super::CreateUser,
+    request: super::CreateUserParams,
 ) -> Result<super::User, super::Error> {
-    let super::CreateUser { name, display_name } = request;
+    let super::CreateUserParams { name, display_name } = request;
     let id = Uuid::now_v7();
     sqlx::query(
         r#"
@@ -81,7 +84,7 @@ async fn create_user(
     tracing::info!(id = %id, "Created a user");
     let user = get_user(
         pool,
-        super::GetUser {
+        super::GetUserParams {
             id: super::UserId(id),
         },
     )

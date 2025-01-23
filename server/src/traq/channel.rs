@@ -15,7 +15,7 @@ pub struct TraqChannel {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetAllChannels {}
+pub struct GetAllChannelsParams {}
 
 pub trait TraqChannelService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
@@ -23,7 +23,7 @@ pub trait TraqChannelService<Context>: Send + Sync + 'static {
     fn get_all_channels<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetAllChannels,
+        params: GetAllChannelsParams,
     ) -> BoxFuture<'a, Result<Vec<TraqChannel>, Self::Error>>;
 }
 
@@ -37,7 +37,7 @@ pub trait ProvideTraqChannelService: Send + Sync + 'static {
 
     fn get_all_channels(
         &self,
-        req: GetAllChannels,
+        params: GetAllChannelsParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -46,6 +46,6 @@ pub trait ProvideTraqChannelService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.traq_channel_service().get_all_channels(ctx, req)
+        self.traq_channel_service().get_all_channels(ctx, params)
     }
 }

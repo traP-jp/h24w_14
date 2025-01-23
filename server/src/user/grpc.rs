@@ -60,7 +60,7 @@ where
         request: tonic::Request<schema::GetUserRequest>,
     ) -> Result<tonic::Response<schema::GetUserResponse>, tonic::Status> {
         let (_, _, schema::GetUserRequest { id }) = request.into_parts();
-        let req = super::GetUser {
+        let params = super::GetUserParams {
             id: super::UserId(
                 uuid::Uuid::parse_str(&id)
                     .map_err(|_| tonic::Status::invalid_argument("Invalid UUID"))?,
@@ -68,7 +68,7 @@ where
         };
         let user = self
             .state
-            .get_user(req)
+            .get_user(params)
             .await
             .map_err(IntoStatus::into_status)?
             .into();

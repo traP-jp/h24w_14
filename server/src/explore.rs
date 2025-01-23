@@ -39,19 +39,19 @@ pub struct ExplorationFieldEvents {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetExplorer {
+pub struct GetExplorerParams {
     pub id: ExplorerId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct CreateExplorer {
+pub struct CreateExplorerParams {
     pub inner: crate::user::User,
     pub position: crate::world::Coordinate,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum GetExplorersInArea {
+pub enum GetExplorersInAreaParams {
     Rect {
         center: crate::world::Coordinate,
         size: crate::world::Size,
@@ -102,17 +102,17 @@ pub trait ExplorerService<Context>: Send + Sync + 'static {
     fn get_explorer<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetExplorer,
+        params: GetExplorerParams,
     ) -> BoxFuture<'a, Result<Explorer, Self::Error>>;
     fn create_explorer<'a>(
         &'a self,
         ctx: &'a Context,
-        req: CreateExplorer,
+        params: CreateExplorerParams,
     ) -> BoxFuture<'a, Result<Explorer, Self::Error>>;
     fn get_explorers_in_area<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetExplorersInArea,
+        params: GetExplorersInAreaParams,
     ) -> BoxFuture<'a, Result<Vec<Explorer>, Self::Error>>;
 }
 
@@ -126,32 +126,32 @@ pub trait ProvideExplorerService: Send + Sync + 'static {
 
     fn get_explorer(
         &self,
-        req: GetExplorer,
+        params: GetExplorerParams,
     ) -> BoxFuture<
         '_,
         Result<Explorer, <Self::ExplorerService as ExplorerService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.explorer_service().get_explorer(ctx, req)
+        self.explorer_service().get_explorer(ctx, params)
     }
     fn create_explorer(
         &self,
-        req: CreateExplorer,
+        params: CreateExplorerParams,
     ) -> BoxFuture<
         '_,
         Result<Explorer, <Self::ExplorerService as ExplorerService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.explorer_service().create_explorer(ctx, req)
+        self.explorer_service().create_explorer(ctx, params)
     }
     fn get_explorers_in_area(
         &self,
-        req: GetExplorersInArea,
+        params: GetExplorersInAreaParams,
     ) -> BoxFuture<
         '_,
         Result<Vec<Explorer>, <Self::ExplorerService as ExplorerService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.explorer_service().get_explorers_in_area(ctx, req)
+        self.explorer_service().get_explorers_in_area(ctx, params)
     }
 }

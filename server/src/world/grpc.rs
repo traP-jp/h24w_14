@@ -70,10 +70,10 @@ where
         request: tonic::Request<schema::GetWorldRequest>,
     ) -> tonic::Result<tonic::Response<schema::GetWorldResponse>> {
         let (_, _, schema::GetWorldRequest {}) = request.into_parts();
-        let req = super::GetWorldSize {};
+        let params = super::GetWorldSizeParams {};
         let size = self
             .state
-            .get_world_size(req)
+            .get_world_size(params)
             .await
             .map_err(IntoStatus::into_status)?
             .into();

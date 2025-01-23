@@ -9,9 +9,9 @@ where
     fn get_world_size<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::GetWorldSize,
+        params: super::GetWorldSizeParams,
     ) -> future::BoxFuture<'a, Result<super::Size, Self::Error>> {
-        let super::GetWorldSize {} = req;
+        let super::GetWorldSizeParams {} = params;
         let size = ctx.world_size();
         let fut = future::ready(Ok(size));
         fut.boxed()
@@ -20,10 +20,10 @@ where
     fn check_coordinate<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::CheckCoordinate,
+        params: super::CheckCoordinateParams,
     ) -> future::BoxFuture<'a, Result<super::CheckCoordinateAnswer, Self::Error>> {
         let size = ctx.world_size();
-        let super::CheckCoordinate { coordinate } = req;
+        let super::CheckCoordinateParams { coordinate } = params;
         let res = if coordinate.x < size.width && coordinate.y < size.height {
             super::CheckCoordinateAnswer::Valid(coordinate)
         } else {

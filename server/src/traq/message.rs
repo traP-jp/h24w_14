@@ -25,7 +25,7 @@ pub struct SyncedTraqMessage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct SendMessage {
+pub struct SendMessageParams {
     pub inner: crate::message::Message,
     pub channel_id: super::channel::TraqChannelId,
     // ユーザーはtraQのユーザーと1対1で紐づいている前提
@@ -37,12 +37,12 @@ pub trait TraqMessageService<Context>: Send + Sync + 'static {
     fn send_message<'a>(
         &'a self,
         ctx: &'a Context,
-        req: SendMessage,
+        params: SendMessageParams,
     ) -> BoxFuture<'a, Result<SyncedTraqMessage, Self::Error>>;
     fn check_message_synced<'a>(
         &'a self,
         ctx: &'a Context,
-        req: crate::message::Message,
+        message: crate::message::Message,
     ) -> BoxFuture<'a, Result<Option<SyncedTraqMessage>, Self::Error>>;
 }
 
@@ -56,7 +56,7 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
 
     fn send_message(
         &self,
-        req: SendMessage,
+        params: SendMessageParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -65,11 +65,11 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.traq_message_service().send_message(ctx, req)
+        self.traq_message_service().send_message(ctx, params)
     }
     fn check_message_synced(
         &self,
-        req: crate::message::Message,
+        message: crate::message::Message,
     ) -> BoxFuture<
         '_,
         Result<
@@ -78,6 +78,7 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.traq_message_service().check_message_synced(ctx, req)
+        self.traq_message_service()
+            .check_message_synced(ctx, message)
     }
 }
