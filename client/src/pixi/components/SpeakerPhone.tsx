@@ -11,9 +11,10 @@ const speakerPhoneIconSize = 30;
 interface Props {
   displayPosition: DisplayPosition;
   name: string;
+  radius: number;
 }
 
-const SpeakerPhone: React.FC<Props> = ({ displayPosition, name }) => {
+const SpeakerPhone: React.FC<Props> = ({ displayPosition, name, radius }) => {
   const [showName, setShowName] = useState(false);
 
   return (
@@ -36,7 +37,7 @@ const SpeakerPhone: React.FC<Props> = ({ displayPosition, name }) => {
       <Circle
         x={0}
         y={0}
-        radius={200}
+        radius={radius}
         lineWidth={2}
         color={themeColors.accentSecondary}
         fillColor={themeColors.accentSecondary}
