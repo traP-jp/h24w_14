@@ -11,6 +11,7 @@ struct State {
     task_manager: lib::task::TaskManager,
     world_size: lib::world::WorldSize,
     event_channels: lib::event::EventChannels,
+    client: reqwest::Client,
     services: Services,
 }
 
@@ -36,11 +37,13 @@ async fn main() -> anyhow::Result<()> {
     let task_manager = lib::task::TaskManager::new();
     let world_size = load::world_size()?;
     let event_channels = load::event_channels()?;
+    let client = reqwest::Client::new();
     let state = Arc::new(State {
         pool,
         task_manager,
         world_size,
         event_channels,
+        client,
         services: Services::default(),
     });
     state.migrate().await?;
@@ -181,6 +184,12 @@ impl AsRef<lib::world::WorldSize> for State {
 impl AsRef<lib::event::EventChannels> for State {
     fn as_ref(&self) -> &lib::event::EventChannels {
         &self.event_channels
+    }
+}
+
+impl AsRef<reqwest::Client> for State {
+    fn as_ref(&self) -> &reqwest::Client {
+        &self.client
     }
 }
 
