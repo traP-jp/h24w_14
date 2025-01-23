@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     PRIMARY KEY (`id`)
 );
 
-CREATE TABLE IF NOT EXISTS `message` {
+CREATE TABLE IF NOT EXISTS `message` (
     `id` BINARY(16) NOT NULL,
     `user_id` BINARY(16) NOT NULL,
     `content` TEXT NOT NULL,
@@ -17,4 +17,4 @@ CREATE TABLE IF NOT EXISTS `message` {
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `expires_at` TIMESTAMP NOT NULL,
     PRIMARY KEY (`id`),
-};
+);
