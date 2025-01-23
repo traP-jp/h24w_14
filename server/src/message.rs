@@ -1,9 +1,17 @@
 //! `message.proto`
 
+pub mod error;
+pub mod grpc;
+pub mod r#impl;
+
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::{IntoStatus, Timestamp};
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -86,6 +94,17 @@ pub trait ProvideMessageService: Send + Sync + 'static {
         let ctx = self.context();
         self.message_service().create_message(ctx, params)
     }
-
-    // TODO: build_server(this: Arc<Self>) -> MessageServiceServer<...>
 }
+
+pub fn build_server<State>(state: Arc<State>) -> MessageServiceServer<State>
+where
+    State: ProvideMessageService + crate::session::ProvideSessionService,
+{
+    MessageServiceServer::new(grpc::ServiceImpl::new(state))
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct MessageServiceImpl;
+
+pub type MessageServiceServer<State> =
+    schema::msg::message_service_server::MessageServiceServer<grpc::ServiceImpl<State>>;
