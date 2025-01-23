@@ -65,7 +65,10 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
           iconUrl: "https://q.trap.jp/api/v3/public/icon/ikura-hamu",
         }}
       />
-      <SpeakerPhone />
+      <SpeakerPhone
+        displayPosition={{ left: 200, top: 200 }}
+        name="#gps/times/ikura-hamu"
+      />
     </Container>
   );
 };
