@@ -10,12 +10,14 @@ struct State {
     pool: MySqlPool,
     task_manager: lib::task::TaskManager,
     world_size: lib::world::WorldSize,
+    event_channels: lib::event::EventChannels,
     services: Services,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
 struct Services {
     world_service: lib::world::WorldServiceImpl,
+    event_service: lib::event::EventServiceImpl,
 }
 
 #[tokio::main]
@@ -32,10 +34,12 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     let task_manager = lib::task::TaskManager::new();
     let world_size = load::world_size()?;
+    let event_channels = load::event_channels()?;
     let state = Arc::new(State {
         pool,
         task_manager,
         world_size,
+        event_channels,
         services: Services::default(),
     });
     state.migrate().await?;
@@ -53,6 +57,7 @@ async fn main() -> anyhow::Result<()> {
 // MARK: helper `fn`s
 
 mod load {
+    use anyhow::Ok;
     use tokio::net::TcpListener;
 
     use super::*;
@@ -118,6 +123,13 @@ mod load {
         let size = lib::world::Size { width, height };
         Ok(lib::world::WorldSize(size))
     }
+
+    pub fn event_channels() -> anyhow::Result<lib::event::EventChannels> {
+        let capacity = env_var!("EVENT_CHANNELS_CAPACITY")?
+            .parse()
+            .context("Failed to parse EVENT_CHANNELS_CAPACITY")?;
+        Ok(lib::event::EventChannels::new(capacity))
+    }
 }
 
 #[tracing::instrument]
@@ -165,6 +177,12 @@ impl AsRef<lib::world::WorldSize> for State {
     }
 }
 
+impl AsRef<lib::event::EventChannels> for State {
+    fn as_ref(&self) -> &lib::event::EventChannels {
+        &self.event_channels
+    }
+}
+
 impl lib::world::ProvideWorldService for State {
     type Context = Self;
     type WorldService = lib::world::WorldServiceImpl;
@@ -174,5 +192,17 @@ impl lib::world::ProvideWorldService for State {
     }
     fn world_service(&self) -> &Self::WorldService {
         &self.services.world_service
+    }
+}
+
+impl lib::event::ProvideEventService for State {
+    type Context = Self;
+    type EventService = lib::event::EventServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn event_service(&self) -> &Self::EventService {
+        &self.services.event_service
     }
 }
