@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 pub use error::Error;
+pub use schema::world::world_service_server::SERVICE_NAME;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Size {
@@ -40,9 +41,8 @@ pub enum CheckCoordinateAnswer {
     Invalid,
 }
 
-pub trait WorldSizeStore: Send + Sync + 'static {
-    fn world_size(&self) -> Size;
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct WorldSize(pub Size);
 
 pub trait WorldService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
@@ -95,7 +95,7 @@ pub trait ProvideWorldService: Send + Sync + 'static {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct WorldServiceImpl;
 
 pub type WorldServiceServer<State> =
