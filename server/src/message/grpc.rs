@@ -99,7 +99,6 @@ where
             return Err(tonic::Status::invalid_argument("Invalid request"));
         };
 
-        // TODO: ProvideSesionService と合わせてユーザーとってくる
         let header_map = meta.into_headers();
         let user_id = self
             .state
