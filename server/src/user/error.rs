@@ -1,4 +1,3 @@
-/// infallible
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Not found")]
