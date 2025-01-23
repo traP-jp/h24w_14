@@ -50,6 +50,7 @@ tower = { version = "0.5.2", features = ["util", "steer"] }
 tower-http = { version = "0.6.2", features = ["trace", "util"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
+traq-bot-http = { version = "0.11.2", features = ["uuid", "chrono", "tower"] }
 uuid = { version = "1.12.0", features = ["v7", "serde"] }
 
 [package]
@@ -91,6 +92,7 @@ tower.workspace = true
 tower-http.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+traq-bot-http.workspace = true
 uuid.workspace = true
 
 schema.path = "./schema"

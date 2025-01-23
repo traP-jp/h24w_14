@@ -1,7 +1,13 @@
 use futures::{future::BoxFuture, stream::BoxStream};
 use serde::{Deserialize, Serialize};
+use tokio::sync::broadcast;
 
 use crate::{message::Message, prelude::IntoStatus};
+
+pub mod error;
+mod r#impl;
+
+pub use error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
@@ -10,6 +16,12 @@ pub enum Event {
     SpkeakerPhone(crate::speaker_phone::SpeakerPhone),
     Message(Message),
     Reaction(crate::reaction::Reaction),
+}
+
+#[derive(Debug, Clone)]
+pub struct EventChannels {
+    message_tx: broadcast::Sender<Message>,
+    event_tx: broadcast::Sender<Event>,
 }
 
 pub trait EventService<Context>: Send + Sync + 'static {
@@ -31,7 +43,7 @@ pub trait EventService<Context>: Send + Sync + 'static {
     fn publish_event<'a>(
         &'a self,
         ctx: &'a Context,
-        req: Event,
+        event: Event,
     ) -> BoxFuture<'a, Result<(), Self::Error>>;
 }
 
@@ -60,9 +72,12 @@ pub trait ProvideEventService: Send + Sync + 'static {
 
     fn publish_event(
         &self,
-        req: Event,
+        event: Event,
     ) -> BoxFuture<'_, Result<(), <Self::EventService as EventService<Self::Context>>::Error>> {
         let ctx = self.context();
-        self.event_service().publish_event(ctx, req)
+        self.event_service().publish_event(ctx, event)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct EventServiceImpl;

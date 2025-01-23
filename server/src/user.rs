@@ -86,7 +86,7 @@ pub trait ProvideUserService: Send + Sync + 'static {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct UserServiceImpl;
 
 pub type UserServiceServer<State> =
