@@ -23,7 +23,7 @@ const SpeakerPhone: React.FC<Props> = ({ position, name, radius }) => {
         <Text
           text={name}
           x={0}
-          y={-speakerPhoneIconSize + 10}
+          y={-speakerPhoneIconSize + 4}
           anchor={0.5}
           style={
             new TextStyle({
