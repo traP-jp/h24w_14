@@ -8,7 +8,7 @@ interface Props {
   lineWidth: number;
   color: ColorSource;
   radius: number;
-  fillColor?: number;
+  fillColor?: ColorSource;
   fillAlpha?: number;
 }
 

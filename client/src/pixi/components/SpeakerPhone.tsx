@@ -15,6 +15,8 @@ const SpeakerPhone: React.FC = () => {
         radius={200}
         lineWidth={2}
         color={themeColors.accentSecondary}
+        fillColor={themeColors.accentSecondary}
+        fillAlpha={0.1}
       />
       <Sprite
         image={speakerPhone}
