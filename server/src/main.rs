@@ -22,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
         .or_else(|_| load_mysql_from_env("NS_MARIADB_"))
         .await?;
     let state = std::sync::Arc::new(State { pool });
+    state.migrate().await?;
 
     let router = lib::router::make(state);
     let tcp_listener = load_tcp_listener().await?;
@@ -96,5 +97,17 @@ async fn shutdown() {
 impl AsRef<MySqlPool> for State {
     fn as_ref(&self) -> &MySqlPool {
         &self.pool
+    }
+}
+
+impl State {
+    const MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
+
+    async fn migrate(&self) -> anyhow::Result<()> {
+        Self::MIGRATOR
+            .run(&self.pool)
+            .await
+            .context("Migration failed")?;
+        Ok(())
     }
 }
