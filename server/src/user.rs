@@ -27,11 +27,6 @@ pub struct User {
     pub updated_at: Timestamp,
 }
 
-pub trait UserStore: Send + Sync + 'static {
-    fn find(&self, id: UserId) -> Option<User>;
-    fn create(&self, name: String, display_name: String) -> User;
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct GetUser {
     pub id: UserId,
