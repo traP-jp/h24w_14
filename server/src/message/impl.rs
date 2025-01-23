@@ -73,7 +73,7 @@ async fn get_message(pool: &MySqlPool, id: Uuid) -> Result<super::Message, super
         .fetch_one(pool)
         .await
         .map(|row| row.into())
-        .map_err(|_| super::Error::Unknown)
+        .map_err(super::Error::Sqlx)
 }
 
 async fn get_messages_in_area(
@@ -90,7 +90,7 @@ async fn get_messages_in_area(
         .fetch_all(pool)
         .await
         .map(|rows| rows.into_iter().map(|row| row.into()).collect())
-        .map_err(|_| super::Error::Unknown)
+        .map_err(super::Error::Sqlx)
 }
 
 async fn create_message(
@@ -106,12 +106,12 @@ async fn create_message(
         .bind(req.position.y)
         .execute(pool)
         .await
-        .map_err(|_| super::Error::Unknown)?;
+        .map_err(super::Error::Sqlx)?;
 
     sqlx::query_as::<_, MessageRow>("SELECT * FROM `messages` WHERE `id` = ?")
         .bind(id)
         .fetch_one(pool)
         .await
         .map(|row| row.into())
-        .map_err(|_| super::Error::Unknown)
+        .map_err(super::Error::Sqlx)
 }
