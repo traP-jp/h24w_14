@@ -18,6 +18,7 @@ struct State {
 struct Services {
     world_service: lib::world::WorldServiceImpl,
     event_service: lib::event::EventServiceImpl,
+    user_service: lib::user::UserServiceImpl,
 }
 
 #[tokio::main]
@@ -204,5 +205,17 @@ impl lib::event::ProvideEventService for State {
     }
     fn event_service(&self) -> &Self::EventService {
         &self.services.event_service
+    }
+}
+
+impl lib::user::ProvideUserService for State {
+    type Context = Self;
+    type UserService = lib::user::UserServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn user_service(&self) -> &Self::UserService {
+        &self.services.user_service
     }
 }
