@@ -5,6 +5,7 @@ import { DisplayPosition, Position } from "./Position";
 import React from "react";
 import Message from "./components/Message";
 import SpeakerPhone from "./components/SpeakerPhone";
+import Reaction from "./components/Reaction";
 
 interface Props {
   userPosition: Position;
@@ -82,6 +83,14 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         position={{ x: 1700, y: 1700 }}
         name="#gps/times/ikura-hamu"
         radius={100}
+      />
+      <Reaction
+        position={{ x: 150, y: 300 }}
+        reaction="kusa"
+        user={{
+          name: "Ras",
+          iconURL: "https://q.trap.jp/api/v3/public/icon/Ras",
+        }}
       />
     </Container>
   );
