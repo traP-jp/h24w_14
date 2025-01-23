@@ -63,9 +63,9 @@ pub enum GetExplorersInAreaParams {
     // },
 }
 
-pub struct ExploreParems<'a> {
+pub struct ExploreParams<'a> {
     pub id: crate::user::UserId,
-    stueam: BoxStream<'a, ExplorationField>,
+    pub stream: BoxStream<'a, ExplorationField>,
 }
 
 pub trait ExploreService<Context>: Send + Sync + 'static {
@@ -74,7 +74,7 @@ pub trait ExploreService<Context>: Send + Sync + 'static {
     fn explore<'a>(
         &'a self,
         ctx: &'a Context,
-        params: ExploreParems<'a>,
+        params: ExploreParams<'a>,
     ) -> BoxStream<'a, Result<ExplorationFieldEvents, Self::Error>>;
 }
 
@@ -90,7 +90,7 @@ pub trait ProvideExploreService: Send + Sync + 'static {
 
     fn explore<'a>(
         &'a self,
-        req: BoxStream<'a, ExplorationField>,
+        req: ExploreParams<'a>,
     ) -> BoxStream<
         'a,
         Result<
