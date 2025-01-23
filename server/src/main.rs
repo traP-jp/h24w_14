@@ -9,6 +9,13 @@ use h24w14 as lib;
 struct State {
     pool: MySqlPool,
     task_manager: lib::task::TaskManager,
+    world_size: lib::world::WorldSize,
+    services: Services,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct Services {
+    world_service: lib::world::WorldServiceImpl,
 }
 
 #[tokio::main]
@@ -24,7 +31,13 @@ async fn main() -> anyhow::Result<()> {
         .or_else(|_| load::mysql("NS_MARIADB_"))
         .await?;
     let task_manager = lib::task::TaskManager::new();
-    let state = Arc::new(State { pool, task_manager });
+    let world_size = load::world_size()?;
+    let state = Arc::new(State {
+        pool,
+        task_manager,
+        world_size,
+        services: Services::default(),
+    });
     state.migrate().await?;
 
     let router = lib::router::make(Arc::clone(&state));
@@ -44,12 +57,18 @@ mod load {
 
     use super::*;
 
+    macro_rules! env_var {
+        ($name:expr) => {
+            std::env::var($name).with_context(|| format!("Failed to read {}", $name))
+        };
+    }
+
     #[tracing::instrument]
     pub async fn mysql(env_prefix: &str) -> anyhow::Result<MySqlPool> {
         macro_rules! var {
             ($n:ident) => {{
                 let var_name = format!(concat!("{}", stringify!($n)), env_prefix);
-                std::env::var(&var_name).with_context(|| format!("Failed to read {var_name}"))
+                env_var!(&var_name)
             }};
         }
 
@@ -87,6 +106,17 @@ mod load {
             .with_context(|| format!("Failed to bind {addr}"))?;
         tracing::info!(%addr, "Listening");
         Ok(listener)
+    }
+
+    pub fn world_size() -> anyhow::Result<lib::world::WorldSize> {
+        let width = env_var!("WORLD_WIDTH")?
+            .parse()
+            .context("Failed to parse WORLD_WIDTH as u32")?;
+        let height = env_var!("WORLD_HEIGHT")?
+            .parse()
+            .context("Failed to parse WORLD_HEIGHT as u32")?;
+        let size = lib::world::Size { width, height };
+        Ok(lib::world::WorldSize(size))
     }
 }
 
@@ -126,5 +156,23 @@ impl State {
         let fut = self.task_manager.graceful_shutdown();
         tokio::time::timeout(duration, fut).await??;
         Ok(())
+    }
+}
+
+impl AsRef<lib::world::WorldSize> for State {
+    fn as_ref(&self) -> &lib::world::WorldSize {
+        &self.world_size
+    }
+}
+
+impl lib::world::ProvideWorldService for State {
+    type Context = Self;
+    type WorldService = lib::world::WorldServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn world_service(&self) -> &Self::WorldService {
+        &self.services.world_service
     }
 }
