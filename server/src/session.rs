@@ -1,9 +1,14 @@
 //! HTTP セッション管理
 
+pub mod error;
+pub mod r#impl;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
+
+pub use error::Error;
 
 pub struct ExtractParams<'a>(pub &'a http::HeaderMap);
 
@@ -52,6 +57,7 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         let ctx = self.context();
         self.session_service().extract(ctx, params)
     }
+
     fn save(
         &self,
         params: SaveParams,
@@ -66,3 +72,6 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         self.session_service().save(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct SessionServiceImpl;
