@@ -1,7 +1,17 @@
+//! user.proto
+
+pub mod error;
+pub mod grpc;
+mod r#impl;
+
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::{IntoStatus, Timestamp};
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -67,6 +77,17 @@ pub trait ProvideUserService: Send + Sync + 'static {
         let ctx = self.context();
         self.user_service().create_user(ctx, req)
     }
-    // TODO: build_server(this: Arc<Self>) -> UserServiceServer<...>
-    //     get_userをgRPCのUserServiceで公開する
+    fn build_server(this: Arc<Self>) -> UserServiceServer<Self>
+    where
+        Self: Sized,
+    {
+        let service = grpc::ServiceImpl::new(this);
+        UserServiceServer::new(service)
+    }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct UserServiceImpl;
+
+pub type UserServiceServer<State> =
+    schema::user::user_service_server::UserServiceServer<grpc::ServiceImpl<State>>;
