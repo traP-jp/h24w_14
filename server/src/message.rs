@@ -1,9 +1,15 @@
 //! `message.proto`
 
+pub mod error;
+pub mod grpc;
+pub mod r#impl;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::{IntoStatus, Timestamp};
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -89,3 +95,9 @@ pub trait ProvideMessageService: Send + Sync + 'static {
 
     // TODO: build_server(this: Arc<Self>) -> MessageServiceServer<...>
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct MessageServiceImpl;
+
+pub type MessageServiceServer<State> =
+    schema::msg::message_service_server::MessageServiceServer<grpc::ServiceImpl<State>>;
