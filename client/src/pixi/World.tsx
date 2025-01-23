@@ -66,7 +66,12 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         }}
       />
       <SpeakerPhone
-        displayPosition={{ left: 200, top: 200 }}
+        position={{ x: 200, y: 200 }}
+        name="#gps/times/ikura-hamu"
+        radius={100}
+      />
+      <SpeakerPhone
+        position={{ x: 1700, y: 1700 }}
         name="#gps/times/ikura-hamu"
         radius={100}
       />

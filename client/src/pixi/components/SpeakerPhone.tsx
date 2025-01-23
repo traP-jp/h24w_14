@@ -1,24 +1,24 @@
 import React, { useState } from "react";
-import speakerPhone from "../../assets/speakerPhone.svg";
+import speakerPhone from "../../assets/icons/speakerPhone.svg";
 import { Container, Sprite, Text } from "@pixi/react";
 import Circle from "./Circle";
 import { themeColors } from "../theme";
-import { DisplayPosition } from "../Position";
+import { Position } from "../Position";
 import { TextStyle } from "pixi.js";
 
 const speakerPhoneIconSize = 30;
 
 interface Props {
-  displayPosition: DisplayPosition;
+  position: Position;
   name: string;
   radius: number;
 }
 
-const SpeakerPhone: React.FC<Props> = ({ displayPosition, name, radius }) => {
+const SpeakerPhone: React.FC<Props> = ({ position, name, radius }) => {
   const [showName, setShowName] = useState(false);
 
   return (
-    <Container x={displayPosition.left} y={displayPosition.top}>
+    <Container {...position}>
       {showName && (
         <Text
           text={name}
