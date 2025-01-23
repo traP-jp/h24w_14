@@ -4,6 +4,7 @@ import "@pixi/events";
 import { DisplayPosition, Position } from "./Position";
 import React from "react";
 import Message from "./components/Message";
+import SpeakerPhone from "./components/SpeakerPhone";
 
 interface Props {
   userPosition: Position;
@@ -71,6 +72,16 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
           name: "ikura-hamu",
           iconUrl: "https://q.trap.jp/api/v3/public/icon/ikura-hamu",
         }}
+      />
+      <SpeakerPhone
+        position={{ x: 200, y: 200 }}
+        name="#gps/times/ikura-hamu"
+        radius={100}
+      />
+      <SpeakerPhone
+        position={{ x: 1700, y: 1700 }}
+        name="#gps/times/ikura-hamu"
+        radius={100}
       />
     </Container>
   );
