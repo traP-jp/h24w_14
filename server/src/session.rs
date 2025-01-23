@@ -13,7 +13,7 @@ pub struct Session {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct Save {
+pub struct SaveParams {
     pub user_id: crate::user::UserId,
 }
 
@@ -24,12 +24,12 @@ pub trait SessionService<Context>: Send + Sync + 'static {
     fn extract<'a>(
         &'a self,
         ctx: &'a Context,
-        req: Extract<'a>,
+        params: Extract<'a>,
     ) -> BoxFuture<'a, Result<Session, Self::Error>>;
     fn save<'a>(
         &'a self,
         ctx: &'a Context,
-        req: Save,
+        params: SaveParams,
     ) -> BoxFuture<'a, Result<Self::Jar, Self::Error>>;
 }
 
@@ -43,17 +43,17 @@ pub trait ProvideSessionService: Send + Sync + 'static {
 
     fn extract<'a>(
         &'a self,
-        req: Extract<'a>,
+        params: Extract<'a>,
     ) -> BoxFuture<
         'a,
         Result<Session, <Self::SessionService as SessionService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.session_service().extract(ctx, req)
+        self.session_service().extract(ctx, params)
     }
     fn save(
         &self,
-        req: Save,
+        params: SaveParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -62,6 +62,6 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.session_service().save(ctx, req)
+        self.session_service().save(ctx, params)
     }
 }

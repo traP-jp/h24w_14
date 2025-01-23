@@ -5,58 +5,58 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 #[derive(Debug, Clone)]
-pub struct BuildRequestAsBot<'a> {
+pub struct BuildparamsuestAsBotParams<'a> {
     pub method: http::Method,
     pub uri: &'a str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct SubscribeChannel {
+pub struct SubscribeChannelParams {
     pub id: super::channel::TraqChannelId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct LeaveChannel {
+pub struct LeaveChannelParams {
     pub id: super::channel::TraqChannelId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct OnLeftChannel {
+pub struct OnLeftChannelParams {
     pub channel: super::channel::TraqChannel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct OnMessageCreated {
+pub struct OnMessageCreatedParams {
     pub message: super::message::TraqMessage,
 }
 
 pub trait TraqBotService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
 
-    fn build_request_as_bot<'a>(
+    fn build_paramsuest_as_bot<'a>(
         &'a self,
         ctx: &'a Context,
-        req: BuildRequestAsBot<'a>,
+        params: BuildparamsuestAsBotParams<'a>,
     ) -> BoxFuture<'a, Result<RequestBuilder, Self::Error>>;
     fn subscribe_channel<'a>(
         &'a self,
         ctx: &'a Context,
-        req: SubscribeChannel,
+        params: SubscribeChannelParams,
     ) -> BoxFuture<'a, Result<BoxStream<'static, super::message::TraqMessage>, Self::Error>>;
     fn leave_channel<'a>(
         &'a self,
         ctx: &'a Context,
-        req: LeaveChannel,
+        params: LeaveChannelParams,
     ) -> BoxFuture<'a, Result<(), Self::Error>>;
     fn on_left_channel<'a>(
         &'a self,
         ctx: &'a Context,
-        req: OnLeftChannel,
+        params: OnLeftChannelParams,
     ) -> BoxFuture<'a, Result<(), Self::Error>>;
     fn on_message_created<'a>(
         &'a self,
         ctx: &'a Context,
-        req: OnMessageCreated,
+        params: OnMessageCreatedParams,
     ) -> BoxFuture<'a, Result<(), Self::Error>>;
 }
 
@@ -68,19 +68,19 @@ pub trait ProvideTraqBotService: Send + Sync + 'static {
     fn context(&self) -> &Self::Context;
     fn traq_bot_service(&self) -> &Self::TraqBotService;
 
-    fn build_request_as_bot<'a>(
+    fn build_paramsuest_as_bot<'a>(
         &'a self,
-        req: BuildRequestAsBot<'a>,
+        params: BuildparamsuestAsBotParams<'a>,
     ) -> BoxFuture<
         'a,
         Result<RequestBuilder, <Self::TraqBotService as TraqBotService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.traq_bot_service().build_request_as_bot(ctx, req)
+        self.traq_bot_service().build_paramsuest_as_bot(ctx, params)
     }
     fn subscribe_channel(
         &self,
-        req: SubscribeChannel,
+        params: SubscribeChannelParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -89,22 +89,22 @@ pub trait ProvideTraqBotService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.traq_bot_service().subscribe_channel(ctx, req)
+        self.traq_bot_service().subscribe_channel(ctx, params)
     }
     fn leave_channel(
         &self,
-        req: LeaveChannel,
+        params: LeaveChannelParams,
     ) -> BoxFuture<'_, Result<(), <Self::TraqBotService as TraqBotService<Self::Context>>::Error>>
     {
         let ctx = self.context();
-        self.traq_bot_service().leave_channel(ctx, req)
+        self.traq_bot_service().leave_channel(ctx, params)
     }
     fn on_message_created(
         &self,
-        req: OnMessageCreated,
+        params: OnMessageCreatedParams,
     ) -> BoxFuture<'_, Result<(), <Self::TraqBotService as TraqBotService<Self::Context>>::Error>>
     {
         let ctx = self.context();
-        self.traq_bot_service().on_message_created(ctx, req)
+        self.traq_bot_service().on_message_created(ctx, params)
     }
 }

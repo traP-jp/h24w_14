@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct OAuth2EntrypointUri {}
+pub struct OAuth2EntrypointUriParams {}
 
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -14,7 +14,7 @@ pub struct AuthorizedUser {
 }
 
 #[derive(Debug, Clone)]
-pub struct BuildRequestAsAuthorizedUser<'a> {
+pub struct BuildRequestAsAuthorizedUserParams<'a> {
     pub user: &'a AuthorizedUser,
     pub method: http::Method,
     pub uri: &'a str,
@@ -26,7 +26,7 @@ pub trait TraqAuthService<Context>: Send + Sync + 'static {
     fn oauth2_entrypoint_uri<'a>(
         &'a self,
         ctx: &'a Context,
-        req: OAuth2EntrypointUri,
+        params: OAuth2EntrypointUriParams,
     ) -> BoxFuture<'a, Result<String, Self::Error>>;
     fn oauth2_handle_redirect<'a>(
         &'a self,
@@ -36,7 +36,7 @@ pub trait TraqAuthService<Context>: Send + Sync + 'static {
     fn check_authorized<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::user::TraqUser,
+        user: super::user::TraqUser,
     ) -> BoxFuture<'a, Result<Option<AuthorizedUser>, Self::Error>>;
     /// Bearer Token を設定した [`RequestBuilder`] を作る
     ///
@@ -44,7 +44,7 @@ pub trait TraqAuthService<Context>: Send + Sync + 'static {
     fn build_request_as_authorized_user<'a>(
         &'a self,
         ctx: &'a Context,
-        req: BuildRequestAsAuthorizedUser<'a>,
+        params: BuildRequestAsAuthorizedUserParams<'a>,
     ) -> BoxFuture<'a, Result<RequestBuilder, Self::Error>>;
 }
 
@@ -58,13 +58,13 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
 
     fn oauth2_entrypoint_uri(
         &self,
-        req: OAuth2EntrypointUri,
+        params: OAuth2EntrypointUriParams,
     ) -> BoxFuture<
         '_,
         Result<String, <Self::TraqAuthService as TraqAuthService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.traq_auth_service().oauth2_entrypoint_uri(ctx, req)
+        self.traq_auth_service().oauth2_entrypoint_uri(ctx, params)
     }
     fn oauth2_handle_redirect(
         &self,
@@ -78,7 +78,7 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
     }
     fn check_authorized(
         &self,
-        req: super::user::TraqUser,
+        user: super::user::TraqUser,
     ) -> BoxFuture<
         '_,
         Result<
@@ -87,17 +87,17 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.traq_auth_service().check_authorized(ctx, req)
+        self.traq_auth_service().check_authorized(ctx, user)
     }
     fn build_request_as_authorized_user<'a>(
         &'a self,
-        req: BuildRequestAsAuthorizedUser<'a>,
+        params: BuildRequestAsAuthorizedUserParams<'a>,
     ) -> BoxFuture<
         'a,
         Result<RequestBuilder, <Self::TraqAuthService as TraqAuthService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
         self.traq_auth_service()
-            .build_request_as_authorized_user(ctx, req)
+            .build_request_as_authorized_user(ctx, params)
     }
 }

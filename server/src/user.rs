@@ -28,12 +28,12 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetUser {
+pub struct GetUserParams {
     pub id: UserId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct CreateUser {
+pub struct CreateUserParams {
     pub name: String,
     pub display_name: String,
 }
@@ -44,12 +44,12 @@ pub trait UserService<Context>: Send + Sync + 'static {
     fn get_user<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetUser,
+        params: GetUserParams,
     ) -> BoxFuture<'a, Result<User, Self::Error>>;
     fn create_user<'a>(
         &'a self,
         ctx: &'a Context,
-        req: CreateUser,
+        params: CreateUserParams,
     ) -> BoxFuture<'a, Result<User, Self::Error>>;
 
     // NOTE: `update_user`と`delete_user`は今の所実装しない
@@ -65,17 +65,17 @@ pub trait ProvideUserService: Send + Sync + 'static {
 
     fn get_user(
         &self,
-        req: GetUser,
+        params: GetUserParams,
     ) -> BoxFuture<'_, Result<User, <Self::UserService as UserService<Self::Context>>::Error>> {
         let ctx = self.context();
-        self.user_service().get_user(ctx, req)
+        self.user_service().get_user(ctx, params)
     }
     fn create_user(
         &self,
-        req: CreateUser,
+        params: CreateUserParams,
     ) -> BoxFuture<'_, Result<User, <Self::UserService as UserService<Self::Context>>::Error>> {
         let ctx = self.context();
-        self.user_service().create_user(ctx, req)
+        self.user_service().create_user(ctx, params)
     }
     fn build_server(this: Arc<Self>) -> UserServiceServer<Self>
     where

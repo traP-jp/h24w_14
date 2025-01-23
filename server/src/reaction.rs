@@ -20,12 +20,12 @@ pub struct Reaction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetReaction {
+pub struct GetReactionParams {
     pub id: ReactionId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct CreateReaction {
+pub struct CreateReactionParams {
     pub position: crate::world::Coordinate,
     pub kind: String,
 }
@@ -36,12 +36,12 @@ pub trait ReactionService<Context>: Send + Sync + 'static {
     fn get_reaction<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetReaction,
+        params: GetReactionParams,
     ) -> BoxFuture<'a, Result<Reaction, Self::Error>>;
     fn create_reaction<'a>(
         &'a self,
         ctx: &'a Context,
-        req: CreateReaction,
+        params: CreateReactionParams,
     ) -> BoxFuture<'a, Result<Reaction, Self::Error>>;
 }
 
@@ -55,23 +55,23 @@ pub trait ProvideReactionService: Send + Sync + 'static {
 
     fn get_reaction(
         &self,
-        req: GetReaction,
+        params: GetReactionParams,
     ) -> BoxFuture<
         '_,
         Result<Reaction, <Self::ReactionService as ReactionService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.reaction_service().get_reaction(ctx, req)
+        self.reaction_service().get_reaction(ctx, params)
     }
     fn create_reaction(
         &self,
-        req: CreateReaction,
+        params: CreateReactionParams,
     ) -> BoxFuture<
         '_,
         Result<Reaction, <Self::ReactionService as ReactionService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.reaction_service().create_reaction(ctx, req)
+        self.reaction_service().create_reaction(ctx, params)
     }
 
     // TODO: build_server(this: Arc<Self>) -> ReactionServiceServer<...>
