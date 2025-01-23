@@ -78,8 +78,6 @@ pub trait ExploreService<Context>: Send + Sync + 'static {
     ) -> BoxStream<'a, Result<ExplorationFieldEvents, Self::Error>>;
 }
 
-pub struct ExploreServiceImpl;
-
 #[allow(clippy::type_complexity)]
 pub trait ProvideExploreService: Send + Sync + 'static {
     type Context;
