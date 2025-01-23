@@ -52,23 +52,23 @@ impl From<UserRow> for super::User {
 
 async fn get_user(
     pool: &MySqlPool,
-    request: super::GetUserParams,
+    params: super::GetUserParams,
 ) -> Result<super::User, super::Error> {
     let super::GetUserParams {
         id: super::UserId(id),
-    } = request;
+    } = params;
     let user: Option<UserRow> = sqlx::query_as(r#"SELECT * FROM `users` WHERE `id` = ?"#)
         .bind(id)
         .fetch_optional(pool)
         .await?;
-    user.map_or(Err(super::Error::NotFound), |user| Ok(user.into()))
+    user.map(Into::into).ok_or(super::Error::NotFound)
 }
 
 async fn create_user(
     pool: &MySqlPool,
-    request: super::CreateUserParams,
+    params: super::CreateUserParams,
 ) -> Result<super::User, super::Error> {
-    let super::CreateUserParams { name, display_name } = request;
+    let super::CreateUserParams { name, display_name } = params;
     let id = Uuid::now_v7();
     sqlx::query(
         r#"
