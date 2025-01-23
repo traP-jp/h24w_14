@@ -35,7 +35,7 @@ where
 {
     async fn get_user(
         &self,
-        request: tonic::Request<schema::GetUserRequest>,
+        _request: tonic::Request<schema::GetUserRequest>,
     ) -> Result<tonic::Response<schema::GetUserResponse>, tonic::Status> {
         unimplemented!()
     }
