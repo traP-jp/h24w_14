@@ -66,12 +66,25 @@ async fn create_user(
     request: super::CreateUser,
 ) -> Result<super::User, super::Error> {
     let super::CreateUser { name, display_name } = request;
-    let user: UserRow =
-        sqlx::query_as(r#"INSERT INTO `users` (`name`, `display_name`) VALUES (?, ?)"#)
-            .bind(name)
-            .bind(display_name)
-            .fetch_one(pool)
-            .await
-            .map_err(super::Error::from)?;
-    Ok(user.into())
+    let id = Uuid::now_v7();
+    sqlx::query(
+        r#"
+            INSERT INTO `users` (`id`, `name`, `display_name`)
+            VALUES (?, ?, ?)
+        "#,
+    )
+    .bind(id)
+    .bind(name)
+    .bind(display_name)
+    .execute(pool)
+    .await?;
+
+    let user = get_user(
+        pool,
+        super::GetUser {
+            id: super::UserId(id),
+        },
+    )
+    .await?;
+    Ok(user)
 }
