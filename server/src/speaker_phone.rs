@@ -7,7 +7,7 @@ use crate::prelude::{IntoStatus, Timestamp};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
-pub struct SpeakerPhoneId(pub uuid::Uuid);
+  pub struct SpeakerPhoneId(pub uuid::Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]

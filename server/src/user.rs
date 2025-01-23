@@ -1,7 +1,15 @@
+//! user.proto
+
+pub mod error;
+pub mod grpc;
+mod r#impl;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::{IntoStatus, Timestamp};
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -15,6 +23,11 @@ pub struct User {
     pub created_at: Timestamp,
     // 予約
     pub updated_at: Timestamp,
+}
+
+pub trait UserStore: Send + Sync + 'static {
+    fn find(&self, id: UserId) -> Option<User>;
+    fn create(&self, name: String, display_name: String) -> User;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -70,3 +83,9 @@ pub trait ProvideUserService: Send + Sync + 'static {
     // TODO: build_server(this: Arc<Self>) -> UserServiceServer<...>
     //     get_userをgRPCのUserServiceで公開する
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct UserServiceImpl;
+
+pub type UserServiceServer<State> =
+    schema::user::user_service_server::UserServiceServer<grpc::ServiceImpl<State>>;
