@@ -1,6 +1,6 @@
 //! `explore.proto`
 
-use futures::future::BoxFuture;
+use futures::{future::BoxFuture, stream::BoxStream};
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
@@ -61,6 +61,39 @@ pub enum GetExplorersInArea {
     //     center: crate::world::Coordinate,
     //     radius: u32,
     // },
+}
+
+pub trait ExploreService<Context>: Send + Sync + 'static {
+    type Error: IntoStatus;
+
+    fn explore<'a>(
+        &'a self,
+        ctx: &'a Context,
+        req: BoxStream<'a, ExplorationField>,
+    ) -> BoxStream<'a, Result<ExplorationFieldEvents, Self::Error>>;
+}
+
+#[allow(clippy::type_complexity)]
+pub trait ProvideExploreService: Send + Sync + 'static {
+    type Context;
+    type ExploreService: ExploreService<Self::Context>;
+
+    fn context(&self) -> &Self::Context;
+    fn explore_service(&self) -> &Self::ExploreService;
+
+    fn explore<'a>(
+        &'a self,
+        req: BoxStream<'a, ExplorationField>,
+    ) -> BoxStream<
+        'a,
+        Result<
+            ExplorationFieldEvents,
+            <Self::ExploreService as ExploreService<Self::Context>>::Error,
+        >,
+    > {
+        let ctx = self.context();
+        self.explore_service().explore(ctx, req)
+    }
 }
 
 pub trait ExplorerService<Context>: Send + Sync + 'static {

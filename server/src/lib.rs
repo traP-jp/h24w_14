@@ -1,3 +1,4 @@
+pub mod event;
 pub mod explore;
 pub mod message;
 pub mod prelude;
