@@ -63,15 +63,22 @@ pub enum GetExplorersInAreaParams {
     // },
 }
 
+pub struct ExploreParems<'a> {
+    pub id: crate::user::UserId,
+    stueam: BoxStream<'a, ExplorationField>,
+}
+
 pub trait ExploreService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
 
     fn explore<'a>(
         &'a self,
         ctx: &'a Context,
-        req: BoxStream<'a, ExplorationField>,
+        params: ExploreParems<'a>,
     ) -> BoxStream<'a, Result<ExplorationFieldEvents, Self::Error>>;
 }
+
+pub struct ExploreServiceImpl;
 
 #[allow(clippy::type_complexity)]
 pub trait ProvideExploreService: Send + Sync + 'static {
