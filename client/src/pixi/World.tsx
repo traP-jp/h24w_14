@@ -86,20 +86,29 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         radius={100}
       />
       <Reaction
-        position={{ x: 150, y: 500 }}
+        position={{ x: 300, y: 300 }}
         reaction="kusa"
-        userIconURL={traqIconURL("SSlime")}
+        user={{
+          name: "SSlime",
+          iconURL: traqIconURL("SSlime"),
+        }}
       />
-      <Reaction
+      {/* <Reaction
         position={{ x: 200, y: 500 }}
         reaction="iine"
-        userIconURL={traqIconURL("Ras")}
+        user={{
+          name: "Ras",
+          iconURL: traqIconURL("Ras"),
+        }}
       />
       <Reaction
         position={{ x: 250, y: 500 }}
         reaction="pro"
-        userIconURL={traqIconURL("H1rono_K")}
-      />
+        user={{
+          name: "H1rono_K",
+          iconURL: traqIconURL("H1rono_K"),
+        }}
+      /> */}
     </Container>
   );
 };

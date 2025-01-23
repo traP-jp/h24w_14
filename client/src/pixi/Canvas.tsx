@@ -15,7 +15,7 @@ import {
 import Explorer from "./components/Explorer";
 import PIXI from "pixi.js";
 
-const mountHandler = import.meta.env.PROD
+const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
       // settings for pixi.js devtool https://github.com/bfanger/pixi-inspector
       (globalThis as any).__PIXI_APP__ = app; // eslint-disable-line

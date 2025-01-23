@@ -1,21 +1,36 @@
-import { Container, Sprite } from "@pixi/react";
-import React, { useState } from "react";
+import { Container, Sprite, Text } from "@pixi/react";
+import React, { useEffect, useRef, useState } from "react";
 import { ReactionAssets, ReactionName } from "../reactions";
 import { Position } from "../Position";
-import Circle from "./Circle";
 import { themeColors } from "../theme";
+import Bubble from "./Bubble";
+import PIXI, { TextStyle } from "pixi.js";
 
 interface Props {
   position: Position;
   reaction: ReactionName;
-  userIconURL: string;
+  user: {
+    name: string;
+    iconURL: string;
+  };
 }
 
 const reactionImageSize = 25;
-const userIconSize = 20;
+const userIconSize = 14;
 
-const Reaction: React.FC<Props> = ({ position, reaction, userIconURL }) => {
+const Reaction: React.FC<Props> = ({ position, reaction, user }) => {
   const [showUser, setShowUser] = useState(false);
+  const iconAndNameRef = useRef<PIXI.Container>(null);
+  const [iconAndNameWidth, setIconAndNameWidth] = useState(0);
+
+  useEffect(() => {
+    if (!showUser) {
+      return;
+    }
+    if (iconAndNameRef.current) {
+      setIconAndNameWidth(iconAndNameRef.current.width);
+    }
+  }, [showUser, iconAndNameRef]);
 
   return (
     <Container
@@ -33,22 +48,43 @@ const Reaction: React.FC<Props> = ({ position, reaction, userIconURL }) => {
         height={reactionImageSize}
       />
       {showUser && (
-        <Container anchor={0.5} x={reactionImageSize} y={reactionImageSize}>
-          <Circle
+        <>
+          <Bubble
             x={0}
-            y={0}
-            lineWidth={1}
-            color={themeColors.accentPrimary}
-            fillColor={themeColors.backgroundPrimary}
-            radius={(userIconSize / 2) * 1.5}
+            y={-reactionImageSize / 2 - 5}
+            radius={10}
+            color={themeColors.accentSecondary}
+            height={20}
+            width={iconAndNameWidth + 10}
+            fillColor={"#000000"}
+            lineWidth={2}
           />
-          <Sprite
-            anchor={0.5}
-            image={userIconURL}
-            width={userIconSize}
-            height={userIconSize}
-          />
-        </Container>
+          <Container
+            x={-iconAndNameWidth / 2}
+            y={-reactionImageSize / 2 - 15}
+            ref={iconAndNameRef}
+          >
+            <Sprite
+              image={user.iconURL}
+              width={userIconSize}
+              height={userIconSize}
+              anchor={{ x: 0, y: 0.5 }}
+            />
+            <Text
+              anchor={{ x: 0, y: 0.5 }}
+              text={user.name}
+              x={userIconSize + 5}
+              y={0}
+              style={
+                new TextStyle({
+                  fill: themeColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: "bold",
+                })
+              }
+            />
+          </Container>
+        </>
       )}
     </Container>
   );
