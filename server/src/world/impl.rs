@@ -2,7 +2,7 @@ use futures::{future, FutureExt};
 
 impl<Context> super::WorldService<Context> for super::WorldServiceImpl
 where
-    Context: super::WorldSizeStore,
+    Context: AsRef<super::WorldSize>,
 {
     type Error = super::Error;
 
@@ -12,8 +12,8 @@ where
         params: super::GetWorldSizeParams,
     ) -> future::BoxFuture<'a, Result<super::Size, Self::Error>> {
         let super::GetWorldSizeParams {} = params;
-        let size = ctx.world_size();
-        let fut = future::ready(Ok(size));
+        let super::WorldSize(size) = ctx.as_ref();
+        let fut = future::ready(Ok(*size));
         fut.boxed()
     }
 
@@ -22,7 +22,7 @@ where
         ctx: &'a Context,
         params: super::CheckCoordinateParams,
     ) -> future::BoxFuture<'a, Result<super::CheckCoordinateAnswer, Self::Error>> {
-        let size = ctx.world_size();
+        let super::WorldSize(size) = ctx.as_ref();
         let super::CheckCoordinateParams { coordinate } = params;
         let res = if coordinate.x < size.width && coordinate.y < size.height {
             super::CheckCoordinateAnswer::Valid(coordinate)

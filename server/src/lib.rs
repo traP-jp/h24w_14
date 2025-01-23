@@ -6,6 +6,7 @@ pub mod reaction;
 pub mod router;
 pub mod session;
 pub mod speaker_phone;
+pub mod task;
 pub mod traq;
 pub mod user;
 pub mod world;
