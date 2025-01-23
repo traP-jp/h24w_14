@@ -13,7 +13,7 @@ impl From<Error> for tonic::Status {
             Error::Sqlx(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error);
                 tonic::Status::internal("Database error")
-            },
+            }
         }
     }
 }
