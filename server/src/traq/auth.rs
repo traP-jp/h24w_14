@@ -1,4 +1,5 @@
 use futures::future::BoxFuture;
+use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
@@ -6,16 +7,17 @@ use crate::prelude::IntoStatus;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct OAuth2EntrypointUri {}
 
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct AuthorizedUser {
     pub user: super::user::TraqUser,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-#[serde(tag = "answer", rename_all = "snake_case")]
-pub enum CheckAuthorizedAnswer {
-    Authorized(AuthorizedUser),
-    Unauthorized,
+#[derive(Debug, Clone)]
+pub struct BuildRequestAsAuthorizedUser<'a> {
+    pub user: &'a AuthorizedUser,
+    pub method: http::Method,
+    pub uri: &'a str,
 }
 
 pub trait TraqAuthService<Context>: Send + Sync + 'static {
@@ -35,7 +37,15 @@ pub trait TraqAuthService<Context>: Send + Sync + 'static {
         &'a self,
         ctx: &'a Context,
         req: super::user::TraqUser,
-    ) -> BoxFuture<'a, Result<CheckAuthorizedAnswer, Self::Error>>;
+    ) -> BoxFuture<'a, Result<Option<AuthorizedUser>, Self::Error>>;
+    /// Bearer Token を設定した [`RequestBuilder`] を作る
+    ///
+    /// 設定する Bearer Token は OAuth2.0 Authorization Code Flow で取得したもの
+    fn build_request_as_authorized_user<'a>(
+        &'a self,
+        ctx: &'a Context,
+        req: BuildRequestAsAuthorizedUser<'a>,
+    ) -> BoxFuture<'a, Result<RequestBuilder, Self::Error>>;
 }
 
 #[allow(clippy::type_complexity)]
@@ -72,11 +82,22 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
     ) -> BoxFuture<
         '_,
         Result<
-            CheckAuthorizedAnswer,
+            Option<AuthorizedUser>,
             <Self::TraqAuthService as TraqAuthService<Self::Context>>::Error,
         >,
     > {
         let ctx = self.context();
         self.traq_auth_service().check_authorized(ctx, req)
+    }
+    fn build_request_as_authorized_user<'a>(
+        &'a self,
+        req: BuildRequestAsAuthorizedUser<'a>,
+    ) -> BoxFuture<
+        'a,
+        Result<RequestBuilder, <Self::TraqAuthService as TraqAuthService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.traq_auth_service()
+            .build_request_as_authorized_user(ctx, req)
     }
 }
