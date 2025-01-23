@@ -85,12 +85,19 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         radius={100}
       />
       <Reaction
-        position={{ x: 150, y: 300 }}
+        position={{ x: 150, y: 500 }}
         reaction="kusa"
-        user={{
-          name: "Ras",
-          iconURL: "https://q.trap.jp/api/v3/public/icon/Ras",
-        }}
+        userIconURL={"https://q.trap.jp/api/v3/public/icon/SSlime"}
+      />
+      <Reaction
+        position={{ x: 200, y: 500 }}
+        reaction="iine"
+        userIconURL={"https://q.trap.jp/api/v3/public/icon/Ras"}
+      />
+      <Reaction
+        position={{ x: 250, y: 500 }}
+        reaction="pro"
+        userIconURL={"https://q.trap.jp/api/v3/public/icon/H1rono_K"}
       />
     </Container>
   );

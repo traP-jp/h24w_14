@@ -8,16 +8,13 @@ import { themeColors } from "../theme";
 interface Props {
   position: Position;
   reaction: ReactionName;
-  user: {
-    name: string;
-    iconURL: string;
-  };
+  userIconURL: string;
 }
 
 const reactionImageSize = 25;
 const userIconSize = 20;
 
-const Reaction: React.FC<Props> = ({ position, reaction, user }) => {
+const Reaction: React.FC<Props> = ({ position, reaction, userIconURL }) => {
   const [showUser, setShowUser] = useState(false);
 
   return (
@@ -47,7 +44,7 @@ const Reaction: React.FC<Props> = ({ position, reaction, user }) => {
           />
           <Sprite
             anchor={0.5}
-            image={user.iconURL}
+            image={userIconURL}
             width={userIconSize}
             height={userIconSize}
           />
