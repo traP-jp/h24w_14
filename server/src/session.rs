@@ -5,16 +5,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
-pub struct Extract<'a>(pub &'a http::HeaderMap);
+pub struct ExtractParams<'a>(pub &'a http::HeaderMap);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Session {
     pub user_id: crate::user::UserId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct SaveParams {
+#[derive(Debug, Clone)]
+pub struct SaveParams<'a> {
     pub user_id: crate::user::UserId,
+    pub header_map: &'a http::HeaderMap,
 }
 
 pub trait SessionService<Context>: Send + Sync + 'static {
@@ -24,7 +25,7 @@ pub trait SessionService<Context>: Send + Sync + 'static {
     fn extract<'a>(
         &'a self,
         ctx: &'a Context,
-        params: Extract<'a>,
+        params: ExtractParams<'a>,
     ) -> BoxFuture<'a, Result<Session, Self::Error>>;
     fn save<'a>(
         &'a self,
@@ -43,7 +44,7 @@ pub trait ProvideSessionService: Send + Sync + 'static {
 
     fn extract<'a>(
         &'a self,
-        params: Extract<'a>,
+        params: ExtractParams<'a>,
     ) -> BoxFuture<
         'a,
         Result<Session, <Self::SessionService as SessionService<Self::Context>>::Error>,
