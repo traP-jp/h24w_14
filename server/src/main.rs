@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Context;
 use sqlx::MySqlPool;
 use tokio::net::TcpListener;
@@ -7,6 +9,7 @@ use h24w14 as lib;
 #[derive(Debug, Clone)]
 struct State {
     pool: MySqlPool,
+    task_manager: lib::task::TaskManager,
 }
 
 #[tokio::main]
@@ -21,14 +24,16 @@ async fn main() -> anyhow::Result<()> {
         .or_else(|_| load_mysql_from_env("MARIADB_"))
         .or_else(|_| load_mysql_from_env("NS_MARIADB_"))
         .await?;
-    let state = std::sync::Arc::new(State { pool });
+    let task_manager = lib::task::TaskManager::new();
+    let state = Arc::new(State { pool, task_manager });
     state.migrate().await?;
 
-    let router = lib::router::make(state);
+    let router = lib::router::make(Arc::clone(&state));
     let tcp_listener = load_tcp_listener().await?;
     axum::serve(tcp_listener, router)
         .with_graceful_shutdown(shutdown())
         .await?;
+    state.graceful_shutdown().await?;
 
     Ok(())
 }
@@ -108,6 +113,13 @@ impl State {
             .run(&self.pool)
             .await
             .context("Migration failed")?;
+        Ok(())
+    }
+
+    async fn graceful_shutdown(&self) -> anyhow::Result<()> {
+        let duration = std::time::Duration::from_secs(5);
+        let fut = self.task_manager.graceful_shutdown();
+        tokio::time::timeout(duration, fut).await??;
         Ok(())
     }
 }
