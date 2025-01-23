@@ -5,32 +5,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, MySqlPool};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
-pub struct MessageRow {
-    pub id: Uuid,
-    pub user_id: Uuid,
-    pub content: String,
-    pub position_x: u32,
-    pub position_y: u32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
-}
-impl From<MessageRow> for super::Message {
-    fn from(row: MessageRow) -> Self {
-        Self {
-            id: super::MessageId(row.id),
-            user_id: crate::user::UserId(row.user_id),
-            position: crate::world::Coordinate {
-                x: row.position_x,
-                y: row.position_y,
-            },
-            content: row.content,
-            created_at: Timestamp(row.created_at),
-            updated_at: Timestamp(row.updated_at),
-            expires_at: Timestamp(row.expires_at),
-        }
-    }
+// TODO: 値はてきとう
+fn calculate_expires_at(created_at: DateTime<Utc>) -> DateTime<Utc> {
+    created_at + chrono::Duration::days(1)
 }
 
 impl<Context> super::MessageService<Context> for super::MessageServiceImpl
@@ -64,6 +41,36 @@ where
     ) -> futures::future::BoxFuture<'a, Result<super::Message, Self::Error>> {
         let pool = ctx.as_ref();
         create_message(pool, req).boxed()
+    }
+}
+
+// MARK: DB operations
+
+#[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
+pub struct MessageRow {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub content: String,
+    pub position_x: u32,
+    pub position_y: u32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+impl From<MessageRow> for super::Message {
+    fn from(row: MessageRow) -> Self {
+        Self {
+            id: super::MessageId(row.id),
+            user_id: crate::user::UserId(row.user_id),
+            position: crate::world::Coordinate {
+                x: row.position_x,
+                y: row.position_y,
+            },
+            content: row.content,
+            created_at: Timestamp(row.created_at),
+            updated_at: Timestamp(row.updated_at),
+            expires_at: Timestamp(row.expires_at),
+        }
     }
 }
 
@@ -104,6 +111,7 @@ async fn create_message(
         .bind(req.content)
         .bind(req.position.x)
         .bind(req.position.y)
+        .bind(calculate_expires_at(Utc::now()))
         .execute(pool)
         .await
         .map_err(super::Error::Sqlx)?;
