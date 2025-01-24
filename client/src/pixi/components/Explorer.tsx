@@ -1,4 +1,4 @@
-import { Sprite, Text } from "@pixi/react";
+import { Sprite, Text, Graphics } from "@pixi/react";
 import { DisplayPosition, Position } from "../Position";
 import { TextStyle } from "pixi.js";
 import { themeColors } from "../theme";
@@ -24,6 +24,22 @@ const Explorer: React.FC<Props> = ({ position, imgURL, isMe, name }) => {
 
   return (
     <>
+      {isMe && (
+        <Graphics
+          draw={(g) => {
+            g.clear();
+            g.lineStyle(1, themeColors.textSecondary);
+            g.beginFill(themeColors.backgroundSecondary);
+            g.drawRoundedRect(
+              pos.x - iconSize / 2,
+              pos.y - iconSize / 2,
+              iconSize,
+              iconSize,
+              0,
+            );
+          }}
+        />
+      )}
       <Sprite
         image={imgURL}
         {...pos}
