@@ -782,6 +782,7 @@ dependencies = [
  "hyper-util",
  "oauth2",
  "percent-encoding",
+ "pin-project-lite",
  "prost",
  "prost-types",
  "reqwest",

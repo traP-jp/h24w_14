@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod r#impl;
+pub mod layer;
 
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};

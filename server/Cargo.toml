@@ -94,3 +94,4 @@ tracing-subscriber.workspace = true
 uuid.workspace = true
 
 schema.path = "./schema"
+pin-project-lite = "0.2.16"
