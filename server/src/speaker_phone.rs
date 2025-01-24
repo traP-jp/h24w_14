@@ -27,27 +27,30 @@ pub struct SpeakerPhone {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetSpeakerPhone {
+pub struct GetSpeakerPhoneParams {
     pub id: SpeakerPhoneId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetSpeakerPhonesInArea {
+pub struct GetSpeakerPhonesInAreaParams {
     pub center: crate::world::Coordinate,
     pub size: crate::world::Size,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct CreateSpeakerPhone {
+pub struct CreateSpeakerPhoneParams {
     pub name: String,
     pub position: crate::world::Coordinate,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetAvailableChannels {}
+pub struct LoadAllSpeakerPhonesParams {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct SearchChannels {
+pub struct GetAvailableChannelsParams {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct SearchChannelsParams {
     pub name: String,
 }
 
@@ -57,27 +60,36 @@ pub trait SpeakerPhoneService<Context>: Send + Sync + 'static {
     fn get_speaker_phone<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetSpeakerPhone,
+        params: GetSpeakerPhoneParams,
     ) -> BoxFuture<'a, Result<SpeakerPhone, Self::Error>>;
     fn get_speaker_phones_in_area<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetSpeakerPhonesInArea,
+        params: GetSpeakerPhonesInAreaParams,
     ) -> BoxFuture<'a, Result<Vec<SpeakerPhone>, Self::Error>>;
+    /// DBに入れる + spawn subscribing event
+    /// spawnはTaskManager, subscribeはEventService参照
     fn create_speaker_phone<'a>(
         &'a self,
         ctx: &'a Context,
-        req: CreateSpeakerPhone,
+        params: CreateSpeakerPhoneParams,
     ) -> BoxFuture<'a, Result<SpeakerPhone, Self::Error>>;
+    /// アプリ起動時の処理
+    /// 既存のspeaker_phone全てでspawn subscribing eventする
+    fn load_all_speaker_phones<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: LoadAllSpeakerPhonesParams,
+    ) -> BoxFuture<'a, Result<(), Self::Error>>;
     fn get_available_channels<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetAvailableChannels,
+        params: GetAvailableChannelsParams,
     ) -> BoxFuture<'a, Result<Vec<Channel>, Self::Error>>;
     fn search_channels<'a>(
         &'a self,
         ctx: &'a Context,
-        req: SearchChannels,
+        params: SearchChannelsParams,
     ) -> BoxFuture<'a, Result<Vec<Channel>, Self::Error>>;
 }
 
@@ -91,7 +103,7 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
 
     fn get_speaker_phone(
         &self,
-        req: GetSpeakerPhone,
+        params: GetSpeakerPhoneParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -100,11 +112,11 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.speaker_phone_service().get_speaker_phone(ctx, req)
+        self.speaker_phone_service().get_speaker_phone(ctx, params)
     }
     fn get_speaker_phones_in_area(
         &self,
-        req: GetSpeakerPhonesInArea,
+        params: GetSpeakerPhonesInAreaParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -114,11 +126,11 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.speaker_phone_service()
-            .get_speaker_phones_in_area(ctx, req)
+            .get_speaker_phones_in_area(ctx, params)
     }
     fn create_speaker_phone(
         &self,
-        req: CreateSpeakerPhone,
+        params: CreateSpeakerPhoneParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -127,11 +139,23 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.speaker_phone_service().create_speaker_phone(ctx, req)
+        self.speaker_phone_service()
+            .create_speaker_phone(ctx, params)
+    }
+    fn load_all_speaker_phones(
+        &self,
+        params: LoadAllSpeakerPhonesParams,
+    ) -> BoxFuture<
+        '_,
+        Result<(), <Self::SpeakerPhoneService as SpeakerPhoneService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.speaker_phone_service()
+            .load_all_speaker_phones(ctx, params)
     }
     fn get_available_channels(
         &self,
-        req: GetAvailableChannels,
+        params: GetAvailableChannelsParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -141,11 +165,11 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.speaker_phone_service()
-            .get_available_channels(ctx, req)
+            .get_available_channels(ctx, params)
     }
     fn search_channels(
         &self,
-        req: SearchChannels,
+        params: SearchChannelsParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -154,7 +178,7 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.speaker_phone_service().search_channels(ctx, req)
+        self.speaker_phone_service().search_channels(ctx, params)
     }
 
     // TODO: build_server(this: Arc<Self>) -> SpeakerPhoneServiceServer<...>

@@ -13,6 +13,14 @@ import {
   displayPositionToPosition,
 } from "./Position";
 import Explorer from "./components/Explorer";
+import PIXI from "pixi.js";
+
+const mountHandler = import.meta.env.DEV
+  ? (app: PIXI.Application) => {
+      // settings for pixi.js devtool https://github.com/bfanger/pixi-inspector
+      (globalThis as any).__PIXI_APP__ = app; // eslint-disable-line
+    }
+  : undefined;
 
 interface Props {
   className?: string;
@@ -129,6 +137,7 @@ const Canvas: React.FC<Props> = (props) => {
         options={{ background: 0x1099bb }}
         className={props.className}
         onClick={onFieldClick}
+        onMount={mountHandler}
       >
         <World
           userPosition={userPosition}
@@ -136,7 +145,9 @@ const Canvas: React.FC<Props> = (props) => {
         />
         <Explorer
           imgURL="https://q.trap.jp/api/v3/public/icon/ikura-hamu"
-          displayPosition={userDisplayPosition}
+          position={userDisplayPosition}
+          isMe
+          name="ikura-hamu"
         />
       </Stage>
     </div>

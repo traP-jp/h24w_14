@@ -1,9 +1,18 @@
 //! `world.proto`
 
+pub mod error;
+pub mod grpc;
+mod r#impl;
+
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
+
+pub use error::Error;
+pub use schema::world::world_service_server::SERVICE_NAME;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Size {
@@ -18,10 +27,10 @@ pub struct Coordinate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetWorldSize {}
+pub struct GetWorldSizeParams {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct CheckCoordinate {
+pub struct CheckCoordinateParams {
     pub coordinate: Coordinate,
 }
 
@@ -32,9 +41,8 @@ pub enum CheckCoordinateAnswer {
     Invalid,
 }
 
-pub trait WorldSizeStore: Send + Sync + 'static {
-    fn world_size(&self) -> Size;
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct WorldSize(pub Size);
 
 pub trait WorldService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
@@ -42,12 +50,12 @@ pub trait WorldService<Context>: Send + Sync + 'static {
     fn get_world_size<'a>(
         &'a self,
         ctx: &'a Context,
-        req: GetWorldSize,
+        params: GetWorldSizeParams,
     ) -> BoxFuture<'a, Result<Size, Self::Error>>;
     fn check_coordinate<'a>(
         &'a self,
         ctx: &'a Context,
-        req: CheckCoordinate,
+        params: CheckCoordinateParams,
     ) -> BoxFuture<'a, Result<CheckCoordinateAnswer, Self::Error>>;
 }
 
@@ -61,22 +69,34 @@ pub trait ProvideWorldService: Send + Sync + 'static {
 
     fn get_world_size(
         &self,
-        req: GetWorldSize,
+        params: GetWorldSizeParams,
     ) -> BoxFuture<'_, Result<Size, <Self::WorldService as WorldService<Self::Context>>::Error>>
     {
         let ctx = self.context();
-        self.world_service().get_world_size(ctx, req)
+        self.world_service().get_world_size(ctx, params)
     }
     fn check_coordinate(
         &self,
-        req: CheckCoordinate,
+        params: CheckCoordinateParams,
     ) -> BoxFuture<
         '_,
         Result<CheckCoordinateAnswer, <Self::WorldService as WorldService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.world_service().check_coordinate(ctx, req)
+        self.world_service().check_coordinate(ctx, params)
     }
 
-    // TODO: build_server(this: Arc<Self>) -> WorldServiceServer<...>
+    fn build_server(this: Arc<Self>) -> WorldServiceServer<Self>
+    where
+        Self: Sized,
+    {
+        let service = grpc::ServiceImpl::new(this);
+        WorldServiceServer::new(service)
+    }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct WorldServiceImpl;
+
+pub type WorldServiceServer<State> =
+    schema::world::world_service_server::WorldServiceServer<grpc::ServiceImpl<State>>;

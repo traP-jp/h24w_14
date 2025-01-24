@@ -3,7 +3,7 @@ import messageIcon from "/src/assets/icons/messageIcon.svg";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Graphics as PIXIGraphics, TextStyle } from "pixi.js";
 import PIXI from "pixi.js";
-import { DisplayPosition } from "../Position";
+import { Position } from "../Position";
 import { themeColors } from "../theme";
 
 const messageIconSize = 30;
@@ -29,7 +29,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = (props) => {
 
 interface Props {
   messageText: string;
-  displayPosition: DisplayPosition;
+  position: Position;
   user: {
     name: string;
     iconUrl: string;
@@ -45,7 +45,7 @@ const messageTextStyle = new TextStyle({
   breakWords: true,
 });
 
-const Message: React.FC<Props> = ({ messageText, displayPosition, user }) => {
+const Message: React.FC<Props> = ({ messageText, position, user }) => {
   const [showMessage, setShowMessage] = useState(false);
   const textRef = useRef<PIXI.Text>(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 200, height: 100 });
@@ -68,8 +68,7 @@ const Message: React.FC<Props> = ({ messageText, displayPosition, user }) => {
 
   return (
     <Container
-      x={displayPosition.left}
-      y={displayPosition.top}
+      {...position}
       interactive
       mouseout={handleMouseOut}
       mouseover={handleMouseOver}
