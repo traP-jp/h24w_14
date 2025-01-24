@@ -1,10 +1,6 @@
 use std::{future::Future, sync::Arc};
 
-use tokio::{
-    sync::Mutex,
-    task::{JoinError, JoinSet},
-};
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 #[derive(Debug, Clone)]
 pub struct TaskManager(Arc<Inner>);
@@ -12,7 +8,7 @@ pub struct TaskManager(Arc<Inner>);
 #[derive(Debug)]
 struct Inner {
     cancel: CancellationToken,
-    join_set: Mutex<JoinSet<()>>,
+    task_tracker: TaskTracker,
 }
 
 impl Default for TaskManager {
@@ -25,7 +21,7 @@ impl TaskManager {
     pub fn new() -> Self {
         let inner = Inner {
             cancel: CancellationToken::new(),
-            join_set: Mutex::new(JoinSet::new()),
+            task_tracker: TaskTracker::new(),
         };
         Self(Arc::new(inner))
     }
@@ -37,24 +33,15 @@ impl TaskManager {
     {
         let child = self.0.cancel.child_token();
         let fut = func(child.clone());
-        self.0.join_set.lock().await.spawn(fut);
+        self.0.task_tracker.spawn(fut);
         child
     }
 
     #[tracing::instrument(skip_all)]
-    pub async fn graceful_shutdown(&self) -> Result<(), JoinError> {
+    pub async fn graceful_shutdown(&self) {
         self.0.cancel.cancel();
-        let mut join_set = self.0.join_set.lock().await;
-        while let Some(res) = join_set.join_next().await {
-            match res {
-                Ok(()) => {}
-                Err(e) => {
-                    tracing::error!(error = &e as &dyn std::error::Error, "join error");
-                    return Err(e);
-                }
-            }
-        }
+        self.0.task_tracker.close();
+        self.0.task_tracker.wait().await;
         tracing::info!("Gracefully shut down");
-        Ok(())
     }
 }

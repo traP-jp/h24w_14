@@ -170,7 +170,7 @@ impl State {
     async fn graceful_shutdown(&self) -> anyhow::Result<()> {
         let duration = std::time::Duration::from_secs(5);
         let fut = self.task_manager.graceful_shutdown();
-        tokio::time::timeout(duration, fut).await??;
+        tokio::time::timeout(duration, fut).await?;
         Ok(())
     }
 }
