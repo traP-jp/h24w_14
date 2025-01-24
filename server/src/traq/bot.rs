@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
+pub mod config;
+
 #[derive(Debug, Clone)]
 pub struct BuildRequestAsBotParams<'a> {
     pub method: http::Method,
@@ -28,6 +30,14 @@ pub struct OnLeftChannelParams {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct OnMessageCreatedParams {
     pub message: super::message::TraqMessage,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraqBotConfig {
+    bot_id: String,
+    bot_user_id: String,
+    verification_token: String,
+    access_token: String,
 }
 
 pub trait TraqBotService<Context>: Send + Sync + 'static {
