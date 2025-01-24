@@ -33,10 +33,11 @@ pub struct SessionService<Service, State> {
     state: Arc<State>,
 }
 
-impl<S, State> SessionService<S, State>
+impl<S, State, ResBody> SessionService<S, State>
 where
-    S: Service<Request<Body>> + Clone + Send + Sync + 'static,
-    <S as Service<Request<Body>>>::Response: IntoResponse + 'static,
+    S: Service<Request<Body>, Response = Response<ResBody>> + Clone + Send + Sync + 'static,
+    ResBody: Into<Body> + 'static,
+    Response<ResBody>: IntoResponse + 'static,
     <S as Service<Request<Body>>>::Error: Into<Infallible> + 'static,
     <S as Service<Request<Body>>>::Future: Send + 'static,
 {
