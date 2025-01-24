@@ -44,6 +44,9 @@ pub struct CreateSpeakerPhoneParams {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct LoadAllSpeakerPhonesParams {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct GetAvailableChannelsParams {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -64,11 +67,20 @@ pub trait SpeakerPhoneService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         params: GetSpeakerPhonesInAreaParams,
     ) -> BoxFuture<'a, Result<Vec<SpeakerPhone>, Self::Error>>;
+    /// DBに入れる + spawn subscribing event
+    /// spawnはTaskManager, subscribeはEventService参照
     fn create_speaker_phone<'a>(
         &'a self,
         ctx: &'a Context,
         params: CreateSpeakerPhoneParams,
     ) -> BoxFuture<'a, Result<SpeakerPhone, Self::Error>>;
+    /// アプリ起動時の処理
+    /// 既存のspeaker_phone全てでspawn subscribing eventする
+    fn load_all_speaker_phones<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: LoadAllSpeakerPhonesParams,
+    ) -> BoxFuture<'a, Result<(), Self::Error>>;
     fn get_available_channels<'a>(
         &'a self,
         ctx: &'a Context,
@@ -129,6 +141,17 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
         let ctx = self.context();
         self.speaker_phone_service()
             .create_speaker_phone(ctx, params)
+    }
+    fn load_all_speaker_phones(
+        &self,
+        params: LoadAllSpeakerPhonesParams,
+    ) -> BoxFuture<
+        '_,
+        Result<(), <Self::SpeakerPhoneService as SpeakerPhoneService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.speaker_phone_service()
+            .load_all_speaker_phones(ctx, params)
     }
     fn get_available_channels(
         &self,
