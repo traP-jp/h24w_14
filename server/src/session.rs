@@ -80,5 +80,5 @@ pub trait ProvideSessionService: Send + Sync + 'static {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct SessionServiceImpl;
