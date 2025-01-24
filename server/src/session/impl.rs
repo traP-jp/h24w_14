@@ -5,11 +5,11 @@ use axum_extra::extract::{
 use futures::FutureExt as _;
 use sqlx::MySqlPool;
 
-use super::SessionName;
+use super::{CookieDomain, SessionName};
 
 impl<Context> super::SessionService<Context> for super::SessionServiceImpl
 where
-    Context: AsRef<MySqlPool> + AsRef<Key> + AsRef<SessionName>,
+    Context: AsRef<MySqlPool> + AsRef<Key> + AsRef<SessionName> + AsRef<CookieDomain>,
 {
     type Error = super::Error;
     type Jar = PrivateCookieJar;
@@ -33,9 +33,10 @@ where
     ) -> futures::future::BoxFuture<'a, Result<Self::Jar, Self::Error>> {
         let key: &Key = ctx.as_ref();
         let session_name: &SessionName = ctx.as_ref();
+        let domain: &CookieDomain = ctx.as_ref();
         let jar = PrivateCookieJar::from_headers(params.header_map, key.clone());
 
-        save(jar, session_name.0.clone(), params.user_id).boxed()
+        save(jar, &session_name.0, &domain.0, params.user_id).boxed()
     }
 }
 
@@ -54,8 +55,15 @@ async fn extract(
 
 async fn save(
     cookie_jar: PrivateCookieJar,
-    session_name: String,
+    session_name: impl Into<String>,
+    domain: impl Into<String>,
     user_id: crate::user::UserId,
 ) -> Result<PrivateCookieJar, super::Error> {
-    Ok(cookie_jar.add(Cookie::new(session_name, user_id.0.to_string())))
+    let cookie = Cookie::build((session_name.into(), user_id.0.to_string()))
+        .domain(domain.into())
+        .path("/")
+        .secure(true)
+        .http_only(true)
+        .to_owned();
+    Ok(cookie_jar.add(cookie))
 }

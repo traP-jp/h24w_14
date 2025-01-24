@@ -14,6 +14,9 @@ pub use error::Error;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct SessionName(pub String);
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct CookieDomain(pub String);
+
 pub struct ExtractParams<'a>(pub &'a http::HeaderMap);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
