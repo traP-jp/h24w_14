@@ -119,7 +119,7 @@ async fn create_reaction<P: crate::event::ProvideEventService>(
     event_service
         .publish_event(crate::event::Event::Reaction(reaction.clone()))
         .await
-        .map_err(|e| super::Error::Status(e.into()))?;
+        .map_err(crate::prelude::IntoStatus::into_status)?;
 
     Ok(reaction)
 }
