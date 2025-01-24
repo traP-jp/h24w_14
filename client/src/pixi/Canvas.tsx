@@ -145,7 +145,9 @@ const Canvas: React.FC<Props> = (props) => {
         />
         <Explorer
           imgURL="https://q.trap.jp/api/v3/public/icon/ikura-hamu"
-          displayPosition={userDisplayPosition}
+          position={userDisplayPosition}
+          isMe
+          name="ikura-hamu"
         />
       </Stage>
     </div>
