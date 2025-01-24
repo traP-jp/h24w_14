@@ -3,13 +3,12 @@ use axum_extra::extract::{
     PrivateCookieJar,
 };
 use futures::FutureExt as _;
-use sqlx::MySqlPool;
 
 use super::{CookieDomain, SessionName};
 
 impl<Context> super::SessionService<Context> for super::SessionServiceImpl
 where
-    Context: AsRef<MySqlPool> + AsRef<Key> + AsRef<SessionName> + AsRef<CookieDomain>,
+    Context: AsRef<Key> + AsRef<SessionName> + AsRef<CookieDomain>,
 {
     type Error = super::Error;
     type Jar = PrivateCookieJar;
