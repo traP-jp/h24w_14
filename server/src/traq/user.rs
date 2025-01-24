@@ -22,6 +22,8 @@ pub struct GetTraqUserParams {
     pub id: TraqUserId,
 }
 
+pub type FindTraqUserParams = GetTraqUserParams;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct RegisterTraqUserParams {
     pub id: TraqUserId,
@@ -35,6 +37,11 @@ pub trait TraqUserService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         params: GetTraqUserParams,
     ) -> BoxFuture<'a, Result<TraqUser, Self::Error>>;
+    fn find_traq_user<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: FindTraqUserParams,
+    ) -> BoxFuture<'a, Result<Option<TraqUser>, Self::Error>>;
     fn register_traq_user<'a>(
         &'a self,
         ctx: &'a Context,
@@ -59,6 +66,16 @@ pub trait ProvideTraqUserService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.traq_user_service().get_traq_user(ctx, params)
+    }
+    fn find_traq_user(
+        &self,
+        params: FindTraqUserParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Option<TraqUser>, <Self::TraqUserService as TraqUserService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.traq_user_service().find_traq_user(ctx, params)
     }
     fn register_traq_user(
         &self,
