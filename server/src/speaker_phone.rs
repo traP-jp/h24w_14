@@ -183,3 +183,5 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
 
     // TODO: build_server(this: Arc<Self>) -> SpeakerPhoneServiceServer<...>
 }
+
+pub use schema::speaker_phone::speaker_phone_service_server::SERVICE_NAME;

@@ -98,3 +98,5 @@ pub struct ReactionServiceImpl;
 
 pub type ReactionServiceServer<State> =
     schema::reaction::reaction_service_server::ReactionServiceServer<grpc::ServiceImpl<State>>;
+
+pub use schema::reaction::reaction_service_server::SERVICE_NAME;
