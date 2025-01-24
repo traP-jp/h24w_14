@@ -51,6 +51,7 @@ impl From<ReactionRow> for super::Reaction {
             kind: value.kind,
             created_at: super::Timestamp(value.created_at),
             updated_at: super::Timestamp(value.updated_at),
+            expires_at: super::Timestamp(value.expires_at),
         }
     }
 }
