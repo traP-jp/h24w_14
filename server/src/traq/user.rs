@@ -5,6 +5,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
+pub mod error;
+mod r#impl;
+
+pub use error::Error;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct TraqUserId(pub uuid::Uuid);
@@ -88,3 +93,6 @@ pub trait ProvideTraqUserService: Send + Sync + 'static {
         self.traq_user_service().register_traq_user(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TraqUserServiceImpl;
