@@ -11,6 +11,8 @@ use axum_extra::extract::{cookie::Key, PrivateCookieJar};
 use http::{Request, Response};
 use tower::{Layer, Service};
 
+use super::SessionName;
+
 pub struct SessionLayer<State> {
     state: Arc<State>,
 }
@@ -49,7 +51,7 @@ where
     Response<ResBody>: IntoResponse + 'static,
     <S as Service<Request<Body>>>::Error: Into<Infallible> + 'static,
     <S as Service<Request<Body>>>::Future: Send + 'static,
-    State: AsRef<Key>,
+    State: AsRef<Key> + AsRef<SessionName>,
 {
     type Response = Response<Body>;
     type Error = SessionError;
@@ -65,9 +67,10 @@ where
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let key: &Key = self.state.as_ref().as_ref();
+        let session_name: &SessionName = self.state.as_ref().as_ref();
         let jar = PrivateCookieJar::from_headers(req.headers(), key.clone());
         let user_id = jar
-            .get("user_id")
+            .get(&session_name.0)
             .and_then(|cookie| cookie.value().parse().ok())
             .map(crate::user::UserId);
 

@@ -11,6 +11,9 @@ use crate::prelude::IntoStatus;
 
 pub use error::Error;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct SessionName(pub String);
+
 pub struct ExtractParams<'a>(pub &'a http::HeaderMap);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
