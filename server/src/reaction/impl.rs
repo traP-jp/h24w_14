@@ -4,7 +4,7 @@ use sqlx::MySqlPool;
 
 impl<Context> super::ReactionService<Context> for super::ReactionServiceImpl
 where
-    Context: AsRef<MySqlPool>,
+    Context: AsRef<MySqlPool> + crate::event::ProvideEventService,
 {
     type Error = super::Error;
 
@@ -21,7 +21,7 @@ where
         ctx: &'a Context,
         params: super::CreateReactionParams,
     ) -> future::BoxFuture<'a, Result<super::Reaction, Self::Error>> {
-        create_reaction(ctx.as_ref(), params).boxed()
+        create_reaction(ctx, ctx.as_ref(), params).boxed()
     }
 }
 
@@ -70,7 +70,8 @@ async fn get_reaction(
     reaction.map(Into::into).ok_or(super::Error::NotFound)
 }
 
-async fn create_reaction(
+async fn create_reaction<P: crate::event::ProvideEventService>(
+    event_service: &P,
     pool: &MySqlPool,
     params: super::CreateReactionParams,
 ) -> Result<super::Reaction, super::Error> {
@@ -114,5 +115,11 @@ async fn create_reaction(
         },
     )
     .await?;
+
+    event_service
+        .publish_event(crate::event::Event::Reaction(reaction.clone()))
+        .await
+        .map_err(|e| super::Error::Status(e.into()))?;
+
     Ok(reaction)
 }
