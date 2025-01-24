@@ -92,7 +92,7 @@ pub trait ProvideReactionService: Send + Sync + 'static {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct ReactionServiceImpl;
 
 pub type ReactionServiceServer<State> =
