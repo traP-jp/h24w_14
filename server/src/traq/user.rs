@@ -3,7 +3,7 @@
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::IntoStatus;
+use crate::prelude::{IntoStatus, Timestamp};
 
 pub mod error;
 mod r#impl;
@@ -20,6 +20,8 @@ pub struct TraqUser {
     pub inner: crate::user::User,
     pub bot: bool,
     pub bio: String,
+    pub created_at: Timestamp,
+    pub updated_at: Timestamp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
