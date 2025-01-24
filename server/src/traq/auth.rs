@@ -1,8 +1,13 @@
+pub mod error;
+pub mod r#impl;
+
 use futures::future::BoxFuture;
 use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
+
+pub use error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct OAuth2EntrypointUriParams {}
@@ -101,3 +106,6 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
             .build_request_as_authorized_user(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TraqAuthServiceImpl;
