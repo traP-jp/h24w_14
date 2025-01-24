@@ -13,35 +13,45 @@ use tower::{Layer, Service};
 
 use super::SessionName;
 
-pub struct SessionLayer<State> {
+pub struct SessionLayer<State, Kind> {
     state: Arc<State>,
+    _kind: Kind,
 }
 
-impl<State> Clone for SessionLayer<State> {
+impl<State, Kind> Clone for SessionLayer<State, Kind>
+where
+    Kind: Copy,
+{
     fn clone(&self) -> Self {
         Self {
             state: Arc::clone(&self.state),
+            _kind: self._kind,
         }
     }
 }
 
-impl<S, State> Layer<S> for SessionLayer<State> {
-    type Service = SessionService<S, State>;
+impl<S, State, Kind> Layer<S> for SessionLayer<State, Kind>
+where
+    Kind: Copy,
+{
+    type Service = SessionService<S, State, Kind>;
 
     fn layer(&self, inner: S) -> Self::Service {
         SessionService {
             inner,
             state: Arc::clone(&self.state),
+            _kind: self._kind,
         }
     }
 }
 
-pub struct SessionService<Service, State> {
+pub struct SessionService<Service, State, Kind> {
     inner: Service,
     state: Arc<State>,
+    _kind: Kind,
 }
 
-impl<S, State, ResBody> SessionService<S, State>
+impl<S, State, ResBody, Kind> SessionService<S, State, Kind>
 where
     S: Service<Request<Body>, Response = Response<ResBody>> + Clone + Send + Sync + 'static,
     ResBody: Into<Body> + 'static,
@@ -49,11 +59,15 @@ where
     <S as Service<Request<Body>>>::Error: Into<Infallible> + 'static,
     <S as Service<Request<Body>>>::Future: Send + 'static,
 {
-    pub fn new(inner: S, state: Arc<State>) -> Self {
-        Self { inner, state }
+    pub fn new(inner: S, state: Arc<State>, kind: Kind) -> Self {
+        Self {
+            inner,
+            state,
+            _kind: kind,
+        }
     }
 }
-impl<S, State, ResBody> Service<Request<Body>> for SessionService<S, State>
+impl<S, State, ResBody, Kind> Service<Request<Body>> for SessionService<S, State, Kind>
 where
     S: Service<Request<Body>, Response = Response<ResBody>> + Clone + Send + Sync + 'static,
     ResBody: Into<Body> + 'static,
@@ -61,10 +75,11 @@ where
     <S as Service<Request<Body>>>::Error: Into<Infallible> + 'static,
     <S as Service<Request<Body>>>::Future: Send + 'static,
     State: AsRef<Key> + AsRef<SessionName>,
+    Kind: Copy + ToResponse,
 {
     type Response = Response<Body>;
     type Error = SessionError;
-    type Future = SessionFuture<S::Future>;
+    type Future = SessionFuture<S::Future, Kind>;
 
     fn poll_ready(
         &mut self,
@@ -87,16 +102,19 @@ where
         SessionFuture {
             fut,
             authorized: user_id.is_some(),
+            _kind: self._kind,
         }
     }
 }
 
 pin_project_lite::pin_project! {
-    pub struct SessionFuture<Fut> {
+    pub struct SessionFuture<Fut, Kind> {
         #[pin]
         fut: Fut,
         #[pin]
         authorized: bool,
+        #[pin]
+        _kind: Kind,
     }
 }
 
@@ -110,21 +128,18 @@ impl std::fmt::Display for SessionError {
 
 impl std::error::Error for SessionError {}
 
-impl<Fut, ResBody, ServiceError> Future for SessionFuture<Fut>
+impl<Fut, ResBody, ServiceError, Kind> Future for SessionFuture<Fut, Kind>
 where
     Fut: Future<Output = Result<Response<ResBody>, ServiceError>>,
     ServiceError: Into<Infallible> + 'static,
     ResBody: Into<Body> + 'static,
+    Kind: ToResponse,
 {
     type Output = Result<Response<Body>, SessionError>;
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         if !self.authorized {
-            let resp = Response::builder()
-                .status(http::StatusCode::UNAUTHORIZED)
-                .body(Body::empty())
-                .unwrap();
-            return Poll::Ready(Ok(resp));
+            return Poll::Ready(Ok(Kind::unauthorized()));
         }
 
         let this = self.project();
@@ -135,7 +150,42 @@ where
     }
 }
 
+pub trait ToResponse: private::Sealed {
+    fn unauthorized() -> Response<Body>;
+}
+#[derive(Debug, Clone, Copy, Default)]
+pub struct HTTP;
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Grpc;
+
+impl ToResponse for HTTP {
+    fn unauthorized() -> Response<Body> {
+        Response::builder()
+            .status(http::StatusCode::UNAUTHORIZED)
+            .body(Body::empty())
+            .unwrap()
+    }
+}
+
+impl ToResponse for Grpc {
+    fn unauthorized() -> Response<Body> {
+        tonic::Status::unauthenticated("Unauthorized")
+            .into_http()
+            .map(Body::new)
+    }
+}
+
 // extract できなかったら Unauthorized を返すレイヤー
-pub fn build_layer<State>(state: Arc<State>) -> SessionLayer<State> {
-    SessionLayer { state }
+pub fn build_http_layer<State>(state: Arc<State>) -> SessionLayer<State, HTTP> {
+    SessionLayer { state, _kind: HTTP }
+}
+
+pub fn build_grpc_layer<State>(state: Arc<State>) -> SessionLayer<State, Grpc> {
+    SessionLayer { state, _kind: Grpc }
+}
+
+mod private {
+    pub trait Sealed {}
+    impl Sealed for super::HTTP {}
+    impl Sealed for super::Grpc {}
 }
