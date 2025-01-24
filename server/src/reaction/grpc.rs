@@ -47,7 +47,7 @@ where
 
 impl<State> ServiceImpl<State>
 where
-    State: super::ProvideReactionService,
+    State: super::ProvideReactionService + crate::session::ProvideSessionService,
 {
     pub(super) fn new(state: Arc<State>) -> Self {
         Self { state }

@@ -82,14 +82,14 @@ pub trait ProvideReactionService: Send + Sync + 'static {
         let ctx = self.context();
         self.reaction_service().create_reaction(ctx, params)
     }
+}
 
-    fn build_server(this: Arc<Self>) -> ReactionServiceServer<Self>
-    where
-        Self: Sized,
-    {
-        let service = grpc::ServiceImpl::new(this);
-        ReactionServiceServer::new(service)
-    }
+pub fn build_server<State>(this: Arc<State>) -> ReactionServiceServer<State>
+where
+    State: ProvideReactionService + crate::session::ProvideSessionService,
+{
+    let service = grpc::ServiceImpl::new(this);
+    ReactionServiceServer::new(service)
 }
 
 #[derive(Debug, Clone, Copy, Default)]
