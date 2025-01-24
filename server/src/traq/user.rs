@@ -3,7 +3,12 @@
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::IntoStatus;
+use crate::prelude::{IntoStatus, Timestamp};
+
+pub mod error;
+mod r#impl;
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -15,12 +20,16 @@ pub struct TraqUser {
     pub inner: crate::user::User,
     pub bot: bool,
     pub bio: String,
+    pub created_at: Timestamp,
+    pub updated_at: Timestamp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct GetTraqUserParams {
     pub id: TraqUserId,
 }
+
+pub type FindTraqUserParams = GetTraqUserParams;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct RegisterTraqUserParams {
@@ -35,6 +44,11 @@ pub trait TraqUserService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         params: GetTraqUserParams,
     ) -> BoxFuture<'a, Result<TraqUser, Self::Error>>;
+    fn find_traq_user<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: FindTraqUserParams,
+    ) -> BoxFuture<'a, Result<Option<TraqUser>, Self::Error>>;
     fn register_traq_user<'a>(
         &'a self,
         ctx: &'a Context,
@@ -60,6 +74,16 @@ pub trait ProvideTraqUserService: Send + Sync + 'static {
         let ctx = self.context();
         self.traq_user_service().get_traq_user(ctx, params)
     }
+    fn find_traq_user(
+        &self,
+        params: FindTraqUserParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Option<TraqUser>, <Self::TraqUserService as TraqUserService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.traq_user_service().find_traq_user(ctx, params)
+    }
     fn register_traq_user(
         &self,
         params: RegisterTraqUserParams,
@@ -71,3 +95,6 @@ pub trait ProvideTraqUserService: Send + Sync + 'static {
         self.traq_user_service().register_traq_user(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TraqUserServiceImpl;
