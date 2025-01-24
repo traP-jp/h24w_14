@@ -15,6 +15,7 @@ impl From<super::Reaction> for schema::Reaction {
             kind,
             created_at,
             updated_at: _,
+            expires_at,
         } = value;
         Self {
             id: id.0.to_string(),
@@ -22,8 +23,7 @@ impl From<super::Reaction> for schema::Reaction {
             position: Some(position.into()),
             kind,
             created_at: Some(created_at.into()),
-            // TODO: duration設定
-            expires_at: Some(super::Timestamp(created_at.0 + chrono::Duration::seconds(10)).into()),
+            expires_at: Some(expires_at.into()),
         }
     }
 }

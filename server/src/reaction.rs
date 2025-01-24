@@ -25,6 +25,7 @@ pub struct Reaction {
     pub kind: String,
     pub created_at: Timestamp,
     pub updated_at: Timestamp,
+    pub expires_at: Timestamp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
