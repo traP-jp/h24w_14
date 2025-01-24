@@ -111,10 +111,11 @@ where
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         if !self.authorized {
-            return Poll::Ready(Ok(Response::builder()
+            let resp = Response::builder()
                 .status(http::StatusCode::UNAUTHORIZED)
                 .body(Body::empty())
-                .unwrap()));
+                .unwrap();
+            return Poll::Ready(Ok(resp));
         }
 
         let this = self.project();
