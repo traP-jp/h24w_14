@@ -146,11 +146,22 @@ mod load {
         Ok(lib::event::EventChannels::new(capacity))
     }
 
+    #[tracing::instrument]
     pub fn session_config() -> anyhow::Result<SessionConfig> {
-        let key = env_var!("SESSION_KEY")?
-            .as_bytes()
-            .try_into()
-            .context("Failed to create session key")?;
+        use axum_extra::extract::cookie::Key as SessionKey;
+
+        let key = env_var!("SESSION_KEY")
+            .map(|k| {
+                let k = hex::decode(&k).context("Failed to decode SESSION_KEY value as hex")?;
+                SessionKey::try_from(&*k).context("Failed to load SESSION_KEY")
+            })
+            .unwrap_or_else(|e| {
+                tracing::warn!(
+                    error = e.as_ref() as &dyn std::error::Error,
+                    "Generating session key"
+                );
+                SessionKey::try_generate().context("Could not generate session key")
+            })?;
         let name = env_var!("SESSION_NAME")?;
         let domain = env_var!("COOKIE_ATTR_DOMAIN")?;
         Ok(SessionConfig {
