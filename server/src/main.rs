@@ -12,6 +12,7 @@ struct State {
     world_size: lib::world::WorldSize,
     event_channels: lib::event::EventChannels,
     client: reqwest::Client,
+    session_config: SessionConfig,
     services: Services,
 }
 
@@ -20,6 +21,7 @@ struct Services {
     world_service: lib::world::WorldServiceImpl,
     event_service: lib::event::EventServiceImpl,
     user_service: lib::user::UserServiceImpl,
+    session_service: lib::session::SessionServiceImpl,
 }
 
 #[tokio::main]
@@ -38,12 +40,14 @@ async fn main() -> anyhow::Result<()> {
     let world_size = load::world_size()?;
     let event_channels = load::event_channels()?;
     let client = reqwest::Client::new();
+    let session_config = load::session_config()?;
     let state = Arc::new(State {
         pool,
         task_manager,
         world_size,
         event_channels,
         client,
+        session_config,
         services: Services::default(),
     });
     state.migrate().await?;
@@ -58,7 +62,14 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-// MARK: helper `fn`s
+// MARK: helper `fn`s, `struct`s
+
+#[derive(Debug, Clone)]
+struct SessionConfig {
+    key: axum_extra::extract::cookie::Key,
+    name: lib::session::SessionName,
+    domain: lib::session::CookieDomain,
+}
 
 mod load {
     use anyhow::Ok;
@@ -134,6 +145,20 @@ mod load {
             .context("Failed to parse EVENT_CHANNELS_CAPACITY")?;
         Ok(lib::event::EventChannels::new(capacity))
     }
+
+    pub fn session_config() -> anyhow::Result<SessionConfig> {
+        let key = env_var!("SESSION_KEY")?
+            .as_bytes()
+            .try_into()
+            .context("Failed to create session key")?;
+        let name = env_var!("SESSION_NAME")?;
+        let domain = env_var!("COOKIE_ATTR_DOMAIN")?;
+        Ok(SessionConfig {
+            key,
+            name: lib::session::SessionName(name),
+            domain: lib::session::CookieDomain(domain),
+        })
+    }
 }
 
 #[tracing::instrument]
@@ -193,6 +218,24 @@ impl AsRef<reqwest::Client> for State {
     }
 }
 
+impl AsRef<axum_extra::extract::cookie::Key> for State {
+    fn as_ref(&self) -> &axum_extra::extract::cookie::Key {
+        &self.session_config.key
+    }
+}
+
+impl AsRef<lib::session::SessionName> for State {
+    fn as_ref(&self) -> &lib::session::SessionName {
+        &self.session_config.name
+    }
+}
+
+impl AsRef<lib::session::CookieDomain> for State {
+    fn as_ref(&self) -> &lib::session::CookieDomain {
+        &self.session_config.domain
+    }
+}
+
 impl lib::world::ProvideWorldService for State {
     type Context = Self;
     type WorldService = lib::world::WorldServiceImpl;
@@ -226,5 +269,17 @@ impl lib::user::ProvideUserService for State {
     }
     fn user_service(&self) -> &Self::UserService {
         &self.services.user_service
+    }
+}
+
+impl lib::session::ProvideSessionService for State {
+    type Context = Self;
+    type SessionService = lib::session::SessionServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn session_service(&self) -> &Self::SessionService {
+        &self.services.session_service
     }
 }
