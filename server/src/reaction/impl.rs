@@ -36,6 +36,7 @@ struct ReactionRow {
     pub kind: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl From<ReactionRow> for super::Reaction {
@@ -86,12 +87,13 @@ async fn create_reaction(
         kind,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        expires_at: chrono::Utc::now() + chrono::Duration::seconds(10),
     };
     sqlx::query(
         r#"
             INSERT INTO `reactions`
-            (`id`, `user_id`, `position_x`, `position_y`, `kind`, `created_at`, `updated_at`)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (`id`, `user_id`, `position_x`, `position_y`, `kind`, `created_at`, `updated_at`, `expires_at`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(reaction.id)
@@ -101,6 +103,7 @@ async fn create_reaction(
     .bind(reaction.kind)
     .bind(reaction.created_at)
     .bind(reaction.updated_at)
+    .bind(reaction.expires_at)
     .execute(pool)
     .await?;
     tracing::info!(id = %reaction.id, "Created a reaction");
