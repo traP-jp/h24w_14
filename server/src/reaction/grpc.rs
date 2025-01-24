@@ -57,7 +57,7 @@ where
 #[async_trait::async_trait]
 impl<State> schema::reaction_service_server::ReactionService for ServiceImpl<State>
 where
-    State: super::ProvideReactionService,
+    State: super::ProvideReactionService + crate::session::ProvideSessionService,
 {
     async fn get_reaction(
         &self,
@@ -86,14 +86,21 @@ where
         &self,
         request: tonic::Request<schema::CreateReactionRequest>,
     ) -> Result<tonic::Response<schema::CreateReactionResponse>, tonic::Status> {
-        let (_, _, schema::CreateReactionRequest { kind, position }) = request.into_parts();
+        let (meta, _, schema::CreateReactionRequest { kind, position }) = request.into_parts();
         let Some(position) = position else {
             return Err(tonic::Status::invalid_argument("Position is required"));
         };
-        // TODO: Get user_id from context (cookie?)
-        let user_id = uuid::Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap();
+
+        let header_map = meta.into_headers();
+        let user_id = self
+            .state
+            .extract(crate::session::ExtractParams(&header_map))
+            .await
+            .map_err(IntoStatus::into_status)?
+            .user_id;
+
         let params = super::CreateReactionParams {
-            user_id: crate::user::UserId(user_id),
+            user_id,
             kind,
             position: position.into(),
         };
