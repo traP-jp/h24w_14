@@ -93,7 +93,7 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
           iconURL: traqIconURL("SSlime"),
         }}
       />
-      {/* <Reaction
+      <Reaction
         position={{ x: 200, y: 500 }}
         reaction="iine"
         user={{
@@ -108,7 +108,7 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
           name: "H1rono_K",
           iconURL: traqIconURL("H1rono_K"),
         }}
-      /> */}
+      />
     </Container>
   );
 };
