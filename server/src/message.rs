@@ -108,3 +108,5 @@ pub struct MessageServiceImpl;
 
 pub type MessageServiceServer<State> =
     schema::msg::message_service_server::MessageServiceServer<grpc::ServiceImpl<State>>;
+
+pub use schema::msg::message_service_server::SERVICE_NAME;

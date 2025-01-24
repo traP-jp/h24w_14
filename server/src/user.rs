@@ -91,3 +91,5 @@ pub struct UserServiceImpl;
 
 pub type UserServiceServer<State> =
     schema::user::user_service_server::UserServiceServer<grpc::ServiceImpl<State>>;
+
+pub use schema::user::user_service_server::SERVICE_NAME;
