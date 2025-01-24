@@ -1,9 +1,21 @@
 //! HTTP セッション管理
 
+pub mod error;
+pub mod r#impl;
+pub mod layer;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
+
+pub use error::Error;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct SessionName(pub String);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct CookieDomain(pub String);
 
 pub struct ExtractParams<'a>(pub &'a http::HeaderMap);
 
@@ -52,6 +64,7 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         let ctx = self.context();
         self.session_service().extract(ctx, params)
     }
+
     fn save(
         &self,
         params: SaveParams,
@@ -66,3 +79,6 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         self.session_service().save(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SessionServiceImpl;
