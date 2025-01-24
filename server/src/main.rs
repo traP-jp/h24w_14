@@ -22,6 +22,7 @@ struct Services {
     event_service: lib::event::EventServiceImpl,
     user_service: lib::user::UserServiceImpl,
     session_service: lib::session::SessionServiceImpl,
+    reaction_service: lib::reaction::ReactionServiceImpl,
 }
 
 #[tokio::main]
@@ -292,5 +293,17 @@ impl lib::session::ProvideSessionService for State {
     }
     fn session_service(&self) -> &Self::SessionService {
         &self.services.session_service
+    }
+}
+
+impl lib::reaction::ProvideReactionService for State {
+    type Context = Self;
+    type ReactionService = lib::reaction::ReactionServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn reaction_service(&self) -> &Self::ReactionService {
+        &self.services.reaction_service
     }
 }
