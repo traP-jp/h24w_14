@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 #[derive(Debug, Clone)]
-pub struct BuildparamsuestAsBotParams<'a> {
+pub struct BuildRequestAsBotParams<'a> {
     pub method: http::Method,
     pub uri: &'a str,
 }
@@ -33,10 +33,10 @@ pub struct OnMessageCreatedParams {
 pub trait TraqBotService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
 
-    fn build_paramsuest_as_bot<'a>(
+    fn build_request_as_bot<'a>(
         &'a self,
         ctx: &'a Context,
-        params: BuildparamsuestAsBotParams<'a>,
+        params: BuildRequestAsBotParams<'a>,
     ) -> BoxFuture<'a, Result<RequestBuilder, Self::Error>>;
     fn subscribe_channel<'a>(
         &'a self,
@@ -68,15 +68,15 @@ pub trait ProvideTraqBotService: Send + Sync + 'static {
     fn context(&self) -> &Self::Context;
     fn traq_bot_service(&self) -> &Self::TraqBotService;
 
-    fn build_paramsuest_as_bot<'a>(
+    fn build_request_as_bot<'a>(
         &'a self,
-        params: BuildparamsuestAsBotParams<'a>,
+        params: BuildRequestAsBotParams<'a>,
     ) -> BoxFuture<
         'a,
         Result<RequestBuilder, <Self::TraqBotService as TraqBotService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.traq_bot_service().build_paramsuest_as_bot(ctx, params)
+        self.traq_bot_service().build_request_as_bot(ctx, params)
     }
     fn subscribe_channel(
         &self,
