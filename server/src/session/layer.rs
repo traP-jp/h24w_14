@@ -17,6 +17,14 @@ pub struct SessionLayer<State> {
     state: Arc<State>,
 }
 
+impl<State> Clone for SessionLayer<State> {
+    fn clone(&self) -> Self {
+        Self {
+            state: Arc::clone(&self.state),
+        }
+    }
+}
+
 impl<S, State> Layer<S> for SessionLayer<State> {
     type Service = SessionService<S, State>;
 
