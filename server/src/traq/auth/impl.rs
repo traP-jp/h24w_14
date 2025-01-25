@@ -60,7 +60,7 @@ where
         let pool = ctx.as_ref();
         let traq_host: &crate::traq::TraqHost = ctx.as_ref();
 
-        oauth2_handle_redirect(client, req_client.clone(), req, ctx, pool, &traq_host.0).boxed()
+        oauth2_handle_redirect(client, req_client, req, ctx, pool, &traq_host.0).boxed()
     }
 
     fn check_authorized<'a>(
@@ -97,7 +97,7 @@ async fn oauth2_entrypoint_uri(client: OauthClient) -> Result<String, super::Err
 
 async fn oauth2_handle_redirect<Context>(
     client: OauthClient,
-    req_client: reqwest::Client,
+    req_client: &reqwest::Client,
     req_: http::Request<()>,
     context: &Context,
     pool: &MySqlPool,
@@ -119,7 +119,7 @@ where
 
     let token = client
         .exchange_code(AuthorizationCode::new(code.to_string()))
-        .request_async(&req_client)
+        .request_async(req_client)
         .await
         .map_err(|e| match e {
             oauth2::RequestTokenError::Request(oauth2::HttpClientError::Reqwest(err)) => {
