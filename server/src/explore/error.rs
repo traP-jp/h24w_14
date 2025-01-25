@@ -1,6 +1,10 @@
-#[derive(Debug, thiserror::Error)]
+// todo: 仮置き
+/// infallible
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
-    #[error("No explorer found")]
+    #[error("exploration field stream closed")]
+    ExplorationFieldStreamClosed,
+    #[error("Not found")]
     NotFound,
     #[error(transparent)]
     Status(#[from] tonic::Status),
@@ -8,13 +12,8 @@ pub enum Error {
 
 impl From<Error> for tonic::Status {
     fn from(value: Error) -> Self {
-        match value {
-            Error::NotFound => tonic::Status::not_found("Not found"),
-            Error::Status(s) => {
-                tracing::error!(error = &s as &dyn std::error::Error);
-                s
-            }
-        }
+        // TODO: match書く
+        tonic::Status::internal(value.to_string())
     }
 }
 

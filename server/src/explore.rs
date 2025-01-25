@@ -39,6 +39,16 @@ pub enum ExplorerAction {
     Leave(Explorer),
 }
 
+impl ExplorerAction {
+    pub fn explorer(&self) -> &Explorer {
+        match self {
+            Self::Arrive(explorer) => explorer,
+            Self::Move(explorer) => explorer,
+            Self::Leave(explorer) => explorer,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct ExplorationFieldEvents {
     pub messages: Vec<crate::message::Message>,
@@ -102,6 +112,8 @@ pub trait ExploreService<Context>: Send + Sync + 'static {
         params: ExploreParams<'a>,
     ) -> BoxStream<'a, Result<ExplorationFieldEvents, Self::Error>>;
 }
+
+pub struct ExploreServiceImpl;
 
 #[allow(clippy::type_complexity)]
 pub trait ProvideExploreService: Send + Sync + 'static {
