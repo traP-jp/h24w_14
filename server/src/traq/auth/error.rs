@@ -1,4 +1,5 @@
 use axum::response::{IntoResponse, Response};
+use http::StatusCode;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -41,47 +42,25 @@ impl From<Error> for tonic::Status {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
-            Error::InvalidRequest(msg) => Response::builder()
-                .status(400)
-                .body(axum::body::Body::from(msg))
-                .unwrap_or_else(|_| fallback_error()),
+            Error::InvalidRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
             Error::Sqlx(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error, "Sqlx error");
-                Response::builder()
-                    .status(500)
-                    .body(axum::body::Body::from(e.to_string()))
-                    .unwrap_or_else(|_| fallback_error())
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
             }
             Error::Reqwest(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error, "Reqwest error");
-                Response::builder()
-                    .status(500)
-                    .body(axum::body::Body::from(e.to_string()))
-                    .unwrap_or_else(|_| fallback_error())
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
             }
             Error::Other(s) => {
                 tracing::error!(error = &s as &dyn std::error::Error, "Unexpected");
-                Response::builder()
-                    .status(500)
-                    .body(axum::body::Body::from(s.message().to_string()))
-                    .unwrap_or_else(|_| fallback_error())
+                (StatusCode::INTERNAL_SERVER_ERROR, s.message().to_string()).into_response()
             }
             Error::Unknown => {
                 tracing::error!("Unknown error");
-                Response::builder()
-                    .status(500)
-                    .body(axum::body::Body::empty())
-                    .unwrap_or_else(|_| fallback_error())
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
     }
-}
-
-fn fallback_error() -> Response {
-    Response::builder()
-        .status(500)
-        .body(axum::body::Body::empty())
-        .unwrap()
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
