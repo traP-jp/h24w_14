@@ -1,12 +1,6 @@
 import { Stage } from "@pixi/react";
 import World from "./World";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Position,
   DisplayPosition,
@@ -17,6 +11,8 @@ import PIXI from "pixi.js";
 import { useAtom, useAtomValue } from "jotai";
 import dispatcherAtom from "../state/dispatcher";
 import userPositionAtom from "../state/userPosition";
+import { useWorld } from "../api/world";
+import type { Size } from "../schema2/world";
 
 const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
@@ -29,36 +25,45 @@ interface Props {
   className?: string;
 }
 
-const calcNewPosition = (position: Position, diff: Position): Position => {
-  const x = Math.max(Math.min(position.x + diff.x, 2000), 0);
-  const y = Math.max(Math.min(position.y + diff.y, 2000), 0);
+function clamp(value: number, [min, max]: [number, number]): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+const calcNewPosition = (
+  position: Position,
+  diff: Position,
+  size: Size,
+): Position => {
+  const x = clamp(position.x + diff.x, [0, size.width]);
+  const y = clamp(position.y + diff.y, [0, size.height]);
   return { x, y };
 };
 
 const Canvas: React.FC<Props> = (props) => {
+  const { data } = useWorld();
   const [userPosition, setUserPosition] = useAtom(userPositionAtom);
-  const [fieldSize, setFieldSize] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const fieldSize = useMemo(() => {
+    if (data === null) {
+      return null;
+    }
+    return data?.world?.size ?? null;
+  }, [data]);
   const intervalID = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dispatcher = useAtomValue(dispatcherAtom);
 
   useEffect(() => {
-    const width = (window.innerWidth * 3) / 5;
-    const height = window.innerHeight;
+    if (fieldSize === null) {
+      return;
+    }
+    const { width, height } = fieldSize;
 
-    setFieldSize({
-      width: width,
-      height: height,
-    });
     setUserPosition({
       x: width / 2,
       y: height / 2,
     });
     // TODO: リサイズオブザーバー入れる
-  }, []);
+  }, [fieldSize, setUserPosition]);
 
   const userDisplayPosition = useMemo(() => {
     if (fieldSize === null) {
@@ -89,10 +94,14 @@ const Canvas: React.FC<Props> = (props) => {
           clearInterval(intervalID.current ?? undefined);
           return targetPosition;
         }
-        const nextPosition = calcNewPosition(position, {
-          x: diff.x / 10,
-          y: diff.y / 10,
-        });
+        const nextPosition = calcNewPosition(
+          position,
+          {
+            x: diff.x / 10,
+            y: diff.y / 10,
+          },
+          fieldSize,
+        );
         dispatcher?.({
           position: nextPosition,
           size: fieldSize,
@@ -100,7 +109,7 @@ const Canvas: React.FC<Props> = (props) => {
         return nextPosition;
       });
     },
-    [dispatcher, fieldSize, intervalID],
+    [dispatcher, fieldSize, setUserPosition],
   );
 
   const onFieldClick = useCallback(
