@@ -80,17 +80,23 @@ async fn send_message(
     let response = response
         .as_object()
         .ok_or(super::Error::UnexpectedResponseFromTraq)?;
-    let id: Uuid = response["id"]
+    let id: Uuid = response
+        .get("id")
+        .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .as_str()
         .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .parse()
         .map_err(|_| super::Error::UnexpectedResponseFromTraq)?;
-    let user_id: Uuid = response["userId"]
+    let user_id: Uuid = response
+        .get("userId")
+        .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .as_str()
         .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .parse()
         .map_err(|_| super::Error::UnexpectedResponseFromTraq)?;
-    let content = response["content"]
+    let content = response
+        .get("content")
+        .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .as_str()
         .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .to_string();
