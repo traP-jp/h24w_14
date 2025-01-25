@@ -4,6 +4,8 @@ pub trait Requirements:
     + crate::user::ProvideUserService
     + crate::session::ProvideSessionService
     + crate::reaction::ProvideReactionService
+    + crate::message::ProvideMessageService
+    + crate::speaker_phone::ProvideSpeakerPhoneService
 {
 }
 
@@ -13,5 +15,7 @@ impl<T> Requirements for T where
         + crate::user::ProvideUserService
         + crate::session::ProvideSessionService
         + crate::reaction::ProvideReactionService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
 {
 }
