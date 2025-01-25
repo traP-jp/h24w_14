@@ -47,13 +47,8 @@ export const InputMessage: React.FC = () => {
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
       />
-      <button
-        className="size-6 mb-1"
-        onClick={sendMessage}
-        aria-label="Send message"
-        role="button"
-      >
-        <SendOutlined />
+      <button className="size-6 mb-1" onClick={sendMessage} type="button">
+        <SendOutlined role="img" aria-label="Send Message" />
       </button>
     </div>
   );
