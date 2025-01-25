@@ -43,6 +43,20 @@ pub struct SessionService<Service, State, Kind> {
     _kind: Kind,
 }
 
+impl<Service, State, Kind> Clone for SessionService<Service, State, Kind>
+where
+    Service: Clone,
+    Kind: Copy,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            state: Arc::clone(&self.state),
+            _kind: self._kind,
+        }
+    }
+}
+
 impl<S, State, ResBody, Kind> SessionService<S, State, Kind>
 where
     S: Service<Request<Body>, Response = Response<ResBody>> + Clone + Send + Sync + 'static,
