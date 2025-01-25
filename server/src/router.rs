@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::Router;
-use tower::ServiceBuilder;
+use tower::{ServiceBuilder, ServiceExt};
 use tower_http::trace::TraceLayer;
 
 pub mod grpc;
@@ -17,13 +17,39 @@ where
 }
 
 fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
-    let world_service = crate::world::ProvideWorldService::build_server(state);
-    let layer = ServiceBuilder::new().layer(TraceLayer::new_for_grpc());
-    // TODO: tonic_web::enable
-    Router::new().layer(layer).route_service(
-        &format!("/{}/{{*rest}}", crate::world::SERVICE_NAME),
-        world_service,
-    )
+    use axum::body::Body as AxumBody;
+    use http_body_util::BodyExt;
+
+    macro_rules! services {
+        { $( $package:ident ; )+ } => {
+            $(
+                let $package = tonic_web::enable($crate::$package::build_server(Arc::clone(&state)))
+                    .map_request(|r: http::Request<AxumBody>| {
+                        r.map(|b| {
+                            b.map_err(|e| tonic::Status::from_error(e.into_inner()))
+                                .boxed_unsync()
+                        })
+                    });
+            )+
+        };
+    }
+
+    macro_rules! route_services {
+        ($router:expr; [ $( $package:ident ),+ ]) => {
+            $router $(
+                .route_service(
+                    &format!("/{}/{{*rest}}", $crate::$package::SERVICE_NAME),
+                    $package,
+                )
+            )+
+        };
+    }
+
+    services! { world; user; reaction; }
+    let layer = ServiceBuilder::new()
+        .layer(TraceLayer::new_for_grpc())
+        .layer(crate::session::build_grpc_layer(state));
+    route_services!(Router::new(); [ world, user, reaction ]).layer(layer)
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
