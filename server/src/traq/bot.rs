@@ -11,6 +11,7 @@ use crate::prelude::IntoStatus;
 pub mod config;
 pub mod error;
 mod r#impl;
+pub mod tower;
 
 pub use error::Error;
 
