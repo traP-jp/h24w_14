@@ -63,7 +63,10 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
         .layer(crate::session::build_grpc_layer(state));
     route_services!(Router::new(); [ world, user, reaction ])
         .layer(layer)
-        .route_service(crate::traq::auth::SERVICE_NAME, traq_auth)
+        .route_service(
+            &format!("/{}/{{*res}}", crate::traq::auth::SERVICE_NAME),
+            traq_auth,
+        )
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
