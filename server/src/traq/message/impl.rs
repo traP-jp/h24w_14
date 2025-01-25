@@ -85,7 +85,7 @@ async fn send_message(
         .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .parse()
         .map_err(|_| super::Error::UnexpectedResponseFromTraq)?;
-    let user_id: Uuid = response["user_id"]
+    let user_id: Uuid = response["userId"]
         .as_str()
         .ok_or(super::Error::UnexpectedResponseFromTraq)?
         .parse()
