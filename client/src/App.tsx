@@ -1,9 +1,10 @@
 import { ConfigProvider } from "antd";
-import Canvas from "./pixi/Canvas";
-import { Timeline } from "./timeline/Timeline";
+import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import useExplorerDispatcher from "./api/explorer";
-import { useSetAtom } from "jotai";
+import { StampPicker } from "./components/StampPicker";
+import { Timeline } from "./components/Timeline";
+import Canvas from "./pixi/Canvas";
 import dispatcherAtom from "./state/dispatcher";
 
 const App = () => {
@@ -23,6 +24,16 @@ const App = () => {
           },
         }}
       >
+        <div
+          className="
+            absolute
+            left-1/2
+            -translate-x-1/2
+            bottom-4
+          "
+        >
+          <StampPicker />
+        </div>
         <Timeline />
       </ConfigProvider>
     </div>
