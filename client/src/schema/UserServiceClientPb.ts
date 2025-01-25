@@ -82,5 +82,48 @@ export class UserServiceClient {
     this.methodDescriptorGetUser);
   }
 
+  methodDescriptorGetMe = new grpcWeb.MethodDescriptor(
+    '/user.UserService/GetMe',
+    grpcWeb.MethodType.UNARY,
+    user_pb.GetMeRequest,
+    user_pb.GetMeResponse,
+    (request: user_pb.GetMeRequest) => {
+      return request.serializeBinary();
+    },
+    user_pb.GetMeResponse.deserializeBinary
+  );
+
+  getMe(
+    request: user_pb.GetMeRequest,
+    metadata?: grpcWeb.Metadata | null): Promise<user_pb.GetMeResponse>;
+
+  getMe(
+    request: user_pb.GetMeRequest,
+    metadata: grpcWeb.Metadata | null,
+    callback: (err: grpcWeb.RpcError,
+               response: user_pb.GetMeResponse) => void): grpcWeb.ClientReadableStream<user_pb.GetMeResponse>;
+
+  getMe(
+    request: user_pb.GetMeRequest,
+    metadata?: grpcWeb.Metadata | null,
+    callback?: (err: grpcWeb.RpcError,
+               response: user_pb.GetMeResponse) => void) {
+    if (callback !== undefined) {
+      return this.client_.rpcCall(
+        this.hostname_ +
+          '/user.UserService/GetMe',
+        request,
+        metadata || {},
+        this.methodDescriptorGetMe,
+        callback);
+    }
+    return this.client_.unaryCall(
+    this.hostname_ +
+      '/user.UserService/GetMe',
+    request,
+    metadata || {},
+    this.methodDescriptorGetMe);
+  }
+
 }
 
