@@ -52,7 +52,7 @@ where
     fn oauth2_handle_redirect<'a>(
         &'a self,
         ctx: &'a Context,
-        req: http::Request<()>,
+        req: &'a http::Request<()>,
     ) -> futures::future::BoxFuture<'a, Result<super::AuthorizedUser, Self::Error>> {
         let config: &super::TraqOauthClientConfig = ctx.as_ref();
         let host: &crate::traq::TraqHost = ctx.as_ref();
@@ -104,7 +104,7 @@ struct Oauth2RedirectQuery {
 async fn oauth2_handle_redirect<Context>(
     client: OauthClient,
     req_client: &reqwest::Client,
-    req_: http::Request<()>,
+    req_: &http::Request<()>,
     context: &Context,
     pool: &MySqlPool,
     traq_host: &str,
