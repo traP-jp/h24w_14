@@ -1,12 +1,8 @@
 import useSWR from "swr";
-import serverHostName from "./hostname";
 import { UserServiceClient } from "../schema2/user.client";
-import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
+import { TRANSPORT } from "./transport";
 
-const transport = new GrpcWebFetchTransport({
-  baseUrl: serverHostName,
-});
-const userClient = new UserServiceClient(transport);
+const userClient = new UserServiceClient(TRANSPORT);
 
 function getUserFetcher([_, id]: [unknown, string]) {
   const req = {

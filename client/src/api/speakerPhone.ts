@@ -1,18 +1,14 @@
 import useSWR from "swr";
 import { SpeakerPhoneServiceClient } from "../schema2/speaker_phone.client";
-import serverHostName from "./hostname";
 import {
   GetSpeakerPhoneRequest,
   CreateSpeakerPhoneRequest,
   SearchChannelsRequest,
 } from "../schema2/speaker_phone";
 import useSWRMutation from "swr/mutation";
-import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
+import { TRANSPORT } from "./transport";
 
-const transport = new GrpcWebFetchTransport({
-  baseUrl: serverHostName,
-});
-const speakerPhoneClient = new SpeakerPhoneServiceClient(transport);
+const speakerPhoneClient = new SpeakerPhoneServiceClient(TRANSPORT);
 
 function getSpeakerPhoneFetcher([_, speakerPhoneId]: [unknown, string]) {
   const req: GetSpeakerPhoneRequest = { id: speakerPhoneId };
