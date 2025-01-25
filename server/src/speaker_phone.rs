@@ -205,3 +205,5 @@ pub type SpeakerPhoneServiceServer<State> =
     schema::speaker_phone::speaker_phone_service_server::SpeakerPhoneServiceServer<
         grpc::ServiceImpl<State>,
     >;
+
+pub use schema::speaker_phone::speaker_phone_service_server::SERVICE_NAME;
