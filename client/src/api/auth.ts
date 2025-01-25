@@ -1,12 +1,15 @@
 import useSWR from "swr";
-import { AuthServiceClient } from "../schema/AuthServiceClientPb";
 import serverHostName from "./hostname";
-import * as AuthPb from "../schema/auth_pb";
+import { AuthServiceClient } from "../schema2/auth.client";
+import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 
-const authClient = new AuthServiceClient(serverHostName);
+const transport = new GrpcWebFetchTransport({
+  baseUrl: serverHostName,
+});
+const authClient = new AuthServiceClient(transport);
 
 export const useAuth = () => {
-  const req = new AuthPb.AuthRequest();
-  const fetcher = () => authClient.auth(req);
+  const req = {};
+  const fetcher = () => authClient.auth(req).response;
   return useSWR(`auth`, fetcher);
 };

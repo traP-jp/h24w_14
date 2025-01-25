@@ -15,7 +15,10 @@
     "generate:schema": "protoc --proto_path=../proto --js_out=import_style=commonjs:./src/schema --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/schema ../proto/*.proto"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.2.3",
     "@pixi/react": "^7.1.2",
+    "@protobuf-ts/grpcweb-transport": "^2.9.4",
+    "@protobuf-ts/plugin": "^2.9.4",
     "antd": "^5.23.1",
     "google-protobuf": "^3.21.4",
     "grpc-web": "^1.5.0",
@@ -27,6 +30,8 @@
     "swr": "^2.3.0"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.50.0",
+    "@bufbuild/protoc-gen-es": "^2.2.3",
     "@eslint/js": "^9.17.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

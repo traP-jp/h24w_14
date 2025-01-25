@@ -1,12 +1,15 @@
 import useSWR from "swr";
-import { WorldServiceClient } from "../schema/WorldServiceClientPb";
+import { WorldServiceClient } from "../schema2/world.client";
 import serverHostName from "./hostname";
-import * as WorldPb from "../schema/world_pb";
+import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 
-const worldClient = new WorldServiceClient(serverHostName);
+const transport = new GrpcWebFetchTransport({
+  baseUrl: serverHostName,
+});
+const worldClient = new WorldServiceClient(transport);
 
 export const useWorld = () => {
-  const req = new WorldPb.GetWorldRequest();
-  const fetcher = () => worldClient.getWorld(req);
+  const req = {};
+  const fetcher = () => worldClient.getWorld(req).response;
   return useSWR("world", fetcher);
 };

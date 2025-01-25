@@ -1,18 +1,20 @@
 import useSWR from "swr";
-import { ReactionServiceClient } from "../schema/ReactionServiceClientPb";
+import { ReactionServiceClient } from "../schema2/reaction.client";
 import serverHostName from "./hostname";
-import * as ReactionPb from "../schema/reaction_pb";
+import { GetReactionRequest, CreateReactionRequest } from "../schema2/reaction";
+import useSWRMutation from "swr/mutation";
 import { Position } from "../model/position";
 import { ReactionName } from "../model/reactions";
-import useSWRMutation from "swr/mutation";
-import * as WorldPb from "../schema/world_pb";
+import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 
-const reactionClient = new ReactionServiceClient(serverHostName);
+const transport = new GrpcWebFetchTransport({
+  baseUrl: serverHostName,
+});
+const reactionClient = new ReactionServiceClient(transport);
 
 export const useReaction = (reactionId: string) => {
-  const req = new ReactionPb.GetReactionRequest();
-  req.setId(reactionId);
-  const fetcher = () => reactionClient.getReaction(req);
+  const req: GetReactionRequest = { id: reactionId };
+  const fetcher = () => reactionClient.getReaction(req).response;
   return useSWR(`reaction/${reactionId}`, fetcher);
 };
 
@@ -20,12 +22,10 @@ export const useCreateReaction = (
   position: Position,
   reaction: ReactionName,
 ) => {
-  const req = new ReactionPb.CreateReactionRequest();
-  const coordinate = new WorldPb.Coordinate();
-  coordinate.setX(position.x);
-  coordinate.setY(position.y);
-  req.setPosition(coordinate);
-  req.setKind(reaction);
-  const fetcher = () => reactionClient.createReaction(req);
+  const req: CreateReactionRequest = {
+    position: { x: position.x, y: position.y },
+    kind: reaction,
+  };
+  const fetcher = () => reactionClient.createReaction(req).response;
   return useSWRMutation(`createReaction`, fetcher);
 };

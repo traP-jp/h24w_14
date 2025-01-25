@@ -1,19 +1,23 @@
 import useSWR from "swr";
-import { UserServiceClient } from "../schema/UserServiceClientPb";
 import serverHostName from "./hostname";
-import * as UserPb from "../schema/user_pb";
+import { UserServiceClient } from "../schema2/user.client";
+import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 
-const userClient = new UserServiceClient(serverHostName);
+const transport = new GrpcWebFetchTransport({
+  baseUrl: serverHostName,
+});
+const userClient = new UserServiceClient(transport);
 
-export const useUser = (userId: string) => {
-  const req = new UserPb.GetUserRequest();
-  req.setId(userId);
-  const fetcher = () => userClient.getUser(req);
-  return useSWR(`user/${userId}`, fetcher);
+export const useUser = (id: string) => {
+  const req = {
+    id: id,
+  };
+  const res = userClient.getUser(req);
+  return useSWR(`user/${id}`, () => res.response);
 };
 
 export const useMe = () => {
-  const req = new UserPb.GetMeRequest();
-  const fetcher = () => userClient.getMe(req);
-  return useSWR(`user/me`, fetcher);
+  const req = {};
+  const res = userClient.getMe(req);
+  return useSWR(`user/me`, () => res.response);
 };
