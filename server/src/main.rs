@@ -418,3 +418,41 @@ impl lib::traq::auth::ProvideTraqAuthService for State {
         &self.services.traq_auth_service
     }
 }
+
+// channel message
+
+impl lib::traq::bot::ProvideTraqBotService for State {
+    type Context = Self;
+    type TraqBotService = lib::traq::bot::TraqBotServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_bot_service(&self) -> &Self::TraqBotService {
+        &self.services.traq_bot_service
+    }
+}
+
+impl lib::traq::channel::ProvideTraqChannelService for State {
+    type Context = Self;
+    type TraqChannelService = lib::traq::channel::TraqChannelServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_channel_service(&self) -> &Self::TraqChannelService {
+        &self.services.traq_channel_service
+    }
+}
+
+impl lib::traq::message::ProvideTraqMessageService for State {
+    type Context = Self;
+    type TraqMessageService = lib::traq::message::TraqMessageServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_message_service(&self) -> &Self::TraqMessageService {
+        &self.services.traq_message_service
+    }
+}
