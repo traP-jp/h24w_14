@@ -59,6 +59,17 @@ pub struct CreateExplorerParams {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct UpdateExplorerParams {
+    pub id: ExplorerId,
+    pub position: crate::world::Coordinate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct DeleteExplorerParams {
+    pub id: ExplorerId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum GetExplorersInAreaParams {
     Rect {
@@ -133,6 +144,16 @@ pub trait ExplorerService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         params: GetExplorersInAreaParams,
     ) -> BoxFuture<'a, Result<Vec<Explorer>, Self::Error>>;
+    fn update_explorer<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: UpdateExplorerParams,
+    ) -> BoxFuture<'a, Result<Explorer, Self::Error>>;
+    fn delete_explorer<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: DeleteExplorerParams,
+    ) -> BoxFuture<'a, Result<Explorer, Self::Error>>;
 }
 
 #[allow(clippy::type_complexity)]
@@ -172,6 +193,26 @@ pub trait ProvideExplorerService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.explorer_service().get_explorers_in_area(ctx, params)
+    }
+    fn update_explorer(
+        &self,
+        params: UpdateExplorerParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Explorer, <Self::ExplorerService as ExplorerService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.explorer_service().update_explorer(ctx, params)
+    }
+    fn delete_explorer(
+        &self,
+        params: DeleteExplorerParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Explorer, <Self::ExplorerService as ExplorerService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.explorer_service().delete_explorer(ctx, params)
     }
 }
 
