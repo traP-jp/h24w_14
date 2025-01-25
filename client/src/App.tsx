@@ -11,7 +11,7 @@ const App = () => {
   const dispatcher = useExplorerDispatcher();
   const setDispatcher = useSetAtom(dispatcherAtom);
   useEffect(() => {
-    setDispatcher(dispatcher);
+    setDispatcher(() => dispatcher);
   }, [dispatcher, setDispatcher]);
 
   return (

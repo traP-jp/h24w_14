@@ -2,7 +2,7 @@ import { useSetAtom } from "jotai";
 import { Position } from "../model/position";
 import { ExplorationField, ExplorationFieldEvents } from "../schema2/explore";
 import { serverWSHostName } from "./hostname";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import fieldMessagesAtom from "../state/message";
 import fieldReactionsAtom from "../state/reactions";
 import { ReactionName } from "../model/reactions";
@@ -28,21 +28,28 @@ const useExplorerDispatcher = () => {
   const setFieldSpeakerPhones = useSetAtom(fieldSpeakerPhonesAtom);
   const setFieldExplorers = useSetAtom(fieldExplorersAtom);
 
-  const dispatcher: ExplorerMessageDispatcher = (mes) => {
+  const dispatcher: ExplorerMessageDispatcher = useCallback((mes) => {
     if (!mes) return;
     subscriberRef.current.dispatchEvent(
       new CustomEvent(explorerEvent, {
         detail: {
-          position: mes.position,
-          size: mes.size,
+          position: {
+            x: Math.round(mes.position.x),
+            y: Math.round(mes.position.y),
+          },
+          size: {
+            width: Math.round(mes.size.width),
+            height: Math.round(mes.size.height),
+          },
         },
       }),
     );
-  };
+  }, []);
 
   useEffect(() => {
     const ws = new WebSocket(serverWSHostName);
-    subscriberRef.current.addEventListener(explorerEvent, (event: Event) => {
+    const currentSubscriber = subscriberRef.current;
+    const subscriverHandler = (event: Event) => {
       // @ts-expect-error event is CustomEvent
       const message = event.detail as ExplorerMessage;
 
@@ -57,7 +64,8 @@ const useExplorerDispatcher = () => {
       };
 
       ws.send(JSON.stringify(explorationField));
-    });
+    };
+    currentSubscriber.addEventListener(explorerEvent, subscriverHandler);
     ws.onmessage = (event) => {
       if (event.type !== "text") {
         return;
@@ -196,6 +204,7 @@ const useExplorerDispatcher = () => {
     };
     return () => {
       ws.close();
+      currentSubscriber.removeEventListener(explorerEvent, subscriverHandler);
     };
   }, [
     setFieldMessages,

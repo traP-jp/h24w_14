@@ -14,7 +14,8 @@ import {
 } from "../model/position";
 import Explorer from "./components/Explorer";
 import PIXI from "pixi.js";
-import useExplorerDispatcher from "../api/explorer";
+import { useAtomValue } from "jotai";
+import dispatcherAtom from "../state/dispatcher";
 
 const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
@@ -39,9 +40,9 @@ const Canvas: React.FC<Props> = (props) => {
     width: number;
     height: number;
   } | null>(null);
-  const [intervalID, setIntervalID] = useState<number | null>(null);
+  const intervalID = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const dispatcher = useExplorerDispatcher();
+  const dispatcher = useAtomValue(dispatcherAtom);
 
   useEffect(() => {
     const width = (window.innerWidth * 3) / 5;
@@ -79,24 +80,26 @@ const Canvas: React.FC<Props> = (props) => {
           y: targetPosition.y - position.y,
         };
         if (Math.abs(diff.x) < 3 && Math.abs(diff.y) < 3) {
-          dispatcher({
+          dispatcher?.({
             position: targetPosition,
             size: fieldSize,
           });
+
+          clearInterval(intervalID.current ?? undefined);
           return targetPosition;
         }
         const nextPosition = calcNewPosition(position, {
           x: diff.x / 10,
           y: diff.y / 10,
         });
-        dispatcher({
+        dispatcher?.({
           position: nextPosition,
           size: fieldSize,
         });
         return nextPosition;
       });
     },
-    [dispatcher, fieldSize],
+    [dispatcher, fieldSize, intervalID],
   );
 
   const onFieldClick = useCallback(
@@ -124,15 +127,16 @@ const Canvas: React.FC<Props> = (props) => {
         userDisplayPosition,
       );
 
-      if (intervalID !== null) {
-        clearInterval(intervalID);
+      if (intervalID.current !== null) {
+        clearInterval(intervalID.current);
       }
+
       const id = setInterval(() => {
         updateUserPosition(clickPosition);
       }, 1000 / 60);
-      setIntervalID(id);
+      intervalID.current = id;
     },
-    [intervalID, updateUserPosition, userDisplayPosition, userPosition],
+    [updateUserPosition, userDisplayPosition, userPosition],
   );
 
   if (
