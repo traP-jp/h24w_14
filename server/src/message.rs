@@ -84,6 +84,16 @@ pub trait ProvideMessageService: Send + Sync + 'static {
         let ctx = self.context();
         self.message_service().get_message(ctx, params)
     }
+    fn get_messages_in_area(
+        &self,
+        params: GetMessagesInAreaParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Vec<Message>, <Self::MessageService as MessageService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.message_service().get_messages_in_area(ctx, params)
+    }
     fn create_message(
         &self,
         params: CreateMessageParams,

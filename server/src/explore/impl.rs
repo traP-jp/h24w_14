@@ -5,10 +5,14 @@ use std::sync::Arc;
 use futures::future::{BoxFuture, FutureExt};
 use tokio::sync::RwLock;
 
+use futures::StreamExt;
+use uuid::Uuid;
+
 use crate::{
-    event::{Event, ProvideEventService},
-    prelude::IntoStatus,
+    event::{Event, ProvideEventService}, message::{MessageService, ProvideMessageService}, prelude::IntoStatus, speaker_phone::ProvideSpeakerPhone, user::ProvideUserService
 };
+
+use super::ProvideExplorerService;
 
 impl super::ExplorerStore {
     pub fn new() -> Self {
@@ -176,14 +180,16 @@ async fn delete_explorer<E: ProvideEventService>(
     Ok(deleted)
 }
 
-use futures::StreamExt;
-use uuid::Uuid;
-
 impl<Context> super::ExploreService<Context> for super::ExploreServiceImpl
 where
-    Context: crate::event::ProvideEventService + crate::user::ProvideUserService,
+    Context: ProvideEventService
+        + ProvideUserService
+        + ProvideMessageService
+        + ProvideSpeakerPhone
+        + ProvideExplorerService,
 {
-    type Error = super::error::Error;
+    // type Error = super::error::Error;
+    type Error = tonic::Status;
 
     fn explore<'a>(
         &'a self,
@@ -197,43 +203,38 @@ where
 fn explore<'a, Context>(
     ctx: &'a Context,
     params: super::ExploreParams<'a>,
-) -> impl futures::Stream<Item = Result<super::ExplorationFieldEvents, super::error::Error>>
+) -> impl futures::Stream<Item = Result<super::ExplorationFieldEvents, tonic::Status>>
        + Send
        + use<'a, Context>
 where
-    Context: crate::event::ProvideEventService + crate::user::ProvideUserService,
+    Context: ProvideEventService
+        + ProvideUserService
+        + ProvideMessageService
+        + ProvideSpeakerPhone
+        + ProvideExplorerService,
 {
-    async_stream::stream! {
+    async_stream::try_stream! {
         let (id, mut exploration_field_stream) = (params.id, params.stream);
         let event_stream = ctx.subscribe_events();
 
         let Some(exploration_field_first_value) = exploration_field_stream.next().await else {
-            yield Err(super::error::Error::ExplorationFieldStreamClosed);
+            Err(super::error::Error::ExplorationFieldStreamClosed)?;
             return;
         };
 
         // new explorer arrives
 
-        let Ok(user) = ctx.get_user(crate::user::GetUserParams { id }).await else {
-            yield Err(super::error::Error::NotFound);
-            return;
-        };
+        let user = ctx.get_user(crate::user::GetUserParams { id }).await?;
         let id = super::ExplorerId(Uuid::now_v7());
         let mut exploration_field = exploration_field_first_value;
 
-        match ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Arrive(
+        ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Arrive(
             super::Explorer {
                 id,
                 inner: user.clone(),
                 position: exploration_field.position,
             },
-        ))).await  {
-            Ok(_) => (),
-            Err(e) => {
-                yield Err(super::error::Error::Status(e.into()));
-                return;
-            }
-        };
+        ))).await?;
 
         // main loop
 
@@ -259,69 +260,130 @@ where
 
             match select_result {
                 SelectResult::EventStreamClosed(e) => {
-                    yield Err(e);
+                    Err(e)?;
                     break;
                 },
                 SelectResult::ExplorationField(new_exploration_field) => {
-                    exploration_field = new_exploration_field;
 
-                    match ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Move(
+                    ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Move(
                         super::Explorer {
                             id,
                             inner: user.clone(),
-                            position: exploration_field.position,
+                            position: new_exploration_field.position,
                         },
-                    ))).await {
-                        Ok(_) => (),
-                        Err(e) => {
-                            yield Err(super::error::Error::Status(e.into()));
-                            break;
-                        }
+                    ))).await?;
+
+                    // collect newly contained events
+
+                    // messages
+                    let new_area_messages = ctx.get_messages_in_area(
+                        crate::message::GetMessagesInAreaParams {
+                            center: new_exploration_field.position,
+                            size:   new_exploration_field.size,
+                        },
+                    ).await?;
+
+                    let old_area_messages = ctx.get_messages_in_area(
+                        crate::message::GetMessagesInAreaParams {
+                            center: exploration_field.position,
+                            size: exploration_field.size,
+                        },
+                    ).await?;
+
+                    let messages = new_area_messages.into_iter().filter(|new_message| {
+                        !old_area_messages.contains(new_message)
+                    }).collect::<Vec<_>>();
+
+                    // speaker_phones
+
+                    let new_area_speaker_phones = ctx.get_speaker_phones_in_area(
+                        crate::speaker_phone::GetSpeakerPhonesInAreaParams {
+                            center: new_exploration_field.position,
+                            size:   new_exploration_field.size,
+                        },
+                    ).await?;
+
+                    let old_area_speaker_phones = ctx.get_speaker_phones_in_area(
+                        crate::speaker_phone::GetSpeakerPhonesInAreaParams {
+                            center: exploration_field.position,
+                            size: exploration_field.size,
+                        },
+                    ).await?;
+
+                    let speaker_phones = new_area_speaker_phones.into_iter().filter(|new_speaker_phone| {
+                        !old_area_speaker_phones.contains(new_speaker_phone)
+                    }).collect::<Vec<_>>();
+
+                    // explorers
+
+                    let new_area_explorers = ctx.get_explorers_in_area(
+                        crate::explore::GetExplorersInAreaParams::Rect {
+                            center: new_exploration_field.position,
+                            size:   new_exploration_field.size,
+                        },
+                    ).await?;
+
+                    let old_area_explorers = ctx.get_explorers_in_area(
+                        crate::explore::GetExplorersInAreaParams::Rect {
+                            center: exploration_field.position,
+                            size: exploration_field.size,
+                        },
+                    ).await?;
+
+                    let explorer = new_area_explorers.into_iter().filter(|new_explorer| {
+                        !old_area_explorers.contains(new_explorer)
+                    }).map(|new_explorer| {
+                        super::ExplorerAction::Arrive(new_explorer)
+                    }).collect::<Vec<_>>();
+
+                    // update exploration field
+
+                    exploration_field = new_exploration_field;
+
+                    // exploration field events
+
+                    yield super::ExplorationFieldEvents {
+                        messages,
+                        speaker_phones,
+                        reactions: vec![],
+                        explorer_actions: explorer,
                     };
                 },
                 SelectResult::Event(event) => {
                     match event {
                         crate::event::Event::Explorer(explorer_action) => {
                             if explorer_action.explorer().id != id {
-                                yield Ok(
-                                    super::ExplorationFieldEvents {
+                                yield super::ExplorationFieldEvents {
                                         messages: vec![],
                                         speaker_phones: vec![],
                                         reactions: vec![],
                                         explorer_actions: vec![explorer_action],
-                                    }
-                                );
+                                    };
                             }
                         },
                         crate::event::Event::SpkeakerPhone(speaker_phone) => {
-                            yield Ok(
-                                super::ExplorationFieldEvents {
+                            yield super::ExplorationFieldEvents {
                                     messages: vec![],
                                     speaker_phones: vec![speaker_phone],
                                     reactions: vec![],
                                     explorer_actions: vec![],
-                                }
-                            );
+                                };
                         },
                         crate::event::Event::Message(message) => {
-                            yield Ok(
-                                super::ExplorationFieldEvents {
+                            yield super::ExplorationFieldEvents {
                                     messages: vec![message],
                                     speaker_phones: vec![],
                                     reactions: vec![],
                                     explorer_actions: vec![],
-                                }
-                            );
+                                };
                         },
                         crate::event::Event::Reaction(reaction) => {
-                            yield Ok(
-                                super::ExplorationFieldEvents {
+                            yield super::ExplorationFieldEvents {
                                     messages: vec![],
                                     speaker_phones: vec![],
                                     reactions: vec![reaction],
                                     explorer_actions: vec![],
-                                }
-                            );
+                                };
                         },
                     }
                 },
@@ -330,18 +392,13 @@ where
 
         // explorer leaves
 
-        match ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Leave(
+        ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Leave(
             super::Explorer {
                 id,
                 inner: user.clone(),
                 position: exploration_field.position,
             },
-        ))).await {
-            Ok(_) => (),
-            Err(e) => {
-                yield Err(super::error::Error::Status(e.into()));
-            }
-        };
+        ))).await?;
     }
 }
 
