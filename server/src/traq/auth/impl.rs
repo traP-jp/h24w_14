@@ -10,8 +10,14 @@ use uuid::Uuid;
 
 use crate::session::SaveParams;
 
-const TRAQ_OAUTH2_AUTH_URL: &str = "https://q.trap.jp/api/v3/oauth2/authorize";
-const TRAQ_OAUTH2_TOKEN_URL: &str = "https://q.trap.jp/api/v3/oauth2/token";
+#[inline]
+fn traq_oauth_auth_url(host: &str) -> String {
+    format!("https://{host}/api/v3/oauth2/authorize")
+}
+#[inline]
+fn traq_oauth_token_url(host: &str) -> String {
+    format!("https://{host}/api/v3/oauth2/token")
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
 pub struct TokenRow {
@@ -36,7 +42,8 @@ where
         _params: super::OAuth2EntrypointUriParams,
     ) -> futures::future::BoxFuture<'a, Result<String, Self::Error>> {
         let config: &super::TraqOauthClientConfig = ctx.as_ref();
-        let client = create_oauth_client(config);
+        let host: &crate::traq::TraqHost = ctx.as_ref();
+        let client = create_oauth_client(&host.0, config);
 
         oauth2_entrypoint_uri(client).boxed()
     }
@@ -47,7 +54,8 @@ where
         req: http::Request<()>,
     ) -> futures::future::BoxFuture<'a, Result<super::AuthorizedUser, Self::Error>> {
         let config: &super::TraqOauthClientConfig = ctx.as_ref();
-        let client = create_oauth_client(config);
+        let host: &crate::traq::TraqHost = ctx.as_ref();
+        let client = create_oauth_client(&host.0, config);
         let req_client: &reqwest::Client = ctx.as_ref();
         let pool = ctx.as_ref();
         let traq_host: &crate::traq::TraqHost = ctx.as_ref();
@@ -229,11 +237,11 @@ async fn build_request_as_authorized_user<'a>(
         .bearer_auth(token.token))
 }
 
-fn create_oauth_client(config: &super::TraqOauthClientConfig) -> OauthClient {
+fn create_oauth_client(host: &str, config: &super::TraqOauthClientConfig) -> OauthClient {
     BasicClient::new(ClientId::new(config.client_id.clone()))
         .set_client_secret(ClientSecret::new(config.client_secret.clone()))
-        .set_auth_uri(AuthUrl::new(TRAQ_OAUTH2_AUTH_URL.to_string()).unwrap())
-        .set_token_uri(TokenUrl::new(TRAQ_OAUTH2_TOKEN_URL.to_string()).unwrap())
+        .set_auth_uri(AuthUrl::new(traq_oauth_auth_url(host)).unwrap())
+        .set_token_uri(TokenUrl::new(traq_oauth_token_url(host)).unwrap())
 }
 
 type OauthClient = oauth2::Client<
