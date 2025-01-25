@@ -124,10 +124,10 @@ async fn get_speaker_phones_in_area(
                 AND `position_y` BETWEEN ? AND ?
         "#,
     )
-    .bind(center.x - size.width / 2)
-    .bind(center.x + size.width / 2)
-    .bind(center.y - size.height / 2)
-    .bind(center.y + size.height / 2)
+    .bind(center.x.saturating_sub(size.width / 2))
+    .bind(center.x.saturating_add(size.width / 2))
+    .bind(center.y.saturating_sub(size.height / 2))
+    .bind(center.y.saturating_add(size.height / 2))
     .fetch_all(pool)
     .await?;
     Ok(speaker_phones.into_iter().map(Into::into).collect())
