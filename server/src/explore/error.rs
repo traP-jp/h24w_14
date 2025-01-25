@@ -1,4 +1,3 @@
-
 // todo: 仮置き
 /// infallible
 #[derive(Debug, Clone, thiserror::Error)]

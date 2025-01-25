@@ -278,8 +278,6 @@ where
                             break;
                         }
                     };
-
-
                 },
                 SelectResult::Event(event) => {
                     match event {
