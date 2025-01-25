@@ -67,7 +67,7 @@ const useExplorerDispatcher = () => {
     };
     currentSubscriber.addEventListener(explorerEvent, subscriverHandler);
     ws.onmessage = (event) => {
-      if (event.type !== "text") {
+      if (event.type !== "message") {
         return;
       }
       const events = JSON.parse(event.data) as ExplorationFieldEvents;
@@ -75,9 +75,10 @@ const useExplorerDispatcher = () => {
       setFieldMessages((messages) => {
         const newMessagesMap: Map<string, Message> = new Map();
         messages.forEach((message) => {
-          if (message.expiresAt > now) {
-            newMessagesMap.set(message.id, message);
-          }
+          // TODO: expireAt の判定を復活させる
+          // if (message.expiresAt > now) {
+          newMessagesMap.set(message.id, message);
+          // }
         });
         events.messages.forEach((message) => {
           newMessagesMap.set(message.id, {
@@ -145,62 +146,64 @@ const useExplorerDispatcher = () => {
           })),
         ];
       });
-      setFieldExplorers((explorers) => {
-        const explorerActions = events.explorerActions;
-        explorerActions.forEach((action) => {
-          switch (action.action.oneofKind) {
-            case "arrive": {
-              const explorer = action.action.arrive.explorer;
-              if (!explorer) return;
-              explorers.set(explorer.id ?? "", {
-                id: explorer.id ?? "",
-                position: {
-                  x: explorer.position?.x ?? 0,
-                  y: explorer.position?.y ?? 0,
-                },
-                userId: explorer.userId ?? "",
-              });
-              break;
-            }
-            case "leave": {
-              explorers.delete(action.action.leave.id);
-              break;
-            }
-            case "move": {
-              const explorer = action.action.move.explorer;
-              if (!explorer) return;
-              const prevExplorer = explorers.get(explorer.id ?? "");
-              if (!prevExplorer) return;
-              explorers.set(explorer.id ?? "", {
-                id: explorer.id ?? "",
-                position: {
-                  x: explorer.position?.x ?? 0,
-                  y: explorer.position?.y ?? 0,
-                },
-                userId: explorer.userId ?? "",
-                previousPosition: prevExplorer.position,
-              });
-              break;
-            }
+      //  TODO: バックエンドと型を揃える
+      // setFieldExplorers((explorers) => {
+      //   const explorerActions = events.explorerActions;
+      //   explorerActions.forEach((action_) => {
+      //     const action = action_ as unknown as typeof action_.action;
+      //     switch (action.oneofKind) {
+      //       case "arrive": {
+      //         const explorer = action.arrive.explorer;
+      //         if (!explorer) return;
+      //         explorers.set(explorer.id ?? "", {
+      //           id: explorer.id ?? "",
+      //           position: {
+      //             x: explorer.position?.x ?? 0,
+      //             y: explorer.position?.y ?? 0,
+      //           },
+      //           userId: explorer.userId ?? "",
+      //         });
+      //         break;
+      //       }
+      //       case "leave": {
+      //         explorers.delete(action.leave.id);
+      //         break;
+      //       }
+      //       case "move": {
+      //         const explorer = action.move.explorer;
+      //         if (!explorer) return;
+      //         const prevExplorer = explorers.get(explorer.id ?? "");
+      //         if (!prevExplorer) return;
+      //         explorers.set(explorer.id ?? "", {
+      //           id: explorer.id ?? "",
+      //           position: {
+      //             x: explorer.position?.x ?? 0,
+      //             y: explorer.position?.y ?? 0,
+      //           },
+      //           userId: explorer.userId ?? "",
+      //           previousPosition: prevExplorer.position,
+      //         });
+      //         break;
+      //       }
 
-            default:
-              break;
-          }
-          if (action.action.oneofKind === "arrive") {
-            const explorer = action.action.arrive.explorer;
-            if (!explorer) return;
-            explorers.set(explorer.id ?? "", {
-              id: explorer.id ?? "",
-              position: {
-                x: explorer.position?.x ?? 0,
-                y: explorer.position?.y ?? 0,
-              },
-              userId: explorer.userId ?? "",
-            });
-          }
-        });
-        return explorers;
-      });
+      //       default:
+      //         break;
+      //     }
+      //     if (action.oneofKind === "arrive") {
+      //       const explorer = action.arrive.explorer;
+      //       if (!explorer) return;
+      //       explorers.set(explorer.id ?? "", {
+      //         id: explorer.id ?? "",
+      //         position: {
+      //           x: explorer.position?.x ?? 0,
+      //           y: explorer.position?.y ?? 0,
+      //         },
+      //         userId: explorer.userId ?? "",
+      //       });
+      //     }
+      //   });
+      //   return explorers;
+      // });
     };
     return () => {
       ws.close();

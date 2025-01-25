@@ -2,7 +2,7 @@ import { Container } from "@pixi/react";
 import Rectangle from "./components/Rectangle";
 import "@pixi/events";
 import { DisplayPosition, Position } from "../model/position";
-import React from "react";
+import React, { useMemo } from "react";
 import Message from "./components/Message";
 import SpeakerPhone from "./components/SpeakerPhone";
 import Reaction from "./components/Reaction";
@@ -28,111 +28,127 @@ const World: React.FC<Props> = ({
   userDisplayPosition,
   fieldSize,
 }) => {
-  const { expanded, collapseMessage, expandMessage, message } =
-    useMessageExpanded();
+  const {
+    expanded,
+    collapseMessage,
+    expandMessage,
+    message: expandedMessage,
+  } = useMessageExpanded();
   const messages = useAtomValue(messagesAtom);
   const speakerPhones = useAtomValue(speakerPhonesAtom);
   const reactions = useAtomValue(reactionsAtom);
   const explorers = useAtomValue(explorersAtom);
 
-  const messageNodes: JSX.Element[] = [];
-  for (const message of messages.values()) {
-    if (!isInsideField(message.position, fieldSize, userPosition)) {
-      continue;
-    }
-    messageNodes.push(
-      <MessageIcon
-        currentExpandedMessageId={message.id}
-        expander={expandMessage}
-        key={message.id}
-        message={message}
-      />,
-    );
-  }
+  const messageNodes = useMemo(() => {
+    return Array.from(messages.values())
+      .filter((message) =>
+        isInsideField(message.position, fieldSize, userPosition),
+      )
+      .map((message) => {
+        return (
+          <MessageIcon
+            currentExpandedMessageId={expandedMessage?.id}
+            expander={expandMessage}
+            key={message.id}
+            message={message}
+          />
+        );
+      });
+  }, [messages, fieldSize, userPosition, expandedMessage?.id, expandMessage]);
 
-  const speakerPhoneNodes = Array.from(speakerPhones.values())
-    .filter((speakerPhone) =>
-      isInsideField(speakerPhone.position, fieldSize, userPosition),
-    )
-    .map((speakerPhone) => (
-      <SpeakerPhone
-        key={speakerPhone.name}
-        position={speakerPhone.position}
-        name={speakerPhone.name}
-        radius={100}
-      />
-    ));
+  console.log(messageNodes);
 
-  const reactionsNodes = Array.from(reactions.values())
-    .filter((reaction) =>
-      isInsideField(reaction.position, fieldSize, userPosition),
-    )
-    .map((reaction) => (
-      <Reaction
-        key={reaction.id}
-        position={reaction.position}
-        reaction={reaction.kind}
-        user={{
-          name: reaction.userId,
-          iconURL: traqIconURL(reaction.userId),
-        }}
-      />
-    ));
+  const speakerPhoneNodes = useMemo(() => {
+    return Array.from(speakerPhones.values())
+      .filter((speakerPhone) =>
+        isInsideField(speakerPhone.position, fieldSize, userPosition),
+      )
+      .map((speakerPhone) => {
+        return (
+          <SpeakerPhone
+            key={speakerPhone.name}
+            position={speakerPhone.position}
+            name={speakerPhone.name}
+            radius={100}
+          />
+        );
+      });
+  }, [speakerPhones, fieldSize, userPosition]);
 
-  const explorerNodes = Array.from(explorers.values()).map((explorer) => {
-    return (
-      <OtherExplorer
-        key={explorer.userId}
-        explorer={explorer}
-        previousPosition={explorer.previousPosition}
-      />
-    );
-  });
+  const reactionsNodes = useMemo(() => {
+    return Array.from(reactions.values())
+      .filter((reaction) =>
+        isInsideField(reaction.position, fieldSize, userPosition),
+      )
+      .map((reaction) => (
+        <Reaction
+          key={reaction.id}
+          position={reaction.position}
+          reaction={reaction.kind}
+          user={{
+            name: reaction.userId,
+            iconURL: traqIconURL(reaction.userId),
+          }}
+        />
+      ));
+  }, [fieldSize, reactions, userPosition]);
+
+  const explorerNodes = useMemo(() => {
+    return Array.from(explorers.values()).map((explorer) => {
+      return (
+        <OtherExplorer
+          key={explorer.userId}
+          explorer={explorer}
+          previousPosition={explorer.previousPosition}
+        />
+      );
+    });
+  }, [explorers]);
 
   //TODO: モック用なので後で消す
-  {
-    for (let i = 1; i <= 3; i++) {
-      messageNodes.push(
-        <MessageIcon
-          currentExpandedMessageId={message?.id}
-          expander={expandMessage}
-          key={i}
-          message={{
-            id: i.toString(),
-            position: { x: 100 * i + 10, y: 100 * i },
-            userId: "ikura-hamu",
-            content: "Hello, World!".repeat(i * 5),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day later
-          }}
-        />,
-      );
-    }
-    for (let i = 4; i <= 6; i++) {
-      speakerPhoneNodes.push(
-        <SpeakerPhone
-          key={i}
-          position={{ x: 100 * i + 10, y: 100 * i }}
-          name="SpeakerPhone"
-          radius={100}
-        />,
-      );
-    }
-    for (let i = 7; i <= 9; i++) {
-      reactionsNodes.push(
-        <Reaction
-          key={i}
-          position={{ x: 100 * i + 10, y: 100 * i }}
-          reaction="iine"
-          user={{
-            name: "ikura-hamu",
-            iconURL: traqIconURL("ikura-hamu"),
-          }}
-        />,
-      );
-    }
-  }
+  // {
+  // for (let i = 1; i <= 3; i++) {
+  //   messageNodes.push(
+  //     <MessageIcon
+  //       currentExpandedMessageId={message?.id}
+  //       expander={expandMessage}
+  //       key={i}
+  //       message={{
+  //         id: i.toString(),
+  //         position: { x: 100 * i + 10, y: 100 * i },
+  //         userId: "ikura-hamu",
+  //         content: "Hello, World!".repeat(i * 5),
+  //         createdAt: new Date(),
+  //         updatedAt: new Date(),
+  //         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day later
+  //       }}
+  //     />,
+  //   );
+  // }
+  //   for (let i = 4; i <= 6; i++) {
+  //     speakerPhoneNodes.push(
+  //       <SpeakerPhone
+  //         key={i}
+  //         position={{ x: 100 * i + 10, y: 100 * i }}
+  //         name="SpeakerPhone"
+  //         radius={100}
+  //       />,
+  //     );
+  //   }
+  //   for (let i = 7; i <= 9; i++) {
+  //     reactionsNodes.push(
+  //       <Reaction
+  //         key={i}
+  //         position={{ x: 100 * i + 10, y: 100 * i }}
+  //         reaction="iine"
+  //         user={{
+  //           name: "ikura-hamu",
+  //           iconURL: traqIconURL("ikura-hamu"),
+  //         }}
+  //       />,
+  //     );
+  //   }
+  // }
 
   return (
     <Container
@@ -157,7 +173,7 @@ const World: React.FC<Props> = ({
       {reactionsNodes}
       <Message
         expanded={expanded}
-        message={message}
+        message={expandedMessage}
         collapse={collapseMessage}
       />
     </Container>
