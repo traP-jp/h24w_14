@@ -1,10 +1,18 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use futures::{future::BoxFuture, stream::BoxStream};
 use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
+use tokio::sync::{broadcast, RwLock};
 
 use crate::prelude::IntoStatus;
 
 pub mod config;
+pub mod error;
+mod r#impl;
+
+pub use error::Error;
 
 #[derive(Debug, Clone)]
 pub struct BuildRequestAsBotParams<'a> {
@@ -38,6 +46,15 @@ pub struct TraqBotConfig {
     bot_user_id: String,
     verification_token: String,
     access_token: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct TraqBotChannels {
+    channels: Arc<
+        RwLock<
+            HashMap<super::channel::TraqChannelId, broadcast::Sender<super::message::TraqMessage>>,
+        >,
+    >,
 }
 
 pub trait TraqBotService<Context>: Send + Sync + 'static {
@@ -120,3 +137,6 @@ pub trait ProvideTraqBotService: Send + Sync + 'static {
         self.traq_bot_service().leave_channel(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TraqBotServiceImpl;
