@@ -88,10 +88,12 @@ where
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 struct TraqChannelRaw {
     public: Vec<PublicChannel>,
-    dm: Vec<DmChannel>,
+    // NOTE: dm=false だから使わない
+    // dm: Vec<DmChannel>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 struct PublicChannel {
     id: super::TraqChannelId,
     parent_id: Option<super::TraqChannelId>,
