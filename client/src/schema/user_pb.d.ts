@@ -35,6 +35,40 @@ export namespace User {
   }
 }
 
+export class GetMeRequest extends jspb.Message {
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetMeRequest.AsObject;
+  static toObject(includeInstance: boolean, msg: GetMeRequest): GetMeRequest.AsObject;
+  static serializeBinaryToWriter(message: GetMeRequest, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetMeRequest;
+  static deserializeBinaryFromReader(message: GetMeRequest, reader: jspb.BinaryReader): GetMeRequest;
+}
+
+export namespace GetMeRequest {
+  export type AsObject = {
+  }
+}
+
+export class GetMeResponse extends jspb.Message {
+  getUser(): User | undefined;
+  setUser(value?: User): GetMeResponse;
+  hasUser(): boolean;
+  clearUser(): GetMeResponse;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): GetMeResponse.AsObject;
+  static toObject(includeInstance: boolean, msg: GetMeResponse): GetMeResponse.AsObject;
+  static serializeBinaryToWriter(message: GetMeResponse, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): GetMeResponse;
+  static deserializeBinaryFromReader(message: GetMeResponse, reader: jspb.BinaryReader): GetMeResponse;
+}
+
+export namespace GetMeResponse {
+  export type AsObject = {
+    user?: User.AsObject,
+  }
+}
+
 export class GetUserRequest extends jspb.Message {
   getId(): string;
   setId(value: string): GetUserRequest;
