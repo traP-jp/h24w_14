@@ -184,7 +184,7 @@ where
             id: crate::traq::user::TraqUserId(id),
         })
         .await
-        .map_err(|_| super::Error::Unknown)?
+        .map_err(|e| super::Error::Other(e.into()))?
         .map(|user| (super::AuthorizedUser { user_id: user.id }, user.inner.id));
 
     if let Some(user) = user {
@@ -196,7 +196,7 @@ where
             id: crate::traq::user::TraqUserId(id),
         })
         .await
-        .map_err(|_| super::Error::Unknown)
+        .map_err(|e| super::Error::Other(e.into()))
         .map(|user| (super::AuthorizedUser { user_id: user.id }, user.inner.id))
 }
 
