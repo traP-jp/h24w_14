@@ -22,7 +22,7 @@ where
     fn subscribe_messages<'a>(
         &'a self,
         ctx: &'a Context,
-    ) -> BoxStream<'a, Result<crate::message::Message, Self::Error>> {
+    ) -> BoxStream<'static, Result<crate::message::Message, Self::Error>> {
         let channels = ctx.as_ref();
         let rx = channels.message_tx.subscribe();
         BroadcastStream::new(rx).map_err(super::Error::from).boxed()
@@ -31,7 +31,7 @@ where
     fn subscribe_events<'a>(
         &'a self,
         ctx: &'a Context,
-    ) -> BoxStream<'a, Result<super::Event, Self::Error>> {
+    ) -> BoxStream<'static, Result<super::Event, Self::Error>> {
         let channels = ctx.as_ref();
         let rx = channels.event_tx.subscribe();
         BroadcastStream::new(rx).map_err(super::Error::from).boxed()

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use schema::user as schema;
 
 use crate::prelude::IntoStatus;
+use crate::session::ProvideSessionService;
 
 // MARK: type conversions
 
@@ -53,7 +54,7 @@ where
 #[async_trait::async_trait]
 impl<State> schema::user_service_server::UserService for ServiceImpl<State>
 where
-    State: super::ProvideUserService,
+    State: super::ProvideUserService + ProvideSessionService,
 {
     async fn get_user(
         &self,
@@ -73,6 +74,29 @@ where
             .map_err(IntoStatus::into_status)?
             .into();
         let res = schema::GetUserResponse { user: Some(user) };
+        Ok(tonic::Response::new(res))
+    }
+
+    async fn get_me(
+        &self,
+        request: tonic::Request<schema::GetMeRequest>,
+    ) -> Result<tonic::Response<schema::GetMeResponse>, tonic::Status> {
+        let (meta, _, schema::GetMeRequest {}) = request.into_parts();
+        let headers = meta.into_headers();
+        let session = self
+            .state
+            .extract(crate::session::ExtractParams(&headers))
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let user = self
+            .state
+            .get_user(super::GetUserParams {
+                id: session.user_id,
+            })
+            .await
+            .map_err(IntoStatus::into_status)?
+            .into();
+        let res = schema::GetMeResponse { user: Some(user) };
         Ok(tonic::Response::new(res))
     }
 }

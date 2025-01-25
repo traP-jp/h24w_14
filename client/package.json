@@ -12,13 +12,15 @@
     "format:nofix": "prettier --check . --cache",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
-    "generate:schema": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/schema --proto_path=../proto ../proto/*.proto"
+    "generate:schema": "protoc --proto_path=../proto --js_out=import_style=commonjs:./src/schema --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/schema ../proto/*.proto"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.2.3",
     "@pixi/react": "^7.1.2",
     "antd": "^5.23.1",
+    "grpc-web": "^1.5.0",
     "pixi.js": "^7.4.2",
+    "protoc-gen-js": "^3.21.4-4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-infinite-scroll-component": "^6.1.0"

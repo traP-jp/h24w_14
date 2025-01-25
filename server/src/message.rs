@@ -94,6 +94,16 @@ pub trait ProvideMessageService: Send + Sync + 'static {
         let ctx = self.context();
         self.message_service().create_message(ctx, params)
     }
+    fn get_messages_in_area(
+        &self,
+        params: GetMessagesInAreaParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Vec<Message>, <Self::MessageService as MessageService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.message_service().get_messages_in_area(ctx, params)
+    }
 }
 
 pub fn build_server<State>(state: Arc<State>) -> MessageServiceServer<State>
@@ -108,3 +118,5 @@ pub struct MessageServiceImpl;
 
 pub type MessageServiceServer<State> =
     schema::msg::message_service_server::MessageServiceServer<grpc::ServiceImpl<State>>;
+
+pub use schema::msg::message_service_server::SERVICE_NAME;

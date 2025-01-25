@@ -775,6 +775,7 @@ dependencies = [
  "bytes",
  "chrono",
  "futures",
+ "hex",
  "http",
  "http-body",
  "http-body-util",
