@@ -13,7 +13,7 @@ pub use error::Error;
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Event {
     Explorer(crate::explore::ExplorerAction),
-    SpkeakerPhone(crate::speaker_phone::SpeakerPhone),
+    SpeakerPhone(crate::speaker_phone::SpeakerPhone),
     Message(Message),
     Reaction(crate::reaction::Reaction),
 }
