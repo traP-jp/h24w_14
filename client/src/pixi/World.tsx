@@ -14,7 +14,7 @@ import useMessageExpanded from "./hooks/message";
 import { isInsideField } from "../util/field";
 import speakerPhonesAtom from "../state/speakerPhone";
 import reactionsAtom from "../state/reactions";
-import fieldExplorersAtom from "../state/explorer";
+import explorersAtom from "../state/explorer";
 import OtherExplorer from "./components/OtherExplorer";
 
 interface Props {
@@ -33,7 +33,7 @@ const World: React.FC<Props> = ({
   const messages = useAtomValue(messagesAtom);
   const speakerPhones = useAtomValue(speakerPhonesAtom);
   const reactions = useAtomValue(reactionsAtom);
-  const explorers = useAtomValue(fieldExplorersAtom);
+  const explorers = useAtomValue(explorersAtom);
 
   const messageNodes: JSX.Element[] = [];
   for (const message of messages.values()) {
