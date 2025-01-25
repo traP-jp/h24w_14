@@ -9,7 +9,7 @@ import {
 } from "../schema/speaker_phone_pb";
 import useSWRMutation from "swr/mutation";
 import { Coordinate } from "../schema/world_pb";
-import { Position } from "../Position";
+import { Position } from "../model/position";
 
 const speakerPhoneClient = new SpeakerPhoneServiceClient(serverHostName);
 

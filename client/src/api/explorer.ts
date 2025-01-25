@@ -1,12 +1,12 @@
 import { useSetAtom } from "jotai";
-import { Position } from "../Position";
+import { Position } from "../model/position";
 import { ExplorationField, ExplorationFieldEvents } from "../schema/explore_pb";
 import { Coordinate, Size } from "../schema/world_pb";
 import { serverWSHostName } from "./hostname";
 import { useEffect, useRef } from "react";
 import fieldMessagesAtom from "../state/message";
 import fieldReactionsAtom from "../state/reactions";
-import { ReactionName } from "../reactions";
+import { ReactionName } from "../model/reactions";
 import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 import fieldExplorersAtom from "../state/explorer";
 

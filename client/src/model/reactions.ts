@@ -1,7 +1,7 @@
-import Iine from "./assets/reactions/iine.webp";
-import Kusa from "./assets/reactions/kusa.webp";
-import Pro from "./assets/reactions/pro.webp";
-import { Position } from "./Position";
+import Iine from "../assets/reactions/iine.webp";
+import Kusa from "../assets/reactions/kusa.webp";
+import Pro from "../assets/reactions/pro.webp";
+import { Position } from "./position";
 
 export type ReactionName = "iine" | "kusa" | "pro";
 

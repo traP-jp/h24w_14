@@ -1,4 +1,4 @@
-import { Position } from "./Position";
+import { Position } from "./position";
 
 export interface Message {
   id: string;

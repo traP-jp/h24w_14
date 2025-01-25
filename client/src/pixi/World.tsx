@@ -1,7 +1,7 @@
 import { Container, Sprite } from "@pixi/react";
 import Rectangle from "./components/Rectangle";
 import "@pixi/events";
-import { DisplayPosition, Position } from "../Position";
+import { DisplayPosition, Position } from "../model/position";
 import React from "react";
 import Message from "./components/Message";
 import SpeakerPhone from "./components/SpeakerPhone";

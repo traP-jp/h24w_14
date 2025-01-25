@@ -1,4 +1,4 @@
-import { Position } from "./Position";
+import { Position } from "./position";
 
 interface SpeakerPhone {
   id: string;

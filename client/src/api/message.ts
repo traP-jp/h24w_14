@@ -4,7 +4,7 @@ import serverHostName from "./hostname";
 import { GetMessageRequest, CreateMessageRequest } from "../schema/message_pb";
 import useSWRMutation from "swr/mutation";
 import { Coordinate } from "../schema/world_pb";
-import { Position } from "../Position";
+import { Position } from "../model/position";
 
 const messageClient = new MessageServiceClient(serverHostName);
 

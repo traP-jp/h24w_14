@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { Message } from "../message";
+import { Message } from "../model/message";
 
 const fieldMessagesAtom = atom<Message[]>([]);
 

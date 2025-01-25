@@ -1,4 +1,4 @@
-import SpeakerPhone from "../speakerPhone";
+import SpeakerPhone from "../model/speakerPhone";
 import { atom } from "jotai";
 
 const fieldSpeakerPhonesAtom = atom<SpeakerPhone[]>([]);

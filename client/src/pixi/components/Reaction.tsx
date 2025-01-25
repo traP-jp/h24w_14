@@ -1,7 +1,7 @@
 import { Container, Sprite, Text } from "@pixi/react";
 import React, { useState } from "react";
-import { ReactionAssets, ReactionName } from "../../reactions";
-import { Position } from "../../Position";
+import { ReactionAssets, ReactionName } from "../../model/reactions";
+import { Position } from "../../model/position";
 import Bubble from "./Bubble";
 import { TextStyle } from "pixi.js";
 

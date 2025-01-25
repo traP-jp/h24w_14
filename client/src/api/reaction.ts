@@ -5,8 +5,8 @@ import {
   CreateReactionRequest,
   GetReactionRequest,
 } from "../schema/reaction_pb";
-import { Position } from "../Position";
-import { ReactionName } from "../reactions";
+import { Position } from "../model/position";
+import { ReactionName } from "../model/reactions";
 import useSWRMutation from "swr/mutation";
 import { Coordinate } from "../schema/world_pb";
 
