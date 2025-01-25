@@ -320,14 +320,14 @@ async fn post_message_to_traq(
         .get(&speaker_phone.id)
         .expect("SpeakerPhoneのチャンネルが存在する");
 
-    let traq_user = match traq_user_service
+    let traq_user = traq_user_service
         .find_traq_user_by_app_user_id(crate::traq::user::FindTraqUserByAppUserIdParams {
             id: message.user_id,
         })
         .await
-        .map_err(IntoStatus::into_status)
-    {
-        Ok(Some(user)) => user,
+        .map_err(IntoStatus::into_status);
+    let traq_user = match traq_user {
+        Ok(Some(u)) => u,
         Ok(None) => {
             tracing::error!("User not found");
             return;
@@ -338,21 +338,17 @@ async fn post_message_to_traq(
         }
     };
 
-    match traq_message_service
+    let res = traq_message_service
         .send_message(crate::traq::message::SendMessageParams {
             inner: message.clone(),
             channel_id: channel.id,
             user_id: traq_user.id,
         })
         .await
-        .map_err(IntoStatus::into_status)
-    {
-        Ok(_) => {
-            tracing::info!("Sent a message");
-        }
-        Err(err) => {
-            tracing::error!(error = %err, "Failed to send a message");
-        }
+        .map_err(IntoStatus::into_status);
+    match res {
+        Ok(_) => tracing::info!("Sent a message"),
+        Err(err) => tracing::error!(error = %err, "Failed to send a message"),
     }
 }
 
