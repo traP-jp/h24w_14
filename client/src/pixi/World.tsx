@@ -13,7 +13,7 @@ import MessageIcon from "./components/MessageIcon";
 import useMessageExpanded from "./hooks/message";
 import { isInsideField } from "../util/field";
 import speakerPhonesAtom from "../state/speakerPhone";
-import fieldReactionsAtom from "../state/reactions";
+import reactionsAtom from "../state/reactions";
 
 interface Props {
   userPosition: Position;
@@ -30,7 +30,7 @@ const World: React.FC<Props> = ({
     useMessageExpanded();
   const messages = useAtomValue(messagesAtom);
   const speakerPhones = useAtomValue(speakerPhonesAtom);
-  const reactions = useAtomValue(fieldReactionsAtom);
+  const reactions = useAtomValue(reactionsAtom);
 
   const messageNodes: JSX.Element[] = [];
   for (const message of messages.values()) {
