@@ -69,6 +69,12 @@ async fn publish_event(
         let subscribers = channels.message_tx.send(message.clone())?;
         tracing::trace!(subscribers, "Published message");
     }
+
+    if let super::Event::SpeakerPhone(speaker_phone) = &event {
+        let subscribers = channels.speaker_phone_tx.send(speaker_phone.clone())?;
+        tracing::trace!(subscribers, "Published speaker phone");
+    }
+
     let subscribers = channels.event_tx.send(event)?;
     tracing::trace!(subscribers, "Published event");
     Ok(())
