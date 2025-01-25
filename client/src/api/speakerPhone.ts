@@ -1,7 +1,12 @@
 import useSWR from "swr";
 import { SpeakerPhoneServiceClient } from "../schema2/speaker_phone.client";
 import serverHostName from "./hostname";
-import { GetSpeakerPhoneRequest, CreateSpeakerPhoneRequest, GetAvailableChannelsRequest, SearchChannelsRequest } from "../schema2/speaker_phone";
+import {
+  GetSpeakerPhoneRequest,
+  CreateSpeakerPhoneRequest,
+  GetAvailableChannelsRequest,
+  SearchChannelsRequest,
+} from "../schema2/speaker_phone";
 import useSWRMutation from "swr/mutation";
 import { Position } from "../model/position";
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
