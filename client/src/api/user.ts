@@ -15,5 +15,5 @@ export const useUser = (userId: string) => {
 export const useMe = () => {
   const req = new GetMeRequest();
   const fetcher = () => userClient.getMe(req);
-  return useSWR(`me`, fetcher);
+  return useSWR(`user/me`, fetcher);
 };
