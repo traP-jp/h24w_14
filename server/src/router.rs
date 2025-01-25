@@ -17,7 +17,7 @@ where
 }
 
 fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
-    let world_service = crate::world::ProvideWorldService::build_server(state);
+    let world_service = crate::world::build_server(state);
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_grpc());
     // TODO: tonic_web::enable
     Router::new().layer(layer).route_service(
