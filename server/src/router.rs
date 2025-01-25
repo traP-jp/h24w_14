@@ -181,7 +181,7 @@ where
                     notify_close.notify_one();
                     return;
                 }
-                _ => {
+                axum::extract::ws::Message::Ping(_) | axum::extract::ws::Message::Pong(_) => {
                     // NOTE: Ping/Pong は勝手に処理してくれる
                 }
             }
@@ -195,7 +195,7 @@ where
 
     loop {
         tokio::select! {
-            _ = notify_close2.notified() => {
+            () = notify_close2.notified() => {
                 if let Err(e) = ws_tx.close().await {
                     tracing::error!(error = &e as &dyn std::error::Error, "failed to close ws");
                 }
