@@ -11,18 +11,27 @@ import { useAtomValue } from "jotai";
 import messagesAtom from "../state/message";
 import MessageIcon from "./components/MessageIcon";
 import useMessageExpanded from "./hooks/message";
+import { isInsideField } from "../util/field";
 
 interface Props {
   userPosition: Position;
   userDisplayPosition: DisplayPosition;
+  fieldSize: { width: number; height: number };
 }
 
-const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
+const World: React.FC<Props> = ({
+  userPosition,
+  userDisplayPosition,
+  fieldSize,
+}) => {
   const { expanded, collapseMessage, expandMessage, message } =
     useMessageExpanded();
   const messages = useAtomValue(messagesAtom);
   const messageNodes = [];
   for (const message of messages.values()) {
+    if (!isInsideField(message.position, fieldSize, userPosition)) {
+      continue;
+    }
     messageNodes.push(
       <MessageIcon
         currentExpandedMessageId={message.id}
