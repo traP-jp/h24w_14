@@ -132,10 +132,14 @@ where
             return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
         }
     };
-    let Ok(res) = serde_json::to_string(&res) else {
+
+    let body = serde_json::to_string(&serde_json::json!({
+        "id": user.inner.id.0
+    }));
+    let Ok(body) = body else {
         return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
     };
-    (http::StatusCode::OK, jar, res).into_response()
+    (http::StatusCode::OK, jar, body).into_response()
 }
 
 async fn handle_ws<AppState>(
