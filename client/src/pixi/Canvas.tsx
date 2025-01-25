@@ -14,6 +14,7 @@ import {
 } from "../model/position";
 import Explorer from "./components/Explorer";
 import PIXI from "pixi.js";
+import useExplorerDispatcher from "../api/explorer";
 
 const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
@@ -40,6 +41,7 @@ const Canvas: React.FC<Props> = (props) => {
   } | null>(null);
   const [intervalID, setIntervalID] = useState<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const dispatcher = useExplorerDispatcher();
 
   useEffect(() => {
     const width = (window.innerWidth * 3) / 5;
@@ -66,25 +68,36 @@ const Canvas: React.FC<Props> = (props) => {
     };
   }, [fieldSize]);
 
-  const updateUserPosition = useCallback((targetPosition: Position) => {
-    setUserPosition((position) => {
-      if (position === null) {
-        return null;
-      }
-      const diff = {
-        x: targetPosition.x - position.x,
-        y: targetPosition.y - position.y,
-      };
-      if (Math.abs(diff.x) < 3 && Math.abs(diff.y) < 3) {
-        return targetPosition;
-      }
-      const nextPosition = calcNewPosition(position, {
-        x: diff.x / 10,
-        y: diff.y / 10,
+  const updateUserPosition = useCallback(
+    (targetPosition: Position) => {
+      setUserPosition((position) => {
+        if (position === null || fieldSize === null) {
+          return null;
+        }
+        const diff = {
+          x: targetPosition.x - position.x,
+          y: targetPosition.y - position.y,
+        };
+        if (Math.abs(diff.x) < 3 && Math.abs(diff.y) < 3) {
+          dispatcher({
+            position: targetPosition,
+            size: fieldSize,
+          });
+          return targetPosition;
+        }
+        const nextPosition = calcNewPosition(position, {
+          x: diff.x / 10,
+          y: diff.y / 10,
+        });
+        dispatcher({
+          position: nextPosition,
+          size: fieldSize,
+        });
+        return nextPosition;
       });
-      return nextPosition;
-    });
-  }, []);
+    },
+    [dispatcher, fieldSize],
+  );
 
   const onFieldClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
