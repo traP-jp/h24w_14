@@ -238,7 +238,7 @@ where
                 .subscribe_messages()
                 .map_err(|e| super::Error::from(e.into_status()));
 
-            run_messages_subscription_loop(ctx, channel_id, rx).await;
+            run_messages_subscription_loop(ctx, speaker_phone, channel_id, rx).await;
         })
         .await;
     }
@@ -247,6 +247,7 @@ where
 
 async fn run_messages_subscription_loop<Context>(
     ctx: Arc<Context>,
+    speaker_phone: super::SpeakerPhone,
     channel_id: crate::traq::channel::TraqChannelId,
     mut rx: impl futures::stream::Stream<Item = Result<crate::message::Message, super::Error>> + Unpin,
 ) where
@@ -263,8 +264,10 @@ async fn run_messages_subscription_loop<Context>(
             }
         };
 
-        // TODO: spのアクセス範囲内にmessage.positionが含まれない
-        if false {
+        if !message
+            .position
+            .is_inside_circle(speaker_phone.position, speaker_phone.receive_range)
+        {
             continue;
         }
 
