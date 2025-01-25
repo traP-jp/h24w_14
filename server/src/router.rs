@@ -46,7 +46,9 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
     }
 
     services! { world; user; reaction; }
-    let layer = ServiceBuilder::new().layer(TraceLayer::new_for_grpc());
+    let layer = ServiceBuilder::new()
+        .layer(TraceLayer::new_for_grpc())
+        .layer(crate::session::build_grpc_layer(state));
     route_services!(Router::new(); [ world, user, reaction ]).layer(layer)
 }
 
