@@ -3,7 +3,7 @@ import speakerPhone from "../../assets/icons/speakerPhone.svg";
 import { Container, Sprite, Text } from "@pixi/react";
 import Circle from "./Circle";
 import { themeColors } from "../theme";
-import { Position } from "../Position";
+import { Position } from "../../model/position";
 import { TextStyle } from "pixi.js";
 
 const speakerPhoneIconSize = 30;
