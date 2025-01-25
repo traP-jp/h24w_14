@@ -60,13 +60,16 @@ export const Timeline: React.FC = () => {
         <List
           dataSource={data}
           renderItem={(item) => (
+            // TODO: traQ ID に置き換える
             <List.Item key={item.email}>
               <List.Item.Meta
-                avatar={<Avatar src={item.picture.large} />}
-                title={<a href="https://ant.design">{item.name.last}</a>}
-                description={item.email}
+                avatar={<Avatar src={item.picture.large} />} // TODO: traQ のアイコンに置き換える
+                title={item.name.last} // TODO: traQ のユーザー名に置き換える
+                description={item.email} // TODO: traQ ID に置き換える
               />
-              <div>Content</div>
+              Content Content Content Content Content Content Content Content
+              Content Content Content Content Content Content Content Content
+              Content Content Content Content Content Content Content
             </List.Item>
           )}
         />
