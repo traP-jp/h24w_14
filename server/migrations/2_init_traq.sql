@@ -18,3 +18,9 @@ CREATE TABLE IF NOT EXISTS `traq_messages` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)
 );
+
+CREATE TABLE IF NOT EXISTS `traq_token` {
+    `traq_user_id` BINARY(16) NOT NULL,
+    `token` VARCHAR(511) NOT NULL,
+    PRIMARY KEY (`traq_user_id`),
+}

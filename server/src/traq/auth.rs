@@ -1,4 +1,5 @@
 pub mod error;
+pub mod grpc;
 pub mod r#impl;
 
 use futures::future::BoxFuture;
@@ -8,6 +9,12 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 pub use error::Error;
+
+#[derive(Debug, Clone)]
+pub struct TraqOauthClientConfig {
+    pub client_id: String,
+    pub client_secret: String,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct OAuth2EntrypointUriParams {}
