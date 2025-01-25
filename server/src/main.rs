@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use sqlx::MySqlPool;
 
-use h24w14 as lib;
+use h24w14::{self as lib, traq::auth::TraqOauthClientConfig};
 
 #[derive(Debug, Clone)]
 struct State {
@@ -15,6 +15,8 @@ struct State {
     session_config: SessionConfig,
     explorer_store: lib::explore::ExplorerStore,
     services: Services,
+    traq_oauth_client_config: TraqOauthClientConfig,
+    traq_host: lib::traq::TraqHost
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -25,6 +27,8 @@ struct Services {
     session_service: lib::session::SessionServiceImpl,
     reaction_service: lib::reaction::ReactionServiceImpl,
     explorer_service: lib::explore::ExplorerServiceImpl,
+    traq_user_service: lib::traq::user::TraqUserServiceImpl,
+    traq_auth_service: lib::traq::auth::TraqAuthServiceImpl,
 }
 
 #[tokio::main]
@@ -53,6 +57,8 @@ async fn main() -> anyhow::Result<()> {
         session_config,
         explorer_store: lib::explore::ExplorerStore::new(),
         services: Services::default(),
+        traq_oauth_client_config: todo!(),
+        traq_host: lib::traq::TraqHost("traq.io".to_string()),
     });
     state.migrate().await?;
 
@@ -257,6 +263,18 @@ impl AsRef<lib::explore::ExplorerStore> for State {
     }
 }
 
+impl AsRef<TraqOauthClientConfig> for State {
+    fn as_ref(&self) -> &TraqOauthClientConfig {
+        &self.traq_oauth_client_config
+    }
+}
+
+impl AsRef<lib::traq::TraqHost> for State {
+    fn as_ref(&self) -> &lib::traq::TraqHost {
+        &self.traq_host
+    }
+}
+
 impl lib::world::ProvideWorldService for State {
     type Context = Self;
     type WorldService = lib::world::WorldServiceImpl;
@@ -326,5 +344,30 @@ impl lib::explore::ProvideExplorerService for State {
     }
     fn explorer_service(&self) -> &Self::ExplorerService {
         &self.services.explorer_service
+    }
+}
+
+impl lib::traq::user::ProvideTraqUserService for State {
+    type Context = Self;
+    type TraqUserService = lib::traq::user::TraqUserServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+
+    fn traq_user_service(&self) -> &Self::TraqUserService {
+        &self.services.traq_user_service
+    }
+}
+
+impl lib::traq::auth::ProvideTraqAuthService for State {
+    type Context = Self;
+    type TraqAuthService = lib::traq::auth::TraqAuthServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_auth_service(&self) -> &Self::TraqAuthService {
+        &self.services.traq_auth_service
     }
 }
