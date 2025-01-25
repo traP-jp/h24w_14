@@ -10,7 +10,7 @@ pub struct OAuth2EntrypointUriParams {}
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct AuthorizedUser {
-    pub user: super::user::TraqUser,
+    pub user_id: super::user::TraqUserId,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +36,7 @@ pub trait TraqAuthService<Context>: Send + Sync + 'static {
     fn check_authorized<'a>(
         &'a self,
         ctx: &'a Context,
-        user: super::user::TraqUser,
+        user_id: super::user::TraqUserId,
     ) -> BoxFuture<'a, Result<Option<AuthorizedUser>, Self::Error>>;
     /// Bearer Token を設定した [`RequestBuilder`] を作る
     ///
@@ -78,7 +78,7 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
     }
     fn check_authorized(
         &self,
-        user: super::user::TraqUser,
+        user_id: super::user::TraqUserId,
     ) -> BoxFuture<
         '_,
         Result<
@@ -87,7 +87,7 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
         >,
     > {
         let ctx = self.context();
-        self.traq_auth_service().check_authorized(ctx, user)
+        self.traq_auth_service().check_authorized(ctx, user_id)
     }
     fn build_request_as_authorized_user<'a>(
         &'a self,
