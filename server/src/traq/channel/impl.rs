@@ -134,11 +134,12 @@ impl ChannelNode {
             path: path.clone(),
         }];
 
-        self.children
+        let it = self
+            .children
             .iter()
             .flat_map(|child| channels.get(child))
-            .flat_map(|child_node| child_node.dfs(&path, channels))
-            .for_each(|channel| result.push(channel));
+            .flat_map(|child_node| child_node.dfs(&path, channels));
+        result.extend(it);
 
         result
     }
