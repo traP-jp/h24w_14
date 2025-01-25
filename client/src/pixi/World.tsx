@@ -8,7 +8,7 @@ import SpeakerPhone from "./components/SpeakerPhone";
 import Reaction from "./components/Reaction";
 import { traqIconURL } from "../util/icon";
 import { useAtomValue } from "jotai";
-import fieldMessagesAtom from "../state/message";
+import messagesAtom from "../state/message";
 import MessageIcon from "./components/MessageIcon";
 import useMessageExpanded from "./hooks/message";
 
@@ -20,7 +20,7 @@ interface Props {
 const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
   const { expanded, collapseMessage, expandMessage, message } =
     useMessageExpanded();
-  const messages = useAtomValue(fieldMessagesAtom);
+  const messages = useAtomValue(messagesAtom);
   const messageNodes = [];
   for (const message of messages.values()) {
     messageNodes.push(
