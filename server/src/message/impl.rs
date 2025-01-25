@@ -89,16 +89,25 @@ async fn get_messages_in_area(
     req: super::GetMessagesInAreaParams,
 ) -> Result<Vec<super::Message>, super::Error> {
     sqlx::query_as::<_, MessageRow>(
-        "SELECT * FROM `messages` WHERE `position_x` BETWEEN ? AND ? AND `position_y` BETWEEN ? AND ? ORDER BY `created_at` DESC",
+        r#"
+            SELECT * FROM `messages`
+            WHERE
+                `position_x` BETWEEN ? AND ?
+            AND
+                `position_y` BETWEEN ? AND ?
+            AND
+                `expires_at` > NOW()
+            ORDER BY `created_at` DESC
+        "#,
     )
-        .bind(req.center.x.saturating_sub(req.size.width) as i32)
-        .bind(req.center.x.saturating_add(req.size.width) as i32)
-        .bind(req.center.y.saturating_sub(req.size.height) as i32)
-        .bind(req.center.y.saturating_add(req.size.height) as i32)
-        .fetch_all(pool)
-        .await
-        .map(|rows| rows.into_iter().map(|row| row.into()).collect())
-        .map_err(super::Error::Sqlx)
+    .bind(req.center.x.saturating_sub(req.size.width / 2) as i32)
+    .bind(req.center.x.saturating_add(req.size.width / 2) as i32)
+    .bind(req.center.y.saturating_sub(req.size.height / 2) as i32)
+    .bind(req.center.y.saturating_add(req.size.height / 2) as i32)
+    .fetch_all(pool)
+    .await
+    .map(|rows| rows.into_iter().map(|row| row.into()).collect())
+    .map_err(super::Error::Sqlx)
 }
 
 async fn create_message(
