@@ -3,6 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
+pub mod error;
+mod r#impl;
+
+pub use error::Error;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct TraqMessageId(pub uuid::Uuid);
@@ -28,6 +33,7 @@ pub struct SyncedTraqMessage {
 pub struct SendMessageParams {
     pub inner: crate::message::Message,
     pub channel_id: super::channel::TraqChannelId,
+    pub user_id: super::user::TraqUserId,
     // ユーザーはtraQのユーザーと1対1で紐づいている前提
 }
 
@@ -82,3 +88,6 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
             .check_message_synced(ctx, message)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TraqMessageServiceImpl;

@@ -15,6 +15,7 @@
     "generate:schema": "protoc --proto_path=../proto --ts_out=./src/schema2 ../proto/*.proto"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.6.0",
     "@pixi/react": "^7.1.2",
     "@protobuf-ts/grpcweb-transport": "^2.9.4",
     "antd": "^5.23.1",
@@ -23,6 +24,7 @@
     "pixi.js": "^7.4.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-infinite-scroll-component": "^6.1.0",
     "swr": "^2.3.0"
   },
   "devDependencies": {

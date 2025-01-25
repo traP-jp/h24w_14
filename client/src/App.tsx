@@ -1,9 +1,10 @@
-import { Button } from "antd";
+import { ConfigProvider } from "antd";
 import Canvas from "./pixi/Canvas";
+import { Timeline } from "./timeline/Timeline";
+import { useEffect } from "react";
 import useExplorerDispatcher from "./api/explorer";
 import { useSetAtom } from "jotai";
 import dispatcherAtom from "./state/dispatcher";
-import { useEffect } from "react";
 
 const App = () => {
   const dispatcher = useExplorerDispatcher();
@@ -15,10 +16,15 @@ const App = () => {
   return (
     <div className="flex">
       <Canvas />
-      <div>
-        タイムライン
-        <Button type="primary">Primary Button</Button>
-      </div>
+      <ConfigProvider
+        theme={{
+          token: {
+            colorPrimary: "#a0d911",
+          },
+        }}
+      >
+        <Timeline />
+      </ConfigProvider>
     </div>
   );
 };

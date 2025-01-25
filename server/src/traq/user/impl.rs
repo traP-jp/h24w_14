@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use futures::future::{self, BoxFuture, FutureExt, TryFutureExt};
+use futures::future::{BoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, MySqlPool};
 use uuid::Uuid;
@@ -14,14 +14,12 @@ where
 {
     type Error = super::Error;
 
-    fn get_traq_user<'a>(
+    fn find_traq_user_by_app_user_id<'a>(
         &'a self,
         ctx: &'a Context,
-        params: super::GetTraqUserParams,
-    ) -> BoxFuture<'a, Result<super::TraqUser, Self::Error>> {
-        find_traq_user(ctx, ctx.as_ref(), params.id)
-            .and_then(|u| future::ready(u.ok_or(super::Error::NotFound)))
-            .boxed()
+        params: super::FindTraqUserByAppUserIdParams,
+    ) -> BoxFuture<'a, Result<Option<super::TraqUser>, Self::Error>> {
+        find_traq_user_by_app_user_id(ctx, ctx.as_ref(), params).boxed()
     }
 
     fn find_traq_user<'a>(
@@ -49,6 +47,36 @@ struct TraqUserRow {
     pub bio: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[tracing::instrument(skip_all)]
+async fn find_traq_user_by_app_user_id<U: ProvideUserService>(
+    user_service: &U,
+    pool: &MySqlPool,
+    params: super::FindTraqUserByAppUserIdParams,
+) -> Result<Option<super::TraqUser>, super::Error> {
+    let traq_user: Option<TraqUserRow> =
+        sqlx::query_as(r#"SELECT * FROM `traq_users` WHERE `user_id` = ?"#)
+            .bind(params.id.0)
+            .fetch_optional(pool)
+            .await?;
+    let Some(traq_user) = traq_user else {
+        return Ok(None);
+    };
+    let user_id = crate::user::UserId(traq_user.user_id);
+    let user = user_service
+        .get_user(crate::user::GetUserParams { id: user_id })
+        .await
+        .map_err(IntoStatus::into_status)?;
+    let traq_user = super::TraqUser {
+        id: super::TraqUserId(traq_user.id),
+        inner: user,
+        bot: traq_user.bot,
+        bio: traq_user.bio,
+        created_at: traq_user.created_at.into(),
+        updated_at: traq_user.updated_at.into(),
+    };
+    Ok(Some(traq_user))
 }
 
 #[tracing::instrument(skip_all)]
