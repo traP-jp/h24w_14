@@ -288,13 +288,15 @@ async fn run_subscription_loop(
                     }
                 };
 
-                post_message_to_traq(
-                    traq_user_service,
-                    traq_message_service,
-                    speaker_phones.clone(),
-                    channel_map,
-                    message,
-                ).await;
+                for speaker_phone in &speaker_phones {
+                    post_message_to_traq(
+                        traq_user_service,
+                        traq_message_service,
+                        speaker_phone,
+                        &channel_map,
+                        &message,
+                    ).await;
+                }
             }
         }
     }
@@ -303,42 +305,38 @@ async fn run_subscription_loop(
 async fn post_message_to_traq(
     traq_user_service: &impl crate::traq::user::ProvideTraqUserService,
     traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
-    speaker_phones: Vec<super::SpeakerPhone>,
-    channel_map: HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
-    message: crate::message::Message,
+    speaker_phone: &super::SpeakerPhone,
+    channel_map: &HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
+    message: &crate::message::Message,
 ) {
-    for speaker_phone in speaker_phones {
-        let message = message.clone();
-
-        if !message
-            .position
-            .is_inside_circle(speaker_phone.position, speaker_phone.receive_range)
-        {
-            return;
-        }
-
-        let channel = channel_map
-            .get(&speaker_phone.id)
-            .expect("SpeakerPhoneのチャンネルが存在する");
-
-        let traq_user = traq_user_service
-            .find_traq_user_by_app_user_id(crate::traq::user::FindTraqUserByAppUserIdParams {
-                id: message.user_id,
-            })
-            .await
-            .map_err(IntoStatus::into_status)
-            .unwrap()
-            .expect("AppUserIdに対応するTraqUserが存在する");
-
-        traq_message_service
-            .send_message(crate::traq::message::SendMessageParams {
-                inner: message.clone(),
-                channel_id: channel.id,
-                user_id: traq_user.id,
-            })
-            .await
-            .unwrap();
+    if !message
+        .position
+        .is_inside_circle(speaker_phone.position, speaker_phone.receive_range)
+    {
+        return;
     }
+
+    let channel = channel_map
+        .get(&speaker_phone.id)
+        .expect("SpeakerPhoneのチャンネルが存在する");
+
+    let traq_user = traq_user_service
+        .find_traq_user_by_app_user_id(crate::traq::user::FindTraqUserByAppUserIdParams {
+            id: message.user_id,
+        })
+        .await
+        .map_err(IntoStatus::into_status)
+        .unwrap()
+        .expect("AppUserIdに対応するTraqUserが存在する");
+
+    traq_message_service
+        .send_message(crate::traq::message::SendMessageParams {
+            inner: message.clone(),
+            channel_id: channel.id,
+            user_id: traq_user.id,
+        })
+        .await
+        .unwrap();
 }
 
 async fn get_available_channels(
