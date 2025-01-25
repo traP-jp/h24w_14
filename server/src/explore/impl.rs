@@ -12,7 +12,7 @@ use crate::{
     event::{Event, ProvideEventService},
     message::ProvideMessageService,
     prelude::IntoStatus,
-    speaker_phone::ProvideSpeakerPhone,
+    speaker_phone::ProvideSpeakerPhoneService,
     user::ProvideUserService,
 };
 
@@ -189,7 +189,7 @@ where
     Context: ProvideEventService
         + ProvideUserService
         + ProvideMessageService
-        + ProvideSpeakerPhone
+        + ProvideSpeakerPhoneService
         + ProvideExplorerService,
 {
     // type Error = super::error::Error;
@@ -214,7 +214,7 @@ where
     Context: ProvideEventService
         + ProvideUserService
         + ProvideMessageService
-        + ProvideSpeakerPhone
+        + ProvideSpeakerPhoneService
         + ProvideExplorerService,
 {
     async_stream::try_stream! {
@@ -323,7 +323,7 @@ where
     Context: ProvideEventService
         + ProvideUserService
         + ProvideMessageService
-        + ProvideSpeakerPhone
+        + ProvideSpeakerPhoneService
         + ProvideExplorerService,
 {
     ctx: &'a Context,
@@ -343,7 +343,7 @@ where
     Context: ProvideEventService
         + ProvideUserService
         + ProvideMessageService
-        + ProvideSpeakerPhone
+        + ProvideSpeakerPhoneService
         + ProvideExplorerService,
 {
     let Status {
@@ -466,7 +466,7 @@ where
                     Ok(None)
                 }
             }
-            crate::event::Event::SpkeakerPhone(speaker_phone) => {
+            crate::event::Event::SpeakerPhone(speaker_phone) => {
                 if is_inside(
                     exploration_field.position,
                     exploration_field.size,
