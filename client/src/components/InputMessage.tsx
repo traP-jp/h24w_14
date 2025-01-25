@@ -1,29 +1,41 @@
 import { SendOutlined } from "@ant-design/icons";
 import { Input } from "antd";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 const { TextArea } = Input;
 
 export const InputMessage: React.FC = () => {
   const [message, setMessage] = useState("");
   const [isTextAreaFocused, setIsTextAreaFocused] = useState(false);
-  const sendMessage = () => {
+
+  const sendMessage = useCallback(() => {
     setMessage("");
-  };
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-  };
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (isTextAreaFocused && (e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-  const handleFocus = () => {
+  }, []);
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setMessage(e.target.value);
+    },
+    [],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (isTextAreaFocused && (e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+      }
+    },
+    [isTextAreaFocused, sendMessage],
+  );
+
+  const handleFocus = useCallback(() => {
     setIsTextAreaFocused(true);
-  };
-  const handleBlur = () => {
+  }, []);
+
+  const handleBlur = useCallback(() => {
     setIsTextAreaFocused(false);
-  };
+  }, []);
+
   return (
     <div className="flex items-end gap-1 p-2 bg-background-secondary">
       <TextArea
