@@ -8,6 +8,7 @@ import fieldMessagesAtom from "../state/message";
 import fieldReactionsAtom from "../state/reactions";
 import { ReactionName } from "../reactions";
 import fieldSpeakerPhonesAtom from "../state/speakerPhone";
+import fieldExplorersAtom from "../state/explorer";
 
 type ExplorerMessage = {
   position: Position;
@@ -24,6 +25,7 @@ const useExplorerDispatcher = () => {
   const setFieldMessages = useSetAtom(fieldMessagesAtom);
   const setFieldReactions = useSetAtom(fieldReactionsAtom);
   const setFieldSpeakerPhones = useSetAtom(fieldSpeakerPhonesAtom);
+  const setFieldExplorers = useSetAtom(fieldExplorersAtom);
 
   const dispatcher = ({ position, size }: ExplorerMessage) => {
     subscriberRef.current.dispatchEvent(
@@ -113,11 +115,52 @@ const useExplorerDispatcher = () => {
           })),
         ];
       });
+      setFieldExplorers((explorers) => {
+        const explorerActions = events.explorerActionsList;
+        explorerActions.forEach((action) => {
+          if (action.arrive) {
+            const explorer = action.arrive.explorer;
+            if (!explorer) return;
+            explorers.set(explorer.id ?? "", {
+              id: explorer.id ?? "",
+              position: {
+                x: explorer.position?.x ?? 0,
+                y: explorer.position?.y ?? 0,
+              },
+              userId: explorer.userId ?? "",
+            });
+          }
+          if (action.leave) {
+            explorers.delete(action.leave.id);
+          }
+          if (action.move) {
+            const explorer = action.move.explorer;
+            if (!explorer) return;
+            const prevExplorer = explorers.get(explorer.id ?? "");
+            if (!prevExplorer) return;
+            explorers.set(explorer.id ?? "", {
+              id: explorer.id ?? "",
+              position: {
+                x: explorer.position?.x ?? 0,
+                y: explorer.position?.y ?? 0,
+              },
+              userId: explorer.userId ?? "",
+              previousPosition: prevExplorer.position,
+            });
+          }
+        });
+        return explorers;
+      });
     };
     return () => {
       ws.close();
     };
-  }, [setFieldMessages, setFieldReactions, setFieldSpeakerPhones]);
+  }, [
+    setFieldMessages,
+    setFieldReactions,
+    setFieldSpeakerPhones,
+    setFieldExplorers,
+  ]);
 
   return dispatcher;
 };
