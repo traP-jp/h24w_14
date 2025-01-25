@@ -1,5 +1,10 @@
 # React + TypeScript + Vite
 
+## gRPC-web
+
+https://github.com/grpc/grpc-web?tab=readme-ov-file#3-install-grpc-web-code-generator
+が必要
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
