@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS `traq_users` (
-    `id` BINARY(16) NOT NULL,
-    `user_id` BINARY(16) NOT NULL,
+    `id` BINARY(16) NOT NULL, -- traQ user ID
+    `user_id` BINARY(16) NOT NULL, -- App user ID
     `bot` BOOLEAN NOT NULL,
     `bio` TEXT NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
