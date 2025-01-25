@@ -9,6 +9,7 @@ import fieldReactionsAtom from "../state/reactions";
 import { ReactionName } from "../model/reactions";
 import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 import fieldExplorersAtom from "../state/explorer";
+import { Message } from "../model/message";
 
 type ExplorerMessage = {
   position: Position;
@@ -64,26 +65,34 @@ const useExplorerDispatcher = () => {
       const events = JSON.parse(
         event.data,
       ) as ExplorePb.ExplorationFieldEvents.AsObject;
+      const now = new Date();
       setFieldMessages((messages) => {
-        return [
-          ...messages,
-          ...events.messagesList.map((message) => ({
+        const newMessagesMap: Map<string, Message> = new Map();
+        messages.forEach((message) => {
+          if (message.expiresAt > now) {
+            newMessagesMap.set(message.id, message);
+          }
+        });
+        events.messagesList.forEach((message) => {
+          newMessagesMap.set(message.id, {
             id: message.id,
             userId: message.userId,
-            position: {
-              x: message.position?.x ?? 0,
-              y: message.position?.y ?? 0,
-            },
             content: message.content,
             createdAt: new Date(message.createdAt),
             updatedAt: new Date(message.updatedAt),
             expiresAt: new Date(message.expiresAt),
-          })),
-        ];
+            position: {
+              x: message.position?.x ?? 0,
+              y: message.position?.y ?? 0,
+            },
+          });
+        });
+
+        return newMessagesMap;
       });
       setFieldReactions((reactions) => {
         return [
-          ...reactions,
+          ...reactions.filter((reaction) => reaction.expiresAt > now),
           ...events.reactionsList.map((reaction) => {
             const kind = reaction.kind as ReactionName;
             return {
