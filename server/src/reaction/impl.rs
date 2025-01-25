@@ -95,10 +95,10 @@ async fn get_reactions_in_area(
                 `expires_at` > NOW()
         "#,
     )
-    .bind(center.x - size.width / 2)
-    .bind(center.x + size.width / 2)
-    .bind(center.y - size.height / 2)
-    .bind(center.y + size.height / 2)
+    .bind(center.x.saturating_sub(size.width / 2))
+    .bind(center.x.saturating_add(size.width / 2))
+    .bind(center.y.saturating_sub(size.height / 2))
+    .bind(center.y.saturating_add(size.height / 2))
     .fetch_all(pool)
     .await?;
     Ok(reactions.into_iter().map(Into::into).collect())
