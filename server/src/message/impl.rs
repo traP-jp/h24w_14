@@ -81,7 +81,7 @@ async fn get_message(
 ) -> Result<super::Message, super::Error> {
     let super::GetMessageParams { id } = params;
     sqlx::query_as::<_, MessageRow>("SELECT * FROM `messages` WHERE `id` = ?")
-        .bind(id.0.to_string())
+        .bind(id.0)
         .fetch_optional(pool)
         .await
         .map_err(super::Error::Sqlx)?
