@@ -1,10 +1,10 @@
 import { Container, Graphics, Sprite, Text } from "@pixi/react";
-import messageIcon from "/src/assets/icons/messageIcon.svg";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Graphics as PIXIGraphics, TextStyle } from "pixi.js";
 import PIXI from "pixi.js";
-import { Position } from "../../model/position";
+import { Message as MessageModel } from "../../model/message";
 import { themeColors } from "../theme";
+import { traqIconURL } from "../../util/icon";
 
 const messageIconSize = 30;
 
@@ -28,12 +28,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = (props) => {
 };
 
 interface Props {
-  messageText: string;
-  position: Position;
-  user: {
-    name: string;
-    iconUrl: string;
-  };
+  expanded: boolean;
+  message: MessageModel | null;
+  collapse: () => void;
 }
 
 const userNameTextStyle = new TextStyle({ fontSize: 14, fill: "black" });
@@ -45,16 +42,14 @@ const messageTextStyle = new TextStyle({
   breakWords: true,
 });
 
-const Message: React.FC<Props> = ({ messageText, position, user }) => {
-  const [showMessage, setShowMessage] = useState(false);
+const Message: React.FC<Props> = ({ expanded, message, collapse }) => {
   const textRef = useRef<PIXI.Text>(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 200, height: 100 });
-
-  const handleMouseOver = useCallback(() => setShowMessage(true), []);
-  const handleMouseOut = useCallback(() => setShowMessage(false), []);
+  const user = {
+    name: "ikura-hamu",
+  };
 
   useEffect(() => {
-    if (!showMessage) return;
     if (textRef.current) {
       const { width, height } = textRef.current;
       setBubbleSize({
@@ -62,49 +57,40 @@ const Message: React.FC<Props> = ({ messageText, position, user }) => {
         height: height + 20,
       });
     }
-  }, [showMessage]);
+  }, [message]);
 
-  const iconImageSrc = showMessage ? user.iconUrl : messageIcon;
+  const iconImageSrc = traqIconURL(user?.name || "");
+  if (!message || !user) return null;
+  if (!expanded) return null;
 
   return (
-    <Container
-      {...position}
-      interactive
-      mouseout={handleMouseOut}
-      mouseover={handleMouseOver}
-    >
+    <Container {...message.position} interactive mouseout={collapse}>
       <Sprite
         image={iconImageSrc}
         x={0}
         y={0}
+        anchor={0.5}
         width={messageIconSize}
         height={messageIconSize}
         interactive={true}
       />
-      {showMessage && (
-        <>
-          <Text
-            text={user.name}
-            x={messageIconSize + 10}
-            y={messageIconSize - 10}
-            anchor={{ x: 0, y: 1 }}
-            style={userNameTextStyle}
-          />
-          <Container x={0} y={messageIconSize}>
-            <MessageBubble
-              width={bubbleSize.width}
-              height={bubbleSize.height}
-            />
-            <Text
-              ref={textRef}
-              text={messageText}
-              x={10}
-              y={10}
-              style={messageTextStyle}
-            />
-          </Container>
-        </>
-      )}
+      <Text
+        text={user.name}
+        x={messageIconSize / 2}
+        y={messageIconSize / 2}
+        anchor={{ x: 0, y: 1 }}
+        style={userNameTextStyle}
+      />
+      <Container x={-messageIconSize / 2} y={messageIconSize / 2 + 8}>
+        <MessageBubble width={bubbleSize.width} height={bubbleSize.height} />
+        <Text
+          ref={textRef}
+          text={message.content}
+          x={10}
+          y={10}
+          style={messageTextStyle}
+        />
+      </Container>
     </Container>
   );
 };

@@ -1,4 +1,4 @@
-import { Container, Sprite } from "@pixi/react";
+import { Container } from "@pixi/react";
 import Rectangle from "./components/Rectangle";
 import "@pixi/events";
 import { DisplayPosition, Position } from "../model/position";
@@ -7,6 +7,10 @@ import Message from "./components/Message";
 import SpeakerPhone from "./components/SpeakerPhone";
 import Reaction from "./components/Reaction";
 import { traqIconURL } from "../util/icon";
+import { useAtomValue } from "jotai";
+import fieldMessagesAtom from "../state/message";
+import MessageIcon from "./components/MessageIcon";
+import useMessageExpanded from "./hooks/message";
 
 interface Props {
   userPosition: Position;
@@ -14,6 +18,41 @@ interface Props {
 }
 
 const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
+  const { expanded, collapseMessage, expandMessage, message } =
+    useMessageExpanded();
+  const messages = useAtomValue(fieldMessagesAtom);
+  const messageNodes = [];
+  for (const message of messages.values()) {
+    messageNodes.push(
+      <MessageIcon
+        currentExpandedMessageId={message.id}
+        expander={expandMessage}
+        key={message.id}
+        message={message}
+      />,
+    );
+  }
+
+  //TODO: モック用なので後で消す
+  for (let i = 1; i <= 3; i++) {
+    messageNodes.push(
+      <MessageIcon
+        currentExpandedMessageId={message?.id}
+        expander={expandMessage}
+        key={i}
+        message={{
+          id: i.toString(),
+          position: { x: 100 * i + 10, y: 100 * i },
+          userId: "ikura-hamu",
+          content: "Hello, World!".repeat(i * 5),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day later
+        }}
+      />,
+    );
+  }
+
   return (
     <Container
       width={2000}
@@ -31,60 +70,18 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
         fillColor={0xeeeeee}
         fillAlpha={1}
       />
-      <Sprite
-        image={traqIconURL("ikura-hamu")}
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-      />
-      <Sprite
-        image={traqIconURL("ikura-hamu")}
-        x={0}
-        y={1900}
-        width={100}
-        height={100}
-      />
-      <Sprite
-        image={traqIconURL("ikura-hamu")}
-        x={1900}
-        y={0}
-        width={100}
-        height={100}
-      />
-      <Sprite
-        image={traqIconURL("ikura-hamu")}
-        x={1900}
-        y={1900}
-        width={100}
-        height={100}
-      />
-      <Message
-        messageText={"メッセージ".repeat(20)}
-        position={{ x: 100, y: 100 }}
-        user={{
-          name: "ikura-hamu",
-          iconUrl: traqIconURL("ikura-hamu"),
-        }}
-      />
-      <Message
-        messageText={"メッセージ".repeat(20)}
-        position={{ x: 1800, y: 1800 }}
-        user={{
-          name: "ikura-hamu",
-          iconUrl: traqIconURL("ikura-hamu"),
-        }}
+      <SpeakerPhone
+        position={{ x: 1700, y: 1700 }}
+        name="#gps/times/ikura-hamu"
+        radius={100}
       />
       <SpeakerPhone
         position={{ x: 200, y: 200 }}
         name="#gps/times/ikura-hamu"
         radius={100}
       />
-      <SpeakerPhone
-        position={{ x: 1700, y: 1700 }}
-        name="#gps/times/ikura-hamu"
-        radius={100}
-      />
+
+      {messageNodes}
       <Reaction
         position={{ x: 300, y: 300 }}
         reaction="kusa"
@@ -108,6 +105,11 @@ const World: React.FC<Props> = ({ userPosition, userDisplayPosition }) => {
           name: "H1rono_K",
           iconURL: traqIconURL("H1rono_K"),
         }}
+      />
+      <Message
+        expanded={expanded}
+        message={message}
+        collapse={collapseMessage}
       />
     </Container>
   );
