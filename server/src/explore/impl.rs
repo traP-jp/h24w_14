@@ -9,7 +9,11 @@ use futures::StreamExt;
 use uuid::Uuid;
 
 use crate::{
-    event::{Event, ProvideEventService}, message::{MessageService, ProvideMessageService}, prelude::IntoStatus, speaker_phone::ProvideSpeakerPhone, user::ProvideUserService
+    event::{Event, ProvideEventService},
+    message::ProvideMessageService,
+    prelude::IntoStatus,
+    speaker_phone::ProvideSpeakerPhone,
+    user::ProvideUserService,
 };
 
 use super::ProvideExplorerService;
@@ -217,10 +221,9 @@ where
         let (id, mut exploration_field_stream) = (params.id, params.stream);
         let event_stream = ctx.subscribe_events();
 
-        let Some(exploration_field_first_value) = exploration_field_stream.next().await else {
-            Err(super::error::Error::ExplorationFieldStreamClosed)?;
-            return;
-        };
+        let exploration_field_first_value = exploration_field_stream.next()
+            .await
+            .ok_or(super::error::Error::ExplorationFieldStreamClosed)?;
 
         // new explorer arrives
 
@@ -251,6 +254,27 @@ where
                 SelectResult::Event(event)
             },
         ));
+
+        let mut old_area_messages_cache = ctx.get_messages_in_area(
+            crate::message::GetMessagesInAreaParams {
+                center: exploration_field.position,
+                size: exploration_field.size,
+            },
+        ).await?;
+
+        let mut old_area_speaker_phones_cache = ctx.get_speaker_phones_in_area(
+            crate::speaker_phone::GetSpeakerPhonesInAreaParams {
+                center: exploration_field.position,
+                size: exploration_field.size,
+            },
+        ).await?;
+
+        let mut old_area_explorers_cache = ctx.get_explorers_in_area(
+            crate::explore::GetExplorersInAreaParams::Rect {
+                center: exploration_field.position,
+                size: exploration_field.size,
+            },
+        ).await?;
 
         loop {
             let Some(select_result) = select.next().await else {
@@ -283,15 +307,12 @@ where
                         },
                     ).await?;
 
-                    let old_area_messages = ctx.get_messages_in_area(
-                        crate::message::GetMessagesInAreaParams {
-                            center: exploration_field.position,
-                            size: exploration_field.size,
-                        },
-                    ).await?;
-
-                    let messages = new_area_messages.into_iter().filter(|new_message| {
-                        !old_area_messages.contains(new_message)
+                    let messages = new_area_messages.iter().filter_map(|new_message| {
+                        if !old_area_messages_cache.contains(new_message) {
+                            Some(new_message.clone())
+                        } else {
+                            None
+                        }
                     }).collect::<Vec<_>>();
 
                     // speaker_phones
@@ -303,15 +324,12 @@ where
                         },
                     ).await?;
 
-                    let old_area_speaker_phones = ctx.get_speaker_phones_in_area(
-                        crate::speaker_phone::GetSpeakerPhonesInAreaParams {
-                            center: exploration_field.position,
-                            size: exploration_field.size,
-                        },
-                    ).await?;
-
-                    let speaker_phones = new_area_speaker_phones.into_iter().filter(|new_speaker_phone| {
-                        !old_area_speaker_phones.contains(new_speaker_phone)
+                    let speaker_phones = new_area_speaker_phones.iter().filter_map(|new_speaker_phone| {
+                        if !old_area_speaker_phones_cache.contains(new_speaker_phone) {
+                            Some(new_speaker_phone.clone())
+                        } else {
+                            None
+                        }
                     }).collect::<Vec<_>>();
 
                     // explorers
@@ -323,22 +341,20 @@ where
                         },
                     ).await?;
 
-                    let old_area_explorers = ctx.get_explorers_in_area(
-                        crate::explore::GetExplorersInAreaParams::Rect {
-                            center: exploration_field.position,
-                            size: exploration_field.size,
-                        },
-                    ).await?;
-
-                    let explorer = new_area_explorers.into_iter().filter(|new_explorer| {
-                        !old_area_explorers.contains(new_explorer)
-                    }).map(|new_explorer| {
-                        super::ExplorerAction::Arrive(new_explorer)
+                    let explorer = new_area_explorers.iter().filter_map(|new_explorer| {
+                        if !old_area_explorers_cache.contains(new_explorer) {
+                            Some(super::ExplorerAction::Arrive(new_explorer.clone()))
+                        } else {
+                            None
+                        }
                     }).collect::<Vec<_>>();
 
-                    // update exploration field
+                    // update exploration field / cache
 
                     exploration_field = new_exploration_field;
+                    old_area_messages_cache = new_area_messages;
+                    old_area_speaker_phones_cache = new_area_speaker_phones;
+                    old_area_explorers_cache = new_area_explorers;
 
                     // exploration field events
 
