@@ -47,7 +47,6 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
 
     services! { world; user; reaction; }
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_grpc());
-    // TODO: tonic_web::enable
     route_services!(Router::new().layer(layer); [ world, user, reaction ])
 }
 
