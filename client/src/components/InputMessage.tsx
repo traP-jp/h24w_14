@@ -1,15 +1,29 @@
 import { SendOutlined } from "@ant-design/icons";
 import { Input } from "antd";
 import React, { useCallback, useState } from "react";
+import { useAtomValue } from "jotai";
+import { useCreateMessage } from "../api/message";
+import { roundedUserPositionAtom } from "../state/userPosition";
 const { TextArea } = Input;
 
 export const InputMessage: React.FC = () => {
   const [message, setMessage] = useState("");
   const [isTextAreaFocused, setIsTextAreaFocused] = useState(false);
+  const position = useAtomValue(roundedUserPositionAtom);
+  const { trigger } = useCreateMessage();
+  const [isSending, setIsSending] = useState(false);
 
-  const sendMessage = useCallback(() => {
+  const sendMessage = useCallback(async () => {
+    if (message === "") return;
+    if (isSending) return;
+
+    setIsSending(true);
+
+    await trigger({ content: message, position: position ?? undefined });
     setMessage("");
-  }, []);
+
+    setIsSending(false);
+  }, [isSending, message, position, trigger]);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -47,7 +61,12 @@ export const InputMessage: React.FC = () => {
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
       />
-      <button className="size-6 mb-1" onClick={sendMessage} type="button">
+      <button
+        className="size-6 mb-1"
+        onClick={sendMessage}
+        type="button"
+        disabled={isSending}
+      >
         <SendOutlined role="img" aria-label="Send Message" />
       </button>
     </div>
