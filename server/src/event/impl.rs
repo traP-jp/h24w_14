@@ -68,21 +68,21 @@ async fn publish_event(
     match &event {
         super::Event::Message(message) => {
             let subscribers = match channels.message_tx.send(message.clone()) {
-            Ok(subscribers) => subscribers,
-            Err(broadcast::error::SendError(_)) => {
-                tracing::warn!("Failed to publish message: there may be no subscribers");
-                0
-            }
+                Ok(subscribers) => subscribers,
+                Err(broadcast::error::SendError(_)) => {
+                    tracing::warn!("Failed to publish message: there may be no subscribers");
+                    0
+                }
             };
             tracing::trace!(subscribers, "Published message");
         }
         super::Event::SpeakerPhone(speaker_phone) => {
             let subscribers = match channels.speaker_phone_tx.send(speaker_phone.clone()) {
-            Ok(subscribers) => subscribers,
-            Err(broadcast::error::SendError(_)) => {
-                tracing::warn!("Failed to publish speaker phone: there may be no subscribers");
-                0
-            }
+                Ok(subscribers) => subscribers,
+                Err(broadcast::error::SendError(_)) => {
+                    tracing::warn!("Failed to publish speaker phone: there may be no subscribers");
+                    0
+                }
             };
             tracing::trace!(subscribers, "Published speaker phone");
         }
