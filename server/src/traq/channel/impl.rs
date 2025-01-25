@@ -81,7 +81,7 @@ where
 
     Ok(root_channels
         .iter()
-        .flat_map(|node| node.dfs("#", &channels))
+        .flat_map(|node| node.dfs("", &channels))
         .collect::<Vec<_>>())
 }
 
@@ -123,7 +123,11 @@ impl ChannelNode {
         channels: &HashMap<super::TraqChannelId, ChannelNode>,
     ) -> Vec<super::TraqChannel> {
         // current channel
-        let path = format!("{}/{}", path, self.name);
+        let path = if path == "#" {
+            format!("#{}", self.name)
+        } else {
+            format!("{}/{}", path, self.name)
+        };
 
         let mut result = vec![super::TraqChannel {
             id: self.id,
