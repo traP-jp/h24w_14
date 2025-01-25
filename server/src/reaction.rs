@@ -34,6 +34,12 @@ pub struct GetReactionParams {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct GetReactionsInAreaParams {
+    pub center: crate::world::Coordinate,
+    pub size: crate::world::Size,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct CreateReactionParams {
     pub user_id: crate::user::UserId,
     pub position: crate::world::Coordinate,
@@ -48,6 +54,11 @@ pub trait ReactionService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         params: GetReactionParams,
     ) -> BoxFuture<'a, Result<Reaction, Self::Error>>;
+    fn get_reactions_in_area<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: GetReactionsInAreaParams,
+    ) -> BoxFuture<'a, Result<Vec<Reaction>, Self::Error>>;
     fn create_reaction<'a>(
         &'a self,
         ctx: &'a Context,
@@ -72,6 +83,16 @@ pub trait ProvideReactionService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.reaction_service().get_reaction(ctx, params)
+    }
+    fn get_reactions_in_area(
+        &self,
+        params: GetReactionsInAreaParams,
+    ) -> BoxFuture<
+        '_,
+        Result<Vec<Reaction>, <Self::ReactionService as ReactionService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.reaction_service().get_reactions_in_area(ctx, params)
     }
     fn create_reaction(
         &self,

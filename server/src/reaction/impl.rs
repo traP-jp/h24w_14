@@ -16,6 +16,14 @@ where
         get_reaction(ctx.as_ref(), params).boxed()
     }
 
+    fn get_reactions_in_area<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: super::GetReactionsInAreaParams,
+    ) -> future::BoxFuture<'a, Result<Vec<super::Reaction>, Self::Error>> {
+        get_reactions_in_area(ctx.as_ref(), params).boxed()
+    }
+
     fn create_reaction<'a>(
         &'a self,
         ctx: &'a Context,
@@ -69,6 +77,31 @@ async fn get_reaction(
             .fetch_optional(pool)
             .await?;
     reaction.map(Into::into).ok_or(super::Error::NotFound)
+}
+
+async fn get_reactions_in_area(
+    pool: &MySqlPool,
+    params: super::GetReactionsInAreaParams,
+) -> Result<Vec<super::Reaction>, super::Error> {
+    let super::GetReactionsInAreaParams { center, size } = params;
+    let reactions: Vec<ReactionRow> = sqlx::query_as(
+        r#"
+            SELECT * FROM `reactions`
+            WHERE
+                `position_x` BETWEEN ? AND ?
+            AND
+                `position_y` BETWEEN ? AND ?
+            AND
+                `expires_at` > NOW()
+        "#,
+    )
+    .bind(center.x - size.width / 2)
+    .bind(center.x + size.width / 2)
+    .bind(center.y - size.height / 2)
+    .bind(center.y + size.height / 2)
+    .fetch_all(pool)
+    .await?;
+    Ok(reactions.into_iter().map(Into::into).collect())
 }
 
 async fn create_reaction<P: crate::event::ProvideEventService>(
