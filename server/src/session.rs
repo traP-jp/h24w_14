@@ -4,6 +4,8 @@ pub mod error;
 pub mod r#impl;
 pub mod layer;
 
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
@@ -79,3 +81,24 @@ pub trait ProvideSessionService: Send + Sync + 'static {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SessionServiceImpl;
+
+// extract できなかったら Unauthorized を返すレイヤー
+pub fn build_http_layer<State>(state: Arc<State>) -> layer::SessionLayer<State, layer::HTTP>
+where
+    State: ProvideSessionService,
+{
+    layer::SessionLayer {
+        state,
+        _kind: layer::HTTP,
+    }
+}
+
+pub fn build_grpc_layer<State>(state: Arc<State>) -> layer::SessionLayer<State, layer::Grpc>
+where
+    State: ProvideSessionService,
+{
+    layer::SessionLayer {
+        state,
+        _kind: layer::Grpc,
+    }
+}

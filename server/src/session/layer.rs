@@ -6,8 +6,8 @@ use http::{Request, Response};
 use tower::{Layer, Service};
 
 pub struct SessionLayer<State, Kind> {
-    state: Arc<State>,
-    _kind: Kind,
+    pub(super) state: Arc<State>,
+    pub(super) _kind: Kind,
 }
 
 impl<State, Kind> Clone for SessionLayer<State, Kind>
@@ -138,21 +138,6 @@ impl ToResponse for Grpc {
             .into_http()
             .map(Body::new)
     }
-}
-
-// extract できなかったら Unauthorized を返すレイヤー
-pub fn build_http_layer<State>(state: Arc<State>) -> SessionLayer<State, HTTP>
-where
-    State: super::ProvideSessionService,
-{
-    SessionLayer { state, _kind: HTTP }
-}
-
-pub fn build_grpc_layer<State>(state: Arc<State>) -> SessionLayer<State, Grpc>
-where
-    State: super::ProvideSessionService,
-{
-    SessionLayer { state, _kind: Grpc }
 }
 
 mod private {
