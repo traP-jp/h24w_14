@@ -45,15 +45,15 @@ impl IntoResponse for Error {
             Error::InvalidRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
             Error::Sqlx(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error, "Sqlx error");
-                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
             Error::Reqwest(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error, "Reqwest error");
-                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
             Error::Other(s) => {
                 tracing::error!(error = &s as &dyn std::error::Error, "Unexpected");
-                (StatusCode::INTERNAL_SERVER_ERROR, s.message().to_string()).into_response()
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
             Error::Unknown => {
                 tracing::error!("Unknown error");
