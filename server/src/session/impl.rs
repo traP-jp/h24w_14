@@ -11,7 +11,6 @@ where
     Context: AsRef<Key> + AsRef<SessionName> + AsRef<CookieDomain>,
 {
     type Error = super::Error;
-    type Jar = PrivateCookieJar;
 
     fn extract<'a>(
         &'a self,
@@ -29,7 +28,7 @@ where
         &'a self,
         ctx: &'a Context,
         params: super::SaveParams,
-    ) -> futures::future::BoxFuture<'a, Result<Self::Jar, Self::Error>> {
+    ) -> futures::future::BoxFuture<'a, Result<PrivateCookieJar, Self::Error>> {
         let key: &Key = ctx.as_ref();
         let session_name: &SessionName = ctx.as_ref();
         let domain: &CookieDomain = ctx.as_ref();

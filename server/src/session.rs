@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
+pub use axum_extra::extract::cookie::PrivateCookieJar;
 pub use error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -31,7 +32,6 @@ pub struct SaveParams<'a> {
 }
 
 pub trait SessionService<Context>: Send + Sync + 'static {
-    type Jar: axum::response::IntoResponseParts + 'static;
     type Error: IntoStatus;
 
     fn extract<'a>(
@@ -43,7 +43,7 @@ pub trait SessionService<Context>: Send + Sync + 'static {
         &'a self,
         ctx: &'a Context,
         params: SaveParams,
-    ) -> BoxFuture<'a, Result<Self::Jar, Self::Error>>;
+    ) -> BoxFuture<'a, Result<PrivateCookieJar, Self::Error>>;
 }
 
 #[allow(clippy::type_complexity)]
@@ -70,10 +70,7 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         params: SaveParams,
     ) -> BoxFuture<
         '_,
-        Result<
-            <Self::SessionService as SessionService<Self::Context>>::Jar,
-            <Self::SessionService as SessionService<Self::Context>>::Error,
-        >,
+        Result<PrivateCookieJar, <Self::SessionService as SessionService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
         self.session_service().save(ctx, params)
