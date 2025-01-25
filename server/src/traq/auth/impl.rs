@@ -1,3 +1,4 @@
+use axum::extract::Query;
 use futures::FutureExt;
 use oauth2::{
     basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, Scope,
@@ -95,6 +96,11 @@ async fn oauth2_entrypoint_uri(client: OauthClient) -> Result<String, super::Err
     Ok(url.to_string())
 }
 
+#[derive(Deserialize)]
+struct Oauth2RedirectQuery {
+    code: String,
+}
+
 async fn oauth2_handle_redirect<Context>(
     client: OauthClient,
     req_client: &reqwest::Client,
@@ -106,17 +112,10 @@ async fn oauth2_handle_redirect<Context>(
 where
     Context: crate::traq::user::ProvideTraqUserService + crate::session::ProvideSessionService,
 {
-    let code = req_
-        .uri()
-        .query()
-        .ok_or(super::Error::InvalidRequest("missing query".to_string()))?
-        .split('&')
-        .find(|s| s.starts_with("code="))
-        .ok_or(super::Error::InvalidRequest("missing code".to_string()))?
-        .split('=')
-        .nth(1)
-        .ok_or(super::Error::InvalidRequest("missing code".to_string()))?;
-
+    let code = Query::<Oauth2RedirectQuery>::try_from_uri(req_.uri())
+        .map_err(|e| super::Error::InvalidRequest(e.to_string()))?
+        .code
+        .clone();
     let token = client
         .exchange_code(AuthorizationCode::new(code.to_string()))
         .request_async(req_client)
