@@ -46,6 +46,22 @@ where
     ) -> BoxFuture<'a, Result<Vec<super::Explorer>, Self::Error>> {
         get_explorers_in_area(ctx.as_ref(), params).boxed()
     }
+
+    fn update_explorer<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: super::UpdateExplorerParams,
+    ) -> BoxFuture<'a, Result<super::Explorer, Self::Error>> {
+        update_explorer(ctx.as_ref(), params).boxed()
+    }
+
+    fn delete_explorer<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: super::DeleteExplorerParams,
+    ) -> BoxFuture<'a, Result<super::Explorer, Self::Error>> {
+        delete_explorer(ctx.as_ref(), params).boxed()
+    }
 }
 
 async fn get_explorer(
@@ -99,4 +115,24 @@ async fn get_explorers_in_area(
     let explorers = store.explorers.read().await;
     let res = explorers.iter().filter_map(|(_, e)| f(e)).collect();
     Ok(res)
+}
+
+async fn update_explorer(
+    store: &super::ExplorerStore,
+    params: super::UpdateExplorerParams,
+) -> Result<super::Explorer, super::Error> {
+    let super::UpdateExplorerParams { id, position } = params;
+    let mut explorers = store.explorers.write().await;
+    let explorer = explorers.get_mut(&id).ok_or(super::Error::NotFound)?;
+    explorer.position = position;
+    Ok(explorer.clone())
+}
+
+async fn delete_explorer(
+    store: &super::ExplorerStore,
+    params: super::DeleteExplorerParams,
+) -> Result<super::Explorer, super::Error> {
+    let super::DeleteExplorerParams { id } = params;
+    let mut explorers = store.explorers.write().await;
+    explorers.remove(&id).ok_or(super::Error::NotFound)
 }
