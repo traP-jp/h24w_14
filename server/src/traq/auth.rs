@@ -46,7 +46,7 @@ pub trait TraqAuthService<Context>: Send + Sync + 'static {
     fn oauth2_handle_redirect<'a>(
         &'a self,
         ctx: &'a Context,
-        req: http::Request<()>,
+        req: &'a http::Request<()>,
     ) -> BoxFuture<'a, Result<AuthorizedUser, Self::Error>>;
     fn check_authorized<'a>(
         &'a self,
@@ -81,11 +81,11 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
         let ctx = self.context();
         self.traq_auth_service().oauth2_entrypoint_uri(ctx, params)
     }
-    fn oauth2_handle_redirect(
-        &self,
-        req: http::Request<()>,
+    fn oauth2_handle_redirect<'a>(
+        &'a self,
+        req: &'a http::Request<()>,
     ) -> BoxFuture<
-        '_,
+        'a,
         Result<AuthorizedUser, <Self::TraqAuthService as TraqAuthService<Self::Context>>::Error>,
     > {
         let ctx = self.context();

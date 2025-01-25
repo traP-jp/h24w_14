@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use axum::{
-    body::Body,
     extract::{
         ws::{Message, WebSocket},
         State,
@@ -93,6 +92,7 @@ fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
         .layer(layer)
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_redirect<AppState>(
     State(state): State<Arc<AppState>>,
     req: axum::extract::Request,
@@ -100,21 +100,46 @@ async fn handle_redirect<AppState>(
 where
     AppState: other::Requirements,
 {
-    let res = match state.oauth2_handle_redirect(req.map(|_| ())).await {
+    let req = req.map(|_| ());
+    let res = match state.oauth2_handle_redirect(&req).await {
         Ok(user) => user,
         Err(e) => return e.into_response(),
     };
-    let Ok(res) = serde_json::to_string(&res) else {
-        return Response::builder()
-            .status(http::StatusCode::INTERNAL_SERVER_ERROR)
-            .body("Internal Server Error".into())
-            .unwrap();
+
+    let user = state
+        .find_traq_user(crate::traq::user::FindTraqUserParams { id: res.user_id })
+        .await;
+    let user = match user {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            tracing::error!(id = %res.user_id.0, "No use found");
+            return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+        Err(e) => {
+            tracing::error!(error = &e as &dyn std::error::Error);
+            return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+    let save_params = crate::session::SaveParams {
+        header_map: req.headers(),
+        user_id: user.inner.id,
+    };
+    let jar = state.save(save_params).await;
+    let jar = match jar {
+        Ok(j) => j,
+        Err(e) => {
+            tracing::error!(error = &e as &dyn std::error::Error);
+            return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
     };
 
-    Response::builder()
-        .status(http::StatusCode::OK)
-        .body(Body::new(res))
-        .unwrap()
+    let body = serde_json::to_string(&serde_json::json!({
+        "id": user.inner.id.0
+    }));
+    let Ok(body) = body else {
+        return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
+    };
+    (http::StatusCode::OK, jar, body).into_response()
 }
 
 async fn handle_ws<AppState>(
