@@ -1,4 +1,3 @@
-import useSWR from "swr";
 import { AuthServiceClient } from "../schema2/auth.client";
 import { TRANSPORT } from "./transport";
 import useSWRMutation from "swr/mutation";

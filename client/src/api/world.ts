@@ -1,4 +1,3 @@
-import useSWR from "swr";
 import { WorldServiceClient } from "../schema2/world.client";
 import { TRANSPORT } from "./transport";
 import useSWRImmutable from "swr/immutable";
