@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use sqlx::MySqlPool;
 
-use h24w14 as lib;
+use h24w14::{self as lib, traq::auth::TraqOauthClientConfig};
 
 #[derive(Debug, Clone)]
 struct State {
@@ -15,6 +15,10 @@ struct State {
     session_config: SessionConfig,
     explorer_store: lib::explore::ExplorerStore,
     services: Services,
+    traq_oauth_client_config: TraqOauthClientConfig,
+    traq_host: lib::traq::TraqHost,
+    traq_bot_config: lib::traq::bot::TraqBotConfig,
+    traq_bot_channels: lib::traq::bot::TraqBotChannels,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -25,6 +29,11 @@ struct Services {
     session_service: lib::session::SessionServiceImpl,
     reaction_service: lib::reaction::ReactionServiceImpl,
     explorer_service: lib::explore::ExplorerServiceImpl,
+    traq_user_service: lib::traq::user::TraqUserServiceImpl,
+    traq_auth_service: lib::traq::auth::TraqAuthServiceImpl,
+    traq_bot_service: lib::traq::bot::TraqBotServiceImpl,
+    traq_channel_service: lib::traq::channel::TraqChannelServiceImpl,
+    traq_message_service: lib::traq::message::TraqMessageServiceImpl,
 }
 
 #[tokio::main]
@@ -44,6 +53,9 @@ async fn main() -> anyhow::Result<()> {
     let event_channels = load::event_channels()?;
     let client = reqwest::Client::new();
     let session_config = load::session_config()?;
+    let traq_oauth_client_config = load::traq_oauth_client_config()?;
+    let traq_host = load::traq_host()?;
+    let traq_bot_config = load::traq_bot_config()?;
     let state = Arc::new(State {
         pool,
         task_manager,
@@ -53,6 +65,10 @@ async fn main() -> anyhow::Result<()> {
         session_config,
         explorer_store: lib::explore::ExplorerStore::new(),
         services: Services::default(),
+        traq_oauth_client_config,
+        traq_host,
+        traq_bot_config,
+        traq_bot_channels: lib::traq::bot::TraqBotChannels::default(),
     });
     state.migrate().await?;
 
@@ -76,7 +92,6 @@ struct SessionConfig {
 }
 
 mod load {
-    use anyhow::Ok;
     use tokio::net::TcpListener;
 
     use super::*;
@@ -174,6 +189,30 @@ mod load {
             domain: lib::session::CookieDomain(domain),
         })
     }
+
+    pub fn traq_oauth_client_config() -> anyhow::Result<lib::traq::auth::TraqOauthClientConfig> {
+        let client_id = env_var!("TRAQ_OAUTH_CLIENT_ID")?;
+        let client_secret = env_var!("TRAQ_OAUTH_CLIENT_SECRET")?;
+        Ok(lib::traq::auth::TraqOauthClientConfig {
+            client_id,
+            client_secret,
+        })
+    }
+
+    pub fn traq_host() -> anyhow::Result<lib::traq::TraqHost> {
+        let traq_host = env_var!("TRAQ_HOST")?;
+        Ok(lib::traq::TraqHost(traq_host))
+    }
+
+    pub fn traq_bot_config() -> anyhow::Result<lib::traq::bot::TraqBotConfig> {
+        let config = lib::traq::bot::TraqBotConfig::builder()
+            .bot_id(env_var!("TRAQ_BOT_ID")?)
+            .bot_user_id(env_var!("TRAQ_BOT_USER_ID")?)
+            .access_token(env_var!("TRAQ_BOT_ACCESS_TOKEN")?)
+            .verification_token(env_var!("TRAQ_BOT_VERIFICATION_TOKEN")?)
+            .build();
+        Ok(config)
+    }
 }
 
 #[tracing::instrument]
@@ -257,6 +296,32 @@ impl AsRef<lib::explore::ExplorerStore> for State {
     }
 }
 
+impl AsRef<TraqOauthClientConfig> for State {
+    fn as_ref(&self) -> &TraqOauthClientConfig {
+        &self.traq_oauth_client_config
+    }
+}
+
+impl AsRef<lib::traq::TraqHost> for State {
+    fn as_ref(&self) -> &lib::traq::TraqHost {
+        &self.traq_host
+    }
+}
+
+impl AsRef<lib::traq::bot::TraqBotConfig> for State {
+    fn as_ref(&self) -> &lib::traq::bot::TraqBotConfig {
+        &self.traq_bot_config
+    }
+}
+
+impl AsRef<lib::traq::bot::TraqBotChannels> for State {
+    fn as_ref(&self) -> &lib::traq::bot::TraqBotChannels {
+        &self.traq_bot_channels
+    }
+}
+
+// MARK: impl ProvideHogeService
+
 impl lib::world::ProvideWorldService for State {
     type Context = Self;
     type WorldService = lib::world::WorldServiceImpl;
@@ -326,5 +391,68 @@ impl lib::explore::ProvideExplorerService for State {
     }
     fn explorer_service(&self) -> &Self::ExplorerService {
         &self.services.explorer_service
+    }
+}
+
+impl lib::traq::user::ProvideTraqUserService for State {
+    type Context = Self;
+    type TraqUserService = lib::traq::user::TraqUserServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+
+    fn traq_user_service(&self) -> &Self::TraqUserService {
+        &self.services.traq_user_service
+    }
+}
+
+impl lib::traq::auth::ProvideTraqAuthService for State {
+    type Context = Self;
+    type TraqAuthService = lib::traq::auth::TraqAuthServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_auth_service(&self) -> &Self::TraqAuthService {
+        &self.services.traq_auth_service
+    }
+}
+
+// channel message
+
+impl lib::traq::bot::ProvideTraqBotService for State {
+    type Context = Self;
+    type TraqBotService = lib::traq::bot::TraqBotServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_bot_service(&self) -> &Self::TraqBotService {
+        &self.services.traq_bot_service
+    }
+}
+
+impl lib::traq::channel::ProvideTraqChannelService for State {
+    type Context = Self;
+    type TraqChannelService = lib::traq::channel::TraqChannelServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_channel_service(&self) -> &Self::TraqChannelService {
+        &self.services.traq_channel_service
+    }
+}
+
+impl lib::traq::message::ProvideTraqMessageService for State {
+    type Context = Self;
+    type TraqMessageService = lib::traq::message::TraqMessageServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn traq_message_service(&self) -> &Self::TraqMessageService {
+        &self.services.traq_message_service
     }
 }

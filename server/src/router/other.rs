@@ -1,3 +1,3 @@
-pub trait Requirements: Send + Sync + 'static {}
+pub trait Requirements: crate::traq::auth::ProvideTraqAuthService {}
 
-impl<T> Requirements for T where T: Send + Sync + 'static {}
+impl<T> Requirements for T where T: crate::traq::auth::ProvideTraqAuthService {}
