@@ -13,6 +13,7 @@ struct State {
     event_channels: lib::event::EventChannels,
     client: reqwest::Client,
     session_config: SessionConfig,
+    explorer_store: lib::explore::ExplorerStore,
     services: Services,
 }
 
@@ -23,6 +24,7 @@ struct Services {
     user_service: lib::user::UserServiceImpl,
     session_service: lib::session::SessionServiceImpl,
     reaction_service: lib::reaction::ReactionServiceImpl,
+    explorer_service: lib::explore::ExplorerServiceImpl,
 }
 
 #[tokio::main]
@@ -49,6 +51,7 @@ async fn main() -> anyhow::Result<()> {
         event_channels,
         client,
         session_config,
+        explorer_store: lib::explore::ExplorerStore::new(),
         services: Services::default(),
     });
     state.migrate().await?;
@@ -248,6 +251,12 @@ impl AsRef<lib::session::CookieDomain> for State {
     }
 }
 
+impl AsRef<lib::explore::ExplorerStore> for State {
+    fn as_ref(&self) -> &lib::explore::ExplorerStore {
+        &self.explorer_store
+    }
+}
+
 impl lib::world::ProvideWorldService for State {
     type Context = Self;
     type WorldService = lib::world::WorldServiceImpl;
@@ -305,5 +314,17 @@ impl lib::reaction::ProvideReactionService for State {
     }
     fn reaction_service(&self) -> &Self::ReactionService {
         &self.services.reaction_service
+    }
+}
+
+impl lib::explore::ProvideExplorerService for State {
+    type Context = Self;
+    type ExplorerService = lib::explore::ExplorerServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn explorer_service(&self) -> &Self::ExplorerService {
+        &self.services.explorer_service
     }
 }
