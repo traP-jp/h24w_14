@@ -220,7 +220,7 @@ where
         + ProvideReactionService,
 {
     async_stream::try_stream! {
-        let (id, mut exploration_field_stream) = (params.id, params.stream);
+        let super::ExploreParams { id, stream: mut exploration_field_stream } = params;
         let event_stream = ctx.subscribe_events();
 
         let exploration_field_first_value = exploration_field_stream.next()
@@ -569,9 +569,9 @@ fn is_inside(
     size: crate::world::Size,
     position: crate::world::Coordinate,
 ) -> bool {
-    let x_min = center.x - size.width / 2;
-    let x_max = center.x + size.width / 2;
-    let y_min = center.y - size.height / 2;
-    let y_max = center.y + size.height / 2;
+    let x_min = center.x.saturating_sub(size.width >> 1);
+    let x_max = center.x.saturating_add(size.width >> 1);
+    let y_min = center.y.saturating_sub(size.height >> 1);
+    let y_max = center.y.saturating_add(size.height >> 1);
     x_min < position.x && position.x < x_max && y_min < position.y && position.y < y_max
 }
