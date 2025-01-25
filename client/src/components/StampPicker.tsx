@@ -33,6 +33,9 @@ export const StampPicker: React.FC = () => {
       },
     ])
     .flat();
+  const clickHandler = () => {
+    setIsPopoverOpen(false);
+  };
 
   return (
     <Popover
@@ -46,6 +49,7 @@ export const StampPicker: React.FC = () => {
                 <img src={ReactionAssets[reaction.kind]} alt={reaction.kind} />
               }
               className="hover:bg-background-secondary"
+              onClick={clickHandler}
             />
           ))}
         </div>
