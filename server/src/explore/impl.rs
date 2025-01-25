@@ -8,11 +8,7 @@ use tokio::sync::RwLock;
 use futures::StreamExt;
 
 use crate::{
-    event::{Event, ProvideEventService},
-    message::ProvideMessageService,
-    prelude::IntoStatus,
-    speaker_phone::ProvideSpeakerPhoneService,
-    user::ProvideUserService,
+    event::{Event, ProvideEventService}, message::ProvideMessageService, prelude::IntoStatus, reaction::ProvideReactionService, speaker_phone::ProvideSpeakerPhoneService, user::ProvideUserService
 };
 
 use super::ProvideExplorerService;
@@ -189,7 +185,8 @@ where
         + ProvideUserService
         + ProvideMessageService
         + ProvideSpeakerPhoneService
-        + ProvideExplorerService,
+        + ProvideExplorerService
+        + ProvideReactionService,
 {
     // type Error = super::error::Error;
     type Error = tonic::Status;
@@ -214,7 +211,8 @@ where
         + ProvideUserService
         + ProvideMessageService
         + ProvideSpeakerPhoneService
-        + ProvideExplorerService,
+        + ProvideExplorerService
+        + ProvideReactionService,
 {
     async_stream::try_stream! {
         let (id, mut exploration_field_stream) = (params.id, params.stream);
@@ -251,6 +249,13 @@ where
             },
         ).await?;
 
+        let old_area_reactions_cache = ctx.get_reactions_in_area(
+            crate::reaction::GetReactionsInAreaParams {
+                center: exploration_field.position,
+                size: exploration_field.size,
+            },
+        ).await?;
+
         let old_area_explorers_cache = ctx.get_explorers_in_area(
             crate::explore::GetExplorersInAreaParams::Rect {
                 center: exploration_field.position,
@@ -264,6 +269,7 @@ where
             exploration_field_size: exploration_field.size,
             old_area_messages_cache,
             old_area_speaker_phones_cache,
+            old_area_reactions_cache,
             old_area_explorers_cache,
         };
 
@@ -318,13 +324,11 @@ where
         + ProvideExplorerService,
 {
     ctx: &'a Context,
-    // id: super::ExplorerId,
-    // user: crate::user::User,
-    // exploration_field: super::ExplorationField,
     explorer: super::Explorer,
     exploration_field_size: crate::world::Size,
     old_area_messages_cache: Vec<crate::message::Message>,
     old_area_speaker_phones_cache: Vec<crate::speaker_phone::SpeakerPhone>,
+    old_area_reactions_cache: Vec<crate::reaction::Reaction>,
     old_area_explorers_cache: Vec<super::Explorer>,
 }
 
@@ -337,7 +341,8 @@ where
         + ProvideUserService
         + ProvideMessageService
         + ProvideSpeakerPhoneService
-        + ProvideExplorerService,
+        + ProvideExplorerService
+        + ProvideReactionService,
 {
     match select_result {
         SelectResult::EventStreamClosed(e) => Err(e.into()),
@@ -357,7 +362,8 @@ where
         + ProvideUserService
         + ProvideMessageService
         + ProvideSpeakerPhoneService
-        + ProvideExplorerService,
+        + ProvideExplorerService
+        + ProvideReactionService,
 {
     // publish explorer move event
     status
@@ -415,6 +421,20 @@ where
         })
         .collect::<Vec<_>>();
 
+    // reactions
+    let new_area_reactions = status.ctx.get_reactions_in_area(crate::reaction::GetReactionsInAreaParams {
+        center: new_exploration_field.position,
+        size: new_exploration_field.size,
+    }).await.map_err(IntoStatus::into_status)?;
+
+    let reactions = new_area_reactions.iter().filter_map(|new_reaction| {
+        if !status.old_area_reactions_cache.contains(new_reaction) {
+            Some(new_reaction.clone())
+        } else {
+            None
+        }
+    }).collect::<Vec<_>>();
+
     // explorers
     let new_area_explorers = status
         .ctx
@@ -447,7 +467,7 @@ where
     Ok(Some(super::ExplorationFieldEvents {
         messages,
         speaker_phones,
-        reactions: vec![],
+        reactions,
         explorer_actions,
     }))
 }
@@ -461,7 +481,8 @@ where
         + ProvideUserService
         + ProvideMessageService
         + ProvideSpeakerPhoneService
-        + ProvideExplorerService,
+        + ProvideExplorerService
+        + ProvideReactionService,
 {
     match event {
         crate::event::Event::Explorer(explorer_action) => {
