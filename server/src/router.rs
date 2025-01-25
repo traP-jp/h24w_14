@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{
+    body::Body,
+    extract::State,
+    response::{IntoResponse, Response},
+    Router,
+};
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::trace::TraceLayer;
 
@@ -67,6 +72,31 @@ fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_http());
     Router::new()
         .route("/ping", routing::get(|| async { "pong".to_string() }))
+        .route("/oauth2/redirect", routing::get(handle_redirect))
         .with_state(state)
         .layer(layer)
+}
+
+async fn handle_redirect<AppState>(
+    State(state): State<Arc<AppState>>,
+    req: axum::extract::Request,
+) -> Response
+where
+    AppState: other::Requirements,
+{
+    let res = match state.oauth2_handle_redirect(req.map(|_| ())).await {
+        Ok(user) => user,
+        Err(e) => return e.into_response(),
+    };
+    let Ok(res) = serde_json::to_string(&res) else {
+        return Response::builder()
+            .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+            .body("Internal Server Error".into())
+            .unwrap();
+    };
+
+    Response::builder()
+        .status(http::StatusCode::OK)
+        .body(Body::new(res))
+        .unwrap()
 }
