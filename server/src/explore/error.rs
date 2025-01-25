@@ -1,5 +1,3 @@
-// todo: 仮置き
-/// infallible
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum Error {
     #[error("exploration field stream closed")]

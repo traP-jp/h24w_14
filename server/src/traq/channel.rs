@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
+pub mod error;
+mod r#impl;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct TraqChannelId(pub uuid::Uuid);
@@ -26,6 +29,9 @@ pub trait TraqChannelService<Context>: Send + Sync + 'static {
         params: GetAllChannelsParams,
     ) -> BoxFuture<'a, Result<Vec<TraqChannel>, Self::Error>>;
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TraqChannelServiceImpl;
 
 #[allow(clippy::type_complexity)]
 pub trait ProvideTraqChannelService: Send + Sync + 'static {
