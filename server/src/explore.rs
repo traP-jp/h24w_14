@@ -32,7 +32,7 @@ pub struct ExplorationField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "oneofKind", rename_all = "snake_case")]
 pub enum ExplorerAction {
     Arrive(Explorer),
     Move(Explorer),
@@ -50,6 +50,7 @@ impl ExplorerAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExplorationFieldEvents {
     pub messages: Vec<crate::message::Message>,
     pub speaker_phones: Vec<crate::speaker_phone::SpeakerPhone>,
