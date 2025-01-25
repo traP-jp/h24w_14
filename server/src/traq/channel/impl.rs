@@ -58,22 +58,24 @@ where
         })?;
 
     // build full paths
-    let mut channels = HashMap::new();
-
-    for channel in result.public {
-        let node = ChannelNode {
-            is_root: channel.parent_id.is_none(),
-            name: channel.name,
-            children: channel.children,
-        };
-
-        channels.insert(channel.id, node);
-    }
+    let channels = result
+        .public
+        .into_iter()
+        .map(|ch| {
+            (
+                ch.id,
+                ChannelNode {
+                    is_root: ch.parent_id.is_none(),
+                    name: ch.name,
+                    children: ch.children,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
 
     let root_channels = channels
         .values()
         .filter(|node| node.is_root)
-        .cloned()
         .collect::<Vec<_>>();
 
     Ok(root_channels
