@@ -220,7 +220,7 @@ where
             channels
                 .iter()
                 .find(|channel| channel.path == speaker_phone.name.0)
-                .map(|channel| (speaker_phone.id.clone(), channel.clone()))
+                .map(|channel| (speaker_phone.id, channel.clone()))
         })
         .collect();
 
@@ -257,8 +257,8 @@ impl<T, U> Receiver<T> for U where U: futures::stream::Stream<Item = Result<T, s
 async fn run_subscription_loop(
     traq_user_service: &impl crate::traq::user::ProvideTraqUserService,
     traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
-    mut speaker_phone_rx: impl Receiver<super::SpeakerPhone> + Unpin,
-    mut message_rx: impl Receiver<crate::message::Message> + Unpin,
+    mut speaker_phone_rx: impl Receiver<super::SpeakerPhone>,
+    mut message_rx: impl Receiver<crate::message::Message>,
     mut speaker_phones: Vec<super::SpeakerPhone>,
     channel_map: HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
 ) {

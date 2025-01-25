@@ -30,7 +30,7 @@ impl Coordinate {
     pub fn is_inside_circle(self, center: Coordinate, radius: u32) -> bool {
         let dx = self.x.abs_diff(center.x) as u64;
         let dy = self.y.abs_diff(center.y) as u64;
-        let distance = (dx * dx + dy * dy) as u64;
+        let distance = dx * dx + dy * dy;
         let radius = radius as u64;
         distance <= radius * radius
     }
