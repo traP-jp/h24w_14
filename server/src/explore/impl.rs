@@ -223,7 +223,7 @@ where
 
         match ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Arrive(
             super::Explorer {
-                id: id,
+                id,
                 inner: user.clone(),
                 position: exploration_field.position,
             },
@@ -238,7 +238,7 @@ where
         // main loop
 
         let mut select = futures::stream::select(exploration_field_stream.map(
-            |exploration_field| SelectResult::ExplorationField(exploration_field),
+            SelectResult::ExplorationField,
         ), event_stream.map(
             |event| {
                 let event = match event {
@@ -267,7 +267,7 @@ where
 
                     match ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Move(
                         super::Explorer {
-                            id: id,
+                            id,
                             inner: user.clone(),
                             position: exploration_field.position,
                         },
@@ -279,7 +279,7 @@ where
                         }
                     };
 
-                    // todo
+
                 },
                 SelectResult::Event(event) => {
                     match event {
@@ -334,7 +334,7 @@ where
 
         match ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Leave(
             super::Explorer {
-                id: id,
+                id,
                 inner: user.clone(),
                 position: exploration_field.position,
             },
