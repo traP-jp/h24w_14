@@ -1,5 +1,5 @@
 import { Avatar, Divider, List, Skeleton } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { InputMessage } from "./InputMessage";
 
@@ -23,7 +23,7 @@ export const Timeline: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<DataType[]>([]);
 
-  const loadMoreData = () => {
+  const loadMoreData = useCallback(() => {
     if (loading) {
       return;
     }
@@ -39,10 +39,11 @@ export const Timeline: React.FC = () => {
       .catch(() => {
         setLoading(false);
       });
-  };
+  }, [data, loading]);
 
   useEffect(() => {
     loadMoreData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

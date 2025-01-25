@@ -5,31 +5,32 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b --noCheck && vite build",
     "lint": "eslint . --fix --cache",
     "lint:nofix": "eslint . --cache",
     "format": "prettier --write . --cache",
     "format:nofix": "prettier --check . --cache",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
-    "generate:schema": "protoc --proto_path=../proto --js_out=import_style=commonjs:./src/schema --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/schema ../proto/*.proto"
+    "generate:schema": "protoc --proto_path=../proto --ts_out=./src/schema2 ../proto/*.proto"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.0",
     "@pixi/react": "^7.1.2",
+    "@protobuf-ts/grpcweb-transport": "^2.9.4",
     "antd": "^5.23.1",
     "google-protobuf": "^3.21.4",
-    "grpc-web": "^1.5.0",
     "jotai": "^2.11.1",
     "pixi.js": "^7.4.2",
-    "protoc-gen-js": "^3.21.4-4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-infinite-scroll-component": "^6.1.0",
     "swr": "^2.3.0"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.50.0",
     "@eslint/js": "^9.17.0",
+    "@protobuf-ts/plugin": "^2.9.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",

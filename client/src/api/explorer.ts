@@ -1,7 +1,6 @@
 import { useSetAtom } from "jotai";
 import { Position } from "../model/position";
-import * as ExplorePb from "../schema/explore_pb";
-import * as WorldPb from "../schema/world_pb";
+import { ExplorationField, ExplorationFieldEvents } from "../schema2/explore";
 import { serverWSHostName } from "./hostname";
 import { useEffect, useRef } from "react";
 import fieldMessagesAtom from "../state/message";
@@ -9,6 +8,8 @@ import fieldReactionsAtom from "../state/reactions";
 import { ReactionName } from "../model/reactions";
 import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 import fieldExplorersAtom from "../state/explorer";
+import { Message } from "../model/message";
+import { Timestamp } from "../schema2/google/protobuf/timestamp";
 
 type ExplorerMessage = {
   position: Position;
@@ -27,12 +28,13 @@ const useExplorerDispatcher = () => {
   const setFieldSpeakerPhones = useSetAtom(fieldSpeakerPhonesAtom);
   const setFieldExplorers = useSetAtom(fieldExplorersAtom);
 
-  const dispatcher = ({ position, size }: ExplorerMessage) => {
+  const dispatcher: ExplorerMessageDispatcher = (mes) => {
+    if (!mes) return;
     subscriberRef.current.dispatchEvent(
       new CustomEvent(explorerEvent, {
         detail: {
-          position,
-          size,
+          position: mes.position,
+          size: mes.size,
         },
       }),
     );
@@ -41,50 +43,60 @@ const useExplorerDispatcher = () => {
   useEffect(() => {
     const ws = new WebSocket(serverWSHostName);
     subscriberRef.current.addEventListener(explorerEvent, (event: Event) => {
-      const explorationField = new ExplorePb.ExplorationField();
-      const coord = new WorldPb.Coordinate();
-      const size = new WorldPb.Size();
-
       // @ts-expect-error event is CustomEvent
       const message = event.detail as ExplorerMessage;
 
-      coord.setX(message.position.x);
-      coord.setY(message.position.y);
-      size.setWidth(message.size.width);
-      size.setHeight(message.size.height);
-      explorationField.setPosition(coord);
-      explorationField.setSize(size);
+      const explorationField: ExplorationField = {
+        position: {
+          x: message.position.x,
+          y: message.position.y,
+        },
+        size: {
+          ...message.size,
+        },
+      };
 
-      ws.send(JSON.stringify(explorationField.toObject()));
+      ws.send(JSON.stringify(explorationField));
     });
     ws.onmessage = (event) => {
       if (event.type !== "text") {
         return;
       }
-      const events = JSON.parse(
-        event.data,
-      ) as ExplorePb.ExplorationFieldEvents.AsObject;
+      const events = JSON.parse(event.data) as ExplorationFieldEvents;
+      const now = new Date();
       setFieldMessages((messages) => {
-        return [
-          ...messages,
-          ...events.messagesList.map((message) => ({
+        const newMessagesMap: Map<string, Message> = new Map();
+        messages.forEach((message) => {
+          if (message.expiresAt > now) {
+            newMessagesMap.set(message.id, message);
+          }
+        });
+        events.messages.forEach((message) => {
+          newMessagesMap.set(message.id, {
             id: message.id,
             userId: message.userId,
+            content: message.content,
+            createdAt: message.createdAt
+              ? Timestamp.toDate(message.createdAt)
+              : new Date(),
+            updatedAt: message.updatedAt
+              ? Timestamp.toDate(message.updatedAt)
+              : new Date(),
+            expiresAt: message.expiresAt
+              ? Timestamp.toDate(message.expiresAt)
+              : new Date(),
             position: {
               x: message.position?.x ?? 0,
               y: message.position?.y ?? 0,
             },
-            content: message.content,
-            createdAt: new Date(message.createdAt),
-            updatedAt: new Date(message.updatedAt),
-            expiresAt: new Date(message.expiresAt),
-          })),
-        ];
+          });
+        });
+        return newMessagesMap;
       });
       setFieldReactions((reactions) => {
         return [
-          ...reactions,
-          ...events.reactionsList.map((reaction) => {
+          ...reactions.filter((reaction) => reaction.expiresAt > now),
+          ...events.reactions.map((reaction) => {
             const kind = reaction.kind as ReactionName;
             return {
               id: reaction.id,
@@ -95,8 +107,12 @@ const useExplorerDispatcher = () => {
                 y: reaction.position?.y ?? 0,
               },
               kind: kind,
-              createdAt: new Date(reaction.createdAt),
-              expiresAt: new Date(reaction.expiresAt),
+              createdAt: reaction.createdAt
+                ? Timestamp.toDate(reaction.createdAt)
+                : new Date(),
+              expiresAt: reaction.expiresAt
+                ? Timestamp.toDate(reaction.expiresAt)
+                : new Date(),
             };
           }),
         ];
@@ -104,7 +120,7 @@ const useExplorerDispatcher = () => {
       setFieldSpeakerPhones((speakerPhones) => {
         return [
           ...speakerPhones,
-          ...events.speakerPhonesList.map((speakerPhone) => ({
+          ...events.speakerPhones.map((speakerPhone) => ({
             id: speakerPhone.id,
             position: {
               x: speakerPhone.position?.x ?? 0,
@@ -112,16 +128,58 @@ const useExplorerDispatcher = () => {
             },
             receiveRange: speakerPhone.receiveRange,
             name: speakerPhone.name,
-            createdAt: new Date(speakerPhone.createdAt),
-            updatedAt: new Date(speakerPhone.updatedAt),
+            createdAt: speakerPhone.createdAt
+              ? Timestamp.toDate(speakerPhone.createdAt)
+              : new Date(),
+            updatedAt: speakerPhone.updatedAt
+              ? Timestamp.toDate(speakerPhone.updatedAt)
+              : new Date(),
           })),
         ];
       });
       setFieldExplorers((explorers) => {
-        const explorerActions = events.explorerActionsList;
+        const explorerActions = events.explorerActions;
         explorerActions.forEach((action) => {
-          if (action.arrive) {
-            const explorer = action.arrive.explorer;
+          switch (action.action.oneofKind) {
+            case "arrive": {
+              const explorer = action.action.arrive.explorer;
+              if (!explorer) return;
+              explorers.set(explorer.id ?? "", {
+                id: explorer.id ?? "",
+                position: {
+                  x: explorer.position?.x ?? 0,
+                  y: explorer.position?.y ?? 0,
+                },
+                userId: explorer.userId ?? "",
+              });
+              break;
+            }
+            case "leave": {
+              explorers.delete(action.action.leave.id);
+              break;
+            }
+            case "move": {
+              const explorer = action.action.move.explorer;
+              if (!explorer) return;
+              const prevExplorer = explorers.get(explorer.id ?? "");
+              if (!prevExplorer) return;
+              explorers.set(explorer.id ?? "", {
+                id: explorer.id ?? "",
+                position: {
+                  x: explorer.position?.x ?? 0,
+                  y: explorer.position?.y ?? 0,
+                },
+                userId: explorer.userId ?? "",
+                previousPosition: prevExplorer.position,
+              });
+              break;
+            }
+
+            default:
+              break;
+          }
+          if (action.action.oneofKind === "arrive") {
+            const explorer = action.action.arrive.explorer;
             if (!explorer) return;
             explorers.set(explorer.id ?? "", {
               id: explorer.id ?? "",
@@ -130,24 +188,6 @@ const useExplorerDispatcher = () => {
                 y: explorer.position?.y ?? 0,
               },
               userId: explorer.userId ?? "",
-            });
-          }
-          if (action.leave) {
-            explorers.delete(action.leave.id);
-          }
-          if (action.move) {
-            const explorer = action.move.explorer;
-            if (!explorer) return;
-            const prevExplorer = explorers.get(explorer.id ?? "");
-            if (!prevExplorer) return;
-            explorers.set(explorer.id ?? "", {
-              id: explorer.id ?? "",
-              position: {
-                x: explorer.position?.x ?? 0,
-                y: explorer.position?.y ?? 0,
-              },
-              userId: explorer.userId ?? "",
-              previousPosition: prevExplorer.position,
             });
           }
         });
