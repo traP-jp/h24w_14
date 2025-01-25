@@ -12,35 +12,36 @@ fn calculate_expires_at(created_at: DateTime<Utc>) -> DateTime<Utc> {
 
 impl<Context> super::MessageService<Context> for super::MessageServiceImpl
 where
-    Context: AsRef<MySqlPool>,
+    Context: AsRef<MySqlPool> + crate::event::ProvideEventService,
 {
     type Error = super::Error;
 
     fn get_message<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::GetMessageParams,
+        params: super::GetMessageParams,
     ) -> futures::future::BoxFuture<'a, Result<super::Message, Self::Error>> {
         let pool = ctx.as_ref();
-        get_message(pool, req.id.0).boxed()
+        get_message(pool, params).boxed()
     }
 
     fn get_messages_in_area<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::GetMessagesInAreaParams,
+        params: super::GetMessagesInAreaParams,
     ) -> futures::future::BoxFuture<'a, Result<Vec<super::Message>, Self::Error>> {
         let pool = ctx.as_ref();
-        get_messages_in_area(pool, req).boxed()
+        get_messages_in_area(pool, params).boxed()
     }
 
     fn create_message<'a>(
         &'a self,
         ctx: &'a Context,
-        req: super::CreateMessageParams,
+        params: super::CreateMessageParams,
     ) -> futures::future::BoxFuture<'a, Result<super::Message, Self::Error>> {
+        let event_service = ctx;
         let pool = ctx.as_ref();
-        create_message(pool, req).boxed()
+        create_message(event_service, pool, params).boxed()
     }
 }
 
@@ -74,9 +75,13 @@ impl From<MessageRow> for super::Message {
     }
 }
 
-async fn get_message(pool: &MySqlPool, id: Uuid) -> Result<super::Message, super::Error> {
+async fn get_message(
+    pool: &MySqlPool,
+    params: super::GetMessageParams,
+) -> Result<super::Message, super::Error> {
+    let super::GetMessageParams { id } = params;
     sqlx::query_as::<_, MessageRow>("SELECT * FROM `messages` WHERE `id` = ?")
-        .bind(id)
+        .bind(id.0)
         .fetch_optional(pool)
         .await
         .map_err(super::Error::Sqlx)?
@@ -86,7 +91,7 @@ async fn get_message(pool: &MySqlPool, id: Uuid) -> Result<super::Message, super
 
 async fn get_messages_in_area(
     pool: &MySqlPool,
-    req: super::GetMessagesInAreaParams,
+    params: super::GetMessagesInAreaParams,
 ) -> Result<Vec<super::Message>, super::Error> {
     sqlx::query_as::<_, MessageRow>(
         r#"
@@ -100,36 +105,45 @@ async fn get_messages_in_area(
             ORDER BY `created_at` DESC
         "#,
     )
-    .bind(req.center.x.saturating_sub(req.size.width / 2) as i32)
-    .bind(req.center.x.saturating_add(req.size.width / 2) as i32)
-    .bind(req.center.y.saturating_sub(req.size.height / 2) as i32)
-    .bind(req.center.y.saturating_add(req.size.height / 2) as i32)
+    .bind(params.center.x.saturating_sub(params.size.width / 2) as i32)
+    .bind(params.center.x.saturating_add(params.size.width / 2) as i32)
+    .bind(params.center.y.saturating_sub(params.size.height / 2) as i32)
+    .bind(params.center.y.saturating_add(params.size.height / 2) as i32)
     .fetch_all(pool)
     .await
     .map(|rows| rows.into_iter().map(|row| row.into()).collect())
     .map_err(super::Error::Sqlx)
 }
 
-async fn create_message(
+async fn create_message<P: crate::event::ProvideEventService>(
+    event_service: &P,
     pool: &MySqlPool,
-    req: super::CreateMessageParams,
+    params: super::CreateMessageParams,
 ) -> Result<super::Message, super::Error> {
     let id = Uuid::now_v7();
     sqlx::query("INSERT INTO `messages` (`id`, `user_id`, `content`, `position_x`, `position_y`, `expires_at`) VALUES (?, ?, ?, ?, ?, ?)")
         .bind(id)
-        .bind(req.user_id.0)
-        .bind(req.content)
-        .bind(req.position.x)
-        .bind(req.position.y)
+        .bind(params.user_id.0)
+        .bind(params.content)
+        .bind(params.position.x)
+        .bind(params.position.y)
         .bind(calculate_expires_at(Utc::now()))
         .execute(pool)
         .await
         .map_err(super::Error::Sqlx)?;
 
-    sqlx::query_as::<_, MessageRow>("SELECT * FROM `messages` WHERE `id` = ?")
-        .bind(id)
-        .fetch_one(pool)
+    let message = get_message(
+        pool,
+        super::GetMessageParams {
+            id: super::MessageId(id),
+        },
+    )
+    .await?;
+
+    event_service
+        .publish_event(crate::event::Event::Message(message.clone()))
         .await
-        .map(|row| row.into())
-        .map_err(super::Error::Sqlx)
+        .map_err(crate::prelude::IntoStatus::into_status)?;
+
+    Ok(message)
 }
