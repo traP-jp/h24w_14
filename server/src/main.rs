@@ -16,7 +16,7 @@ struct State {
     explorer_store: lib::explore::ExplorerStore,
     services: Services,
     traq_oauth_client_config: TraqOauthClientConfig,
-    traq_host: lib::traq::TraqHost
+    traq_host: lib::traq::TraqHost,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
