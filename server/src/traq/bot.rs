@@ -136,6 +136,22 @@ pub trait ProvideTraqBotService: Send + Sync + 'static {
         let ctx = self.context();
         self.traq_bot_service().leave_channel(ctx, params)
     }
+    fn on_left_channel(
+        &self,
+        params: OnLeftChannelParams,
+    ) -> BoxFuture<'_, Result<(), <Self::TraqBotService as TraqBotService<Self::Context>>::Error>>
+    {
+        let ctx = self.context();
+        self.traq_bot_service().on_left_channel(ctx, params)
+    }
+    fn on_message_created(
+        &self,
+        params: OnMessageCreatedParams,
+    ) -> BoxFuture<'_, Result<(), <Self::TraqBotService as TraqBotService<Self::Context>>::Error>>
+    {
+        let ctx = self.context();
+        self.traq_bot_service().on_message_created(ctx, params)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
