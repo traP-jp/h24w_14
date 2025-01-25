@@ -1,24 +1,24 @@
 import useSWR from "swr";
 import { MessageServiceClient } from "../schema/MessageServiceClientPb";
 import serverHostName from "./hostname";
-import { GetMessageRequest, CreateMessageRequest } from "../schema/message_pb";
+import * as MessagePb from "../schema/message_pb";
 import useSWRMutation from "swr/mutation";
-import { Coordinate } from "../schema/world_pb";
+import * as WorldPb from "../schema/world_pb";
 import { Position } from "../model/position";
 
 const messageClient = new MessageServiceClient(serverHostName);
 
 export const useMessage = (messageId: string) => {
-  const req = new GetMessageRequest();
+  const req = new MessagePb.GetMessageRequest();
   req.setId(messageId);
   const fetcher = () => messageClient.getMessage(req);
   return useSWR(`message/${messageId}`, fetcher);
 };
 
 export const useCreateMessage = (content: string, position: Position) => {
-  const req = new CreateMessageRequest();
+  const req = new MessagePb.CreateMessageRequest();
   req.setContent(content);
-  const coord = new Coordinate();
+  const coord = new WorldPb.Coordinate();
   coord.setX(position.x);
   coord.setY(position.y);
   req.setPosition(coord);

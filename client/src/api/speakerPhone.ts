@@ -1,28 +1,23 @@
 import useSWR from "swr";
 import { SpeakerPhoneServiceClient } from "../schema/Speaker_phoneServiceClientPb";
 import serverHostName from "./hostname";
-import {
-  GetSpeakerPhoneRequest,
-  CreateSpeakerPhoneRequest,
-  GetAvailableChannelsRequest,
-  SearchChannelsRequest,
-} from "../schema/speaker_phone_pb";
+import * as SpeakerPhonePb from "../schema/speaker_phone_pb";
 import useSWRMutation from "swr/mutation";
-import { Coordinate } from "../schema/world_pb";
+import * as WorldPb from "../schema/world_pb";
 import { Position } from "../model/position";
 
 const speakerPhoneClient = new SpeakerPhoneServiceClient(serverHostName);
 
 export const useSpeakerPhone = (speakerPhoneId: string) => {
-  const req = new GetSpeakerPhoneRequest();
+  const req = new SpeakerPhonePb.GetSpeakerPhoneRequest();
   req.setId(speakerPhoneId);
   const fetcher = () => speakerPhoneClient.getSpeakerPhone(req);
   return useSWR(`speakerPhone/${speakerPhoneId}`, fetcher);
 };
 
 export const useCreateSpeakerPhone = (position: Position, name: string) => {
-  const req = new CreateSpeakerPhoneRequest();
-  const coord = new Coordinate();
+  const req = new SpeakerPhonePb.CreateSpeakerPhoneRequest();
+  const coord = new WorldPb.Coordinate();
   coord.setX(position.x);
   coord.setY(position.y);
   req.setPosition(coord);
@@ -32,13 +27,13 @@ export const useCreateSpeakerPhone = (position: Position, name: string) => {
 };
 
 export const useAvailableChannels = () => {
-  const req = new GetAvailableChannelsRequest();
+  const req = new SpeakerPhonePb.GetAvailableChannelsRequest();
   const fetcher = () => speakerPhoneClient.getAvailableChannels(req);
   return useSWR(`availableChannels`, fetcher);
 };
 
 export const useSearchChannels = (name: string) => {
-  const req = new SearchChannelsRequest();
+  const req = new SpeakerPhonePb.SearchChannelsRequest();
   req.setName(name);
   const fetcher = () => speakerPhoneClient.searchChannels(req);
   return useSWR(`searchChannels`, fetcher);

@@ -1,7 +1,7 @@
 import { useSetAtom } from "jotai";
 import { Position } from "../model/position";
-import { ExplorationField, ExplorationFieldEvents } from "../schema/explore_pb";
-import { Coordinate, Size } from "../schema/world_pb";
+import * as ExplorePb from "../schema/explore_pb";
+import * as WorldPb from "../schema/world_pb";
 import { serverWSHostName } from "./hostname";
 import { useEffect, useRef } from "react";
 import fieldMessagesAtom from "../state/message";
@@ -41,9 +41,9 @@ const useExplorerDispatcher = () => {
   useEffect(() => {
     const ws = new WebSocket(serverWSHostName);
     subscriberRef.current.addEventListener(explorerEvent, (event: Event) => {
-      const explorationField = new ExplorationField();
-      const coord = new Coordinate();
-      const size = new Size();
+      const explorationField = new ExplorePb.ExplorationField();
+      const coord = new WorldPb.Coordinate();
+      const size = new WorldPb.Size();
 
       // @ts-expect-error event is CustomEvent
       const message = event.detail as ExplorerMessage;
@@ -61,7 +61,9 @@ const useExplorerDispatcher = () => {
       if (event.type !== "text") {
         return;
       }
-      const events = JSON.parse(event.data) as ExplorationFieldEvents.AsObject;
+      const events = JSON.parse(
+        event.data,
+      ) as ExplorePb.ExplorationFieldEvents.AsObject;
       setFieldMessages((messages) => {
         return [
           ...messages,
