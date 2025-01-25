@@ -1,4 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::fmt;
+use std::sync::Arc;
 
 use futures::future::{BoxFuture, FutureExt};
 use tokio::sync::RwLock;
@@ -19,6 +21,14 @@ impl super::ExplorerStore {
 impl Default for super::ExplorerStore {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl fmt::Debug for super::ExplorerStore {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ExplorerStore")
+            .field("explorers", &"...")
+            .finish()
     }
 }
 
