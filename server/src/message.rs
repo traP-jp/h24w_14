@@ -113,7 +113,7 @@ where
     MessageServiceServer::new(grpc::ServiceImpl::new(state))
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct MessageServiceImpl;
 
 pub type MessageServiceServer<State> =

@@ -27,7 +27,10 @@ struct Services {
     event_service: lib::event::EventServiceImpl,
     user_service: lib::user::UserServiceImpl,
     session_service: lib::session::SessionServiceImpl,
+    message_service: lib::message::MessageServiceImpl,
     reaction_service: lib::reaction::ReactionServiceImpl,
+    speaker_phone_service: lib::speaker_phone::SpeakerPhoneServiceImpl,
+    explore_service: lib::explore::ExploreServiceImpl,
     explorer_service: lib::explore::ExplorerServiceImpl,
     traq_user_service: lib::traq::user::TraqUserServiceImpl,
     traq_auth_service: lib::traq::auth::TraqAuthServiceImpl,
@@ -254,6 +257,12 @@ impl State {
     }
 }
 
+impl AsRef<lib::task::TaskManager> for State {
+    fn as_ref(&self) -> &lib::task::TaskManager {
+        &self.task_manager
+    }
+}
+
 impl AsRef<lib::world::WorldSize> for State {
     fn as_ref(&self) -> &lib::world::WorldSize {
         &self.world_size
@@ -370,6 +379,18 @@ impl lib::session::ProvideSessionService for State {
     }
 }
 
+impl lib::message::ProvideMessageService for State {
+    type Context = Self;
+    type MessageService = lib::message::MessageServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn message_service(&self) -> &Self::MessageService {
+        &self.services.message_service
+    }
+}
+
 impl lib::reaction::ProvideReactionService for State {
     type Context = Self;
     type ReactionService = lib::reaction::ReactionServiceImpl;
@@ -379,6 +400,30 @@ impl lib::reaction::ProvideReactionService for State {
     }
     fn reaction_service(&self) -> &Self::ReactionService {
         &self.services.reaction_service
+    }
+}
+
+impl lib::speaker_phone::ProvideSpeakerPhoneService for State {
+    type Context = Self;
+    type SpeakerPhoneService = lib::speaker_phone::SpeakerPhoneServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn speaker_phone_service(&self) -> &Self::SpeakerPhoneService {
+        &self.services.speaker_phone_service
+    }
+}
+
+impl lib::explore::ProvideExploreService for State {
+    type Context = Self;
+    type ExploreService = lib::explore::ExploreServiceImpl;
+
+    fn context(&self) -> &Self::Context {
+        self
+    }
+    fn explore_service(&self) -> &Self::ExploreService {
+        &self.services.explore_service
     }
 }
 
