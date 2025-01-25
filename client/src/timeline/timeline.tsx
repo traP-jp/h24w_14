@@ -45,13 +45,16 @@ export const Timeline: React.FC = () => {
   }, []);
 
   return (
-    <div id="scrollableDiv" className="h-96 overflow-auto px-4">
+    <div
+      id="scrollableDiv"
+      className="h-screen w-full overflow-auto px-4 bg-background-primary"
+    >
       <InfiniteScroll
         dataLength={data.length}
         next={loadMoreData}
         hasMore={data.length < 50}
         loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
-        endMessage={<Divider plain>It is all, nothing more 🤐</Divider>}
+        endMessage={<Divider plain>It is all, nothing more</Divider>}
         scrollableTarget="scrollableDiv"
       >
         <List
