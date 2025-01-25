@@ -9,9 +9,10 @@ use axum::{
     Router,
 };
 use futures::{stream::SplitSink, SinkExt, StreamExt};
-use http::HeaderMap;
+use http::{header, HeaderMap, HeaderName, Method};
 use tokio::sync::Notify;
 use tower::{ServiceBuilder, ServiceExt};
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use crate::{
@@ -77,6 +78,25 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
         .route_service(
             &format!("/{}/{{*res}}", crate::traq::auth::SERVICE_NAME),
             traq_auth,
+        )
+        .layer(
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::list(vec!["http://localhost:5173"
+                    .parse()
+                    .unwrap()]))
+                .allow_methods(AllowMethods::list(vec![
+                    Method::POST,
+                    Method::OPTIONS,
+                    Method::GET,
+                ]))
+                .allow_headers(AllowHeaders::list(vec![
+                    header::CONTENT_TYPE,
+                    header::AUTHORIZATION,
+                    header::COOKIE,
+                    // header::X_GRPC_WEB,
+                    HeaderName::from_static("x-grpc-web"),
+                ]))
+                .allow_credentials(true),
         )
 }
 

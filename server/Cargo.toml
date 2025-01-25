@@ -47,7 +47,7 @@ tokio = { version = "1.43.0", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["full"] }
 tokio-util = { version = "0.7.13", features = ["full"] }
 tower = { version = "0.5.2", features = ["util", "steer"] }
-tower-http = { version = "0.6.2", features = ["trace", "util"] }
+tower-http = { version = "0.6.2", features = ["trace", "util", "cors"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 traq-bot-http = { version = "0.11.2", features = ["uuid", "chrono", "tower"] }
