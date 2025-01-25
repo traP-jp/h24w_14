@@ -48,7 +48,8 @@ const useExplorerDispatcher = () => {
 
   useEffect(() => {
     const ws = new WebSocket(serverWSHostName);
-    subscriberRef.current.addEventListener(explorerEvent, (event: Event) => {
+    const currentSubscriber = subscriberRef.current;
+    const subscriverHandler = (event: Event) => {
       // @ts-expect-error event is CustomEvent
       const message = event.detail as ExplorerMessage;
 
@@ -63,7 +64,8 @@ const useExplorerDispatcher = () => {
       };
 
       ws.send(JSON.stringify(explorationField));
-    });
+    };
+    currentSubscriber.addEventListener(explorerEvent, subscriverHandler);
     ws.onmessage = (event) => {
       if (event.type !== "text") {
         return;
@@ -202,6 +204,7 @@ const useExplorerDispatcher = () => {
     };
     return () => {
       ws.close();
+      currentSubscriber.removeEventListener(explorerEvent, subscriverHandler);
     };
   }, [
     setFieldMessages,
