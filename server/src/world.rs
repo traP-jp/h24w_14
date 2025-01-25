@@ -26,6 +26,27 @@ pub struct Coordinate {
     pub y: u32,
 }
 
+impl Coordinate {
+    pub fn is_inside_circle(self, center: Coordinate, radius: u32) -> bool {
+        let dx = self.x.abs_diff(center.x) as u64;
+        let dy = self.y.abs_diff(center.y) as u64;
+        let distance = dx * dx + dy * dy;
+        let radius = radius as u64;
+        distance <= radius * radius
+    }
+}
+
+#[test]
+fn test_coordinate_is_inside_circle() {
+    let center = Coordinate { x: 0, y: 0 };
+    let radius = 5;
+    assert!(Coordinate { x: 0, y: 0 }.is_inside_circle(center, radius));
+    assert!(Coordinate { x: 5, y: 0 }.is_inside_circle(center, radius));
+    assert!(Coordinate { x: 0, y: 5 }.is_inside_circle(center, radius));
+    assert!(Coordinate { x: 3, y: 4 }.is_inside_circle(center, radius));
+    assert!(!Coordinate { x: 1, y: 5 }.is_inside_circle(center, radius));
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct GetWorldSizeParams {}
 

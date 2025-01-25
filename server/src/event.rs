@@ -2,7 +2,7 @@ use futures::{future::BoxFuture, stream::BoxStream};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use crate::{message::Message, prelude::IntoStatus};
+use crate::{message::Message, prelude::IntoStatus, speaker_phone::SpeakerPhone};
 
 pub mod error;
 mod r#impl;
@@ -13,7 +13,7 @@ pub use error::Error;
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Event {
     Explorer(crate::explore::ExplorerAction),
-    SpeakerPhone(crate::speaker_phone::SpeakerPhone),
+    SpeakerPhone(SpeakerPhone),
     Message(Message),
     Reaction(crate::reaction::Reaction),
 }
@@ -21,6 +21,7 @@ pub enum Event {
 #[derive(Debug, Clone)]
 pub struct EventChannels {
     message_tx: broadcast::Sender<Message>,
+    speaker_phone_tx: broadcast::Sender<SpeakerPhone>,
     event_tx: broadcast::Sender<Event>,
 }
 
@@ -31,13 +32,16 @@ pub trait EventService<Context>: Send + Sync + 'static {
         &'a self,
         ctx: &'a Context,
     ) -> BoxStream<'static, Result<Message, Self::Error>>;
+    fn subscribe_speaker_phones<'a>(
+        &'a self,
+        ctx: &'a Context,
+    ) -> BoxStream<'static, Result<SpeakerPhone, Self::Error>>;
     fn subscribe_events<'a>(
         &'a self,
         ctx: &'a Context,
     ) -> BoxStream<'static, Result<Event, Self::Error>>;
     // 以下はおそらく不要なので書かない
     //     subscribe_explorers
-    //     subscribe_speaker_phones
     //     subscribe_reactions
 
     fn publish_event<'a>(
@@ -63,6 +67,15 @@ pub trait ProvideEventService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.event_service().subscribe_messages(ctx)
+    }
+    fn subscribe_speaker_phones(
+        &self,
+    ) -> BoxStream<
+        'static,
+        Result<SpeakerPhone, <Self::EventService as EventService<Self::Context>>::Error>,
+    > {
+        let ctx = self.context();
+        self.event_service().subscribe_speaker_phones(ctx)
     }
     fn subscribe_events(
         &self,

@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use futures::FutureExt;
+use futures::{FutureExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, MySqlPool};
 
@@ -13,7 +13,9 @@ where
     Context: AsRef<MySqlPool>
         + AsRef<crate::task::TaskManager>
         + crate::event::ProvideEventService
-        + crate::traq::channel::ProvideTraqChannelService,
+        + crate::traq::channel::ProvideTraqChannelService
+        + crate::traq::message::ProvideTraqMessageService
+        + crate::traq::user::ProvideTraqUserService,
 {
     type Error = super::Error;
 
@@ -43,11 +45,10 @@ where
 
     fn load_all_speaker_phones(
         &self,
-        _ctx: Arc<Context>,
-        _params: super::LoadAllSpeakerPhonesParams,
+        ctx: Arc<Context>,
+        params: super::LoadAllSpeakerPhonesParams,
     ) -> futures::future::BoxFuture<'_, Result<(), Self::Error>> {
-        todo!()
-        // load_all_speaker_phones((*ctx).as_ref(), (*ctx).as_ref(), params).boxed()
+        load_all_speaker_phones(ctx, params).boxed()
     }
 
     fn get_available_channels<'a>(
@@ -183,20 +184,172 @@ async fn create_speaker_phone(
     Ok(speaker_phone)
 }
 
-#[expect(dead_code)]
-async fn load_all_speaker_phones(
-    pool: &MySqlPool,
-    task: &crate::task::TaskManager,
+async fn load_all_speaker_phones<Context>(
+    ctx: Arc<Context>,
     _params: super::LoadAllSpeakerPhonesParams,
-) -> Result<(), super::Error> {
-    let _speaker_phones: Vec<SpeakerPhoneRow> = sqlx::query_as(r#"SELECT * FROM `speaker_phones`"#)
-        .fetch_all(pool)
-        .await?;
-    task.spawn(|_cancellation_token| async {
-        todo!("messagesをsubscribeしてtraQに投げる");
-    })
-    .await;
+) -> Result<(), super::Error>
+where
+    Context: AsRef<MySqlPool>
+        + AsRef<crate::task::TaskManager>
+        + crate::traq::channel::ProvideTraqChannelService
+        + crate::traq::message::ProvideTraqMessageService
+        + crate::traq::user::ProvideTraqUserService
+        + crate::event::ProvideEventService,
+{
+    let pool: &MySqlPool = (*ctx).as_ref();
+
+    let speaker_phones: Vec<super::SpeakerPhone> =
+        sqlx::query_as::<_, SpeakerPhoneRow>(r#"SELECT * FROM `speaker_phones`"#)
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<super::SpeakerPhone>>();
+
+    let channels = ctx
+        .get_all_channels(crate::traq::channel::GetAllChannelsParams {})
+        .await
+        .map_err(IntoStatus::into_status)?;
+
+    let channel_map: std::collections::HashMap<
+        super::SpeakerPhoneId,
+        crate::traq::channel::TraqChannel,
+    > = speaker_phones
+        .iter()
+        .filter_map(|speaker_phone| {
+            channels
+                .iter()
+                .find(|channel| channel.path == speaker_phone.name.0)
+                .map(|channel| (speaker_phone.id, channel.clone()))
+        })
+        .collect();
+
+    let ctx_clone = ctx.clone();
+    let task_manager: &crate::task::TaskManager = (*ctx_clone).as_ref();
+    task_manager
+        .spawn(|_cancellation_token| async move {
+            let speaker_phone_rx = ctx
+                .subscribe_speaker_phones()
+                .map_err(|e| super::Error::from(e.into_status()));
+            let message_rx = ctx
+                .subscribe_messages()
+                .map_err(|e| super::Error::from(e.into_status()));
+
+            run_subscription_loop(
+                &*ctx,
+                &*ctx,
+                speaker_phone_rx,
+                message_rx,
+                speaker_phones,
+                channel_map,
+            )
+            .await;
+        })
+        .await;
+
     Ok(())
+}
+
+trait Receiver<T>: futures::stream::Stream<Item = Result<T, super::Error>> + Unpin {}
+impl<T, U> Receiver<T> for U where U: futures::stream::Stream<Item = Result<T, super::Error>> + Unpin
+{}
+
+async fn run_subscription_loop(
+    traq_user_service: &impl crate::traq::user::ProvideTraqUserService,
+    traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
+    mut speaker_phone_rx: impl Receiver<super::SpeakerPhone>,
+    mut message_rx: impl Receiver<crate::message::Message>,
+    mut speaker_phones: Vec<super::SpeakerPhone>,
+    channel_map: HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
+) {
+    loop {
+        let channel_map = channel_map.clone();
+        tokio::select! {
+            speaker_phone = speaker_phone_rx.try_next() => {
+                let speaker_phone = match speaker_phone {
+                    Ok(Some(speaker_phone)) => speaker_phone,
+                    Ok(None) => break,
+                    Err(err) => {
+                        tracing::error!(error = %err, "Failed to receive a speaker phone");
+                        continue;
+                    }
+                };
+
+                speaker_phones.push(speaker_phone);
+            }
+
+            message = message_rx.try_next() => {
+                let message = match message {
+                    Ok(Some(msg)) => msg,
+                    Ok(None) => break,
+                    Err(err) => {
+                        tracing::error!(error = %err, "Failed to receive a message");
+                        continue;
+                    }
+                };
+
+                for speaker_phone in &speaker_phones {
+                    post_message_to_traq(
+                        traq_user_service,
+                        traq_message_service,
+                        speaker_phone,
+                        &channel_map,
+                        &message,
+                    ).await;
+                }
+            }
+        }
+    }
+}
+
+async fn post_message_to_traq(
+    traq_user_service: &impl crate::traq::user::ProvideTraqUserService,
+    traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
+    speaker_phone: &super::SpeakerPhone,
+    channel_map: &HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
+    message: &crate::message::Message,
+) {
+    if !message
+        .position
+        .is_inside_circle(speaker_phone.position, speaker_phone.receive_range)
+    {
+        return;
+    }
+
+    let channel = channel_map
+        .get(&speaker_phone.id)
+        .expect("SpeakerPhoneのチャンネルが存在する");
+
+    let traq_user = traq_user_service
+        .find_traq_user_by_app_user_id(crate::traq::user::FindTraqUserByAppUserIdParams {
+            id: message.user_id,
+        })
+        .await
+        .map_err(IntoStatus::into_status);
+    let traq_user = match traq_user {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            tracing::error!("User not found");
+            return;
+        }
+        Err(err) => {
+            tracing::error!(error = %err, "Failed to find a user");
+            return;
+        }
+    };
+
+    let res = traq_message_service
+        .send_message(crate::traq::message::SendMessageParams {
+            inner: message.clone(),
+            channel_id: channel.id,
+            user_id: traq_user.id,
+        })
+        .await
+        .map_err(IntoStatus::into_status);
+    match res {
+        Ok(_) => tracing::info!("Sent a message"),
+        Err(err) => tracing::error!(error = %err, "Failed to send a message"),
+    }
 }
 
 async fn get_available_channels(

@@ -6,6 +6,8 @@ pub enum Error {
     #[error(transparent)]
     SendMessage(#[from] SendError<super::Message>),
     #[error(transparent)]
+    SendSpeakerPhone(#[from] SendError<super::SpeakerPhone>),
+    #[error(transparent)]
     SendEvent(#[from] SendError<super::Event>),
     #[error(transparent)]
     Recv(#[from] RecvError),
