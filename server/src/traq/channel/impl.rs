@@ -66,6 +66,7 @@ where
                 ch.id,
                 ChannelNode {
                     is_root: ch.parent_id.is_none(),
+                    id: ch.id,
                     name: ch.name,
                     children: ch.children,
                 },
@@ -80,7 +81,7 @@ where
 
     Ok(root_channels
         .iter()
-        .flat_map(|node| node.dfs("", &channels))
+        .flat_map(|node| node.dfs("#", &channels))
         .collect::<Vec<_>>())
 }
 
@@ -110,6 +111,7 @@ struct DmChannel {
 #[derive(Clone)]
 struct ChannelNode {
     is_root: bool,
+    id: super::TraqChannelId,
     name: String,
     children: Vec<super::TraqChannelId>,
 }
@@ -124,7 +126,7 @@ impl ChannelNode {
         let path = format!("{}/{}", path, self.name);
 
         let mut result = vec![super::TraqChannel {
-            id: super::TraqChannelId(uuid::Uuid::new_v4()),
+            id: self.id,
             path: path.clone(),
         }];
 
