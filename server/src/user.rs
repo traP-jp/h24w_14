@@ -77,13 +77,14 @@ pub trait ProvideUserService: Send + Sync + 'static {
         let ctx = self.context();
         self.user_service().create_user(ctx, params)
     }
-    fn build_server(this: Arc<Self>) -> UserServiceServer<Self>
-    where
-        Self: Sized,
-    {
-        let service = grpc::ServiceImpl::new(this);
-        UserServiceServer::new(service)
-    }
+}
+
+pub fn build_server<State>(state: Arc<State>) -> UserServiceServer<State>
+where
+    State: ProvideUserService + crate::session::ProvideSessionService,
+{
+    let service = grpc::ServiceImpl::new(state);
+    UserServiceServer::new(service)
 }
 
 #[derive(Debug, Clone, Copy, Default)]
