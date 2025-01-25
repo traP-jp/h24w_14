@@ -174,6 +174,7 @@ pub trait ProvideExplorerService: Send + Sync + 'static {
         let ctx = self.context();
         self.explorer_service().get_explorer(ctx, params)
     }
+    /// Explorerを作成して, `ExplorerAction::Arrive`イベントを`EventService`に発行する
     fn create_explorer(
         &self,
         params: CreateExplorerParams,
@@ -194,6 +195,7 @@ pub trait ProvideExplorerService: Send + Sync + 'static {
         let ctx = self.context();
         self.explorer_service().get_explorers_in_area(ctx, params)
     }
+    /// Explorerを作成して, `ExplorerAction::Move`イベントを`EventService`に発行する
     fn update_explorer(
         &self,
         params: UpdateExplorerParams,
@@ -204,6 +206,7 @@ pub trait ProvideExplorerService: Send + Sync + 'static {
         let ctx = self.context();
         self.explorer_service().update_explorer(ctx, params)
     }
+    /// Explorerを作成して, `ExplorerAction::Leave`イベントを`EventService`に発行する
     fn delete_explorer(
         &self,
         params: DeleteExplorerParams,
