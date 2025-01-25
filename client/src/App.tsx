@@ -1,5 +1,5 @@
 import Canvas from "./pixi/Canvas";
-import { Timeline } from "./timeline/timeline";
+import { Timeline } from "./timeline/Timeline";
 
 const App = () => {
   return (
