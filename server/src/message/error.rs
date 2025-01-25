@@ -4,6 +4,8 @@ pub enum Error {
     NotFound,
     #[error("Database error")]
     Sqlx(#[from] sqlx::Error),
+    #[error(transparent)]
+    Status(#[from] tonic::Status),
 }
 
 impl From<Error> for tonic::Status {
@@ -13,6 +15,10 @@ impl From<Error> for tonic::Status {
             Error::Sqlx(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error);
                 tonic::Status::internal("Database error")
+            }
+            Error::Status(e) => {
+                tracing::error!(error = &e as &dyn std::error::Error);
+                tonic::Status::internal("Status error")
             }
         }
     }

@@ -12,7 +12,7 @@ fn calculate_expires_at(created_at: DateTime<Utc>) -> DateTime<Utc> {
 
 impl<Context> super::MessageService<Context> for super::MessageServiceImpl
 where
-    Context: AsRef<MySqlPool>,
+    Context: AsRef<MySqlPool> + crate::event::ProvideEventService,
 {
     type Error = super::Error;
 
@@ -39,8 +39,9 @@ where
         ctx: &'a Context,
         params: super::CreateMessageParams,
     ) -> futures::future::BoxFuture<'a, Result<super::Message, Self::Error>> {
+        let event_service = ctx;
         let pool = ctx.as_ref();
-        create_message(pool, params).boxed()
+        create_message(event_service, pool, params).boxed()
     }
 }
 
@@ -114,7 +115,8 @@ async fn get_messages_in_area(
     .map_err(super::Error::Sqlx)
 }
 
-async fn create_message(
+async fn create_message<P: crate::event::ProvideEventService>(
+    event_service: &P,
     pool: &MySqlPool,
     params: super::CreateMessageParams,
 ) -> Result<super::Message, super::Error> {
@@ -137,6 +139,11 @@ async fn create_message(
         },
     )
     .await?;
+
+    event_service
+        .publish_event(crate::event::Event::Message(message.clone()))
+        .await
+        .map_err(crate::prelude::IntoStatus::into_status)?;
 
     Ok(message)
 }
