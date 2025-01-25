@@ -17,6 +17,7 @@ struct State {
     services: Services,
     traq_oauth_client_config: TraqOauthClientConfig,
     traq_host: lib::traq::TraqHost,
+    traq_bot_config: lib::traq::bot::TraqBotConfig,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -29,6 +30,9 @@ struct Services {
     explorer_service: lib::explore::ExplorerServiceImpl,
     traq_user_service: lib::traq::user::TraqUserServiceImpl,
     traq_auth_service: lib::traq::auth::TraqAuthServiceImpl,
+    traq_bot_service: lib::traq::bot::TraqBotServiceImpl,
+    traq_channel_service: lib::traq::channel::TraqChannelServiceImpl,
+    traq_message_service: lib::traq::message::TraqMessageServiceImpl,
 }
 
 #[tokio::main]
@@ -48,6 +52,9 @@ async fn main() -> anyhow::Result<()> {
     let event_channels = load::event_channels()?;
     let client = reqwest::Client::new();
     let session_config = load::session_config()?;
+    let traq_oauth_client_config = load::traq_oauth_client_config()?;
+    let traq_host = load::traq_host()?;
+    let traq_bot_config = load::traq_bot_config()?;
     let state = Arc::new(State {
         pool,
         task_manager,
@@ -57,8 +64,9 @@ async fn main() -> anyhow::Result<()> {
         session_config,
         explorer_store: lib::explore::ExplorerStore::new(),
         services: Services::default(),
-        traq_oauth_client_config: todo!(),
-        traq_host: lib::traq::TraqHost("traq.io".to_string()),
+        traq_oauth_client_config,
+        traq_host,
+        traq_bot_config,
     });
     state.migrate().await?;
 
@@ -82,7 +90,6 @@ struct SessionConfig {
 }
 
 mod load {
-    use anyhow::Ok;
     use tokio::net::TcpListener;
 
     use super::*;
@@ -180,6 +187,30 @@ mod load {
             domain: lib::session::CookieDomain(domain),
         })
     }
+
+    pub fn traq_oauth_client_config() -> anyhow::Result<lib::traq::auth::TraqOauthClientConfig> {
+        let client_id = env_var!("TRAQ_OAUTH_CLIENT_ID")?;
+        let client_secret = env_var!("TRAQ_OAUTH_CLIENT_SECRET")?;
+        Ok(lib::traq::auth::TraqOauthClientConfig {
+            client_id,
+            client_secret,
+        })
+    }
+
+    pub fn traq_host() -> anyhow::Result<lib::traq::TraqHost> {
+        let traq_host = env_var!("TRAQ_HOST")?;
+        Ok(lib::traq::TraqHost(traq_host))
+    }
+
+    pub fn traq_bot_config() -> anyhow::Result<lib::traq::bot::TraqBotConfig> {
+        let config = lib::traq::bot::TraqBotConfig::builder()
+            .bot_id(env_var!("TRAQ_BOT_ID")?)
+            .bot_user_id(env_var!("TRAQ_BOT_USER_ID")?)
+            .access_token(env_var!("TRAQ_BOT_ACCESS_TOKEN")?)
+            .verification_token(env_var!("TRAQ_BOT_VERIFICATION_TOKEN")?)
+            .build();
+        Ok(config)
+    }
 }
 
 #[tracing::instrument]
@@ -272,6 +303,12 @@ impl AsRef<TraqOauthClientConfig> for State {
 impl AsRef<lib::traq::TraqHost> for State {
     fn as_ref(&self) -> &lib::traq::TraqHost {
         &self.traq_host
+    }
+}
+
+impl AsRef<lib::traq::bot::TraqBotConfig> for State {
+    fn as_ref(&self) -> &lib::traq::bot::TraqBotConfig {
+        &self.traq_bot_config
     }
 }
 
