@@ -113,6 +113,7 @@ pub trait ExploreService<Context>: Send + Sync + 'static {
     ) -> BoxStream<'a, Result<ExplorationFieldEvents, Self::Error>>;
 }
 
+#[derive(Debug, Clone, Copy, Default)]
 pub struct ExploreServiceImpl;
 
 #[allow(clippy::type_complexity)]
