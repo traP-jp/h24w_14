@@ -14,6 +14,8 @@ import useMessageExpanded from "./hooks/message";
 import { isInsideField } from "../util/field";
 import speakerPhonesAtom from "../state/speakerPhone";
 import reactionsAtom from "../state/reactions";
+import fieldExplorersAtom from "../state/explorer";
+import OtherExplorer from "./components/OtherExplorer";
 
 interface Props {
   userPosition: Position;
@@ -31,6 +33,7 @@ const World: React.FC<Props> = ({
   const messages = useAtomValue(messagesAtom);
   const speakerPhones = useAtomValue(speakerPhonesAtom);
   const reactions = useAtomValue(reactionsAtom);
+  const explorers = useAtomValue(fieldExplorersAtom);
 
   const messageNodes: JSX.Element[] = [];
   for (const message of messages.values()) {
@@ -75,6 +78,16 @@ const World: React.FC<Props> = ({
         }}
       />
     ));
+
+  const explorerNodes = Array.from(explorers.values()).map((explorer) => {
+    return (
+      <OtherExplorer
+        key={explorer.userId}
+        explorer={explorer}
+        previousPosition={explorer.previousPosition}
+      />
+    );
+  });
 
   //TODO: モック用なので後で消す
   {
@@ -140,6 +153,7 @@ const World: React.FC<Props> = ({
       />
       {speakerPhoneNodes}
       {messageNodes}
+      {explorerNodes}
       {reactionsNodes}
       <Message
         expanded={expanded}
