@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::FutureExt;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, MySqlPool};
@@ -39,12 +41,13 @@ where
         create_speaker_phone(ctx, ctx.as_ref(), params).boxed()
     }
 
-    fn load_all_speaker_phones<'a>(
-        &'a self,
-        ctx: &'a Context,
-        params: super::LoadAllSpeakerPhonesParams,
-    ) -> futures::future::BoxFuture<'a, Result<(), Self::Error>> {
-        load_all_speaker_phones(ctx.as_ref(), ctx.as_ref(), params).boxed()
+    fn load_all_speaker_phones(
+        &self,
+        _ctx: Arc<Context>,
+        _params: super::LoadAllSpeakerPhonesParams,
+    ) -> futures::future::BoxFuture<'_, Result<(), Self::Error>> {
+        todo!()
+        // load_all_speaker_phones((*ctx).as_ref(), (*ctx).as_ref(), params).boxed()
     }
 
     fn get_available_channels<'a>(
@@ -180,6 +183,7 @@ async fn create_speaker_phone(
     Ok(speaker_phone)
 }
 
+#[expect(dead_code)]
 async fn load_all_speaker_phones(
     pool: &MySqlPool,
     task: &crate::task::TaskManager,
