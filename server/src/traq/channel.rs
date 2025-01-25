@@ -30,6 +30,7 @@ pub trait TraqChannelService<Context>: Send + Sync + 'static {
     ) -> BoxFuture<'a, Result<Vec<TraqChannel>, Self::Error>>;
 }
 
+#[derive(Debug, Clone, Copy, Default)]
 pub struct TraqChannelServiceImpl;
 
 #[allow(clippy::type_complexity)]
