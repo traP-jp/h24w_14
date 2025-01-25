@@ -1,9 +1,17 @@
 //! `speaker_phone.proto`
 
+pub mod error;
+pub mod grpc;
+mod r#impl;
+
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::{IntoStatus, Timestamp};
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -94,7 +102,7 @@ pub trait SpeakerPhoneService<Context>: Send + Sync + 'static {
 }
 
 #[allow(clippy::type_complexity)]
-pub trait ProvideSpeakerPhone: Send + Sync + 'static {
+pub trait ProvideSpeakerPhoneService: Send + Sync + 'static {
     type Context;
     type SpeakerPhoneService: SpeakerPhoneService<Self::Context>;
 
@@ -180,8 +188,22 @@ pub trait ProvideSpeakerPhone: Send + Sync + 'static {
         let ctx = self.context();
         self.speaker_phone_service().search_channels(ctx, params)
     }
-
-    // TODO: build_server(this: Arc<Self>) -> SpeakerPhoneServiceServer<...>
 }
+
+pub fn build_server<State>(this: Arc<State>) -> SpeakerPhoneServiceServer<State>
+where
+    State: ProvideSpeakerPhoneService + crate::session::ProvideSessionService,
+{
+    let service = grpc::ServiceImpl::new(this);
+    SpeakerPhoneServiceServer::new(service)
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SpeakerPhoneServiceImpl;
+
+pub type SpeakerPhoneServiceServer<State> =
+    schema::speaker_phone::speaker_phone_service_server::SpeakerPhoneServiceServer<
+        grpc::ServiceImpl<State>,
+    >;
 
 pub use schema::speaker_phone::speaker_phone_service_server::SERVICE_NAME;
