@@ -25,11 +25,14 @@ pub struct TraqUser {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct GetTraqUserParams {
-    pub id: TraqUserId,
+pub struct FindTraqUserByAppUserIdParams {
+    pub id: crate::user::UserId,
 }
 
-pub type FindTraqUserParams = GetTraqUserParams;
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct FindTraqUserParams {
+    pub id: TraqUserId,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct RegisterTraqUserParams {
@@ -39,11 +42,11 @@ pub struct RegisterTraqUserParams {
 pub trait TraqUserService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
 
-    fn get_traq_user<'a>(
+    fn find_traq_user_by_app_user_id<'a>(
         &'a self,
         ctx: &'a Context,
-        params: GetTraqUserParams,
-    ) -> BoxFuture<'a, Result<TraqUser, Self::Error>>;
+        params: FindTraqUserByAppUserIdParams,
+    ) -> BoxFuture<'a, Result<Option<TraqUser>, Self::Error>>;
     fn find_traq_user<'a>(
         &'a self,
         ctx: &'a Context,
@@ -64,15 +67,16 @@ pub trait ProvideTraqUserService: Send + Sync + 'static {
     fn context(&self) -> &Self::Context;
     fn traq_user_service(&self) -> &Self::TraqUserService;
 
-    fn get_traq_user(
+    fn find_traq_user_by_app_user_id(
         &self,
-        params: GetTraqUserParams,
+        params: FindTraqUserByAppUserIdParams,
     ) -> BoxFuture<
         '_,
-        Result<TraqUser, <Self::TraqUserService as TraqUserService<Self::Context>>::Error>,
+        Result<Option<TraqUser>, <Self::TraqUserService as TraqUserService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
-        self.traq_user_service().get_traq_user(ctx, params)
+        self.traq_user_service()
+            .find_traq_user_by_app_user_id(ctx, params)
     }
     fn find_traq_user(
         &self,
