@@ -99,6 +99,7 @@ where
         let ctx = self.state.clone();
         let mut srv = self.inner.clone();
         std::mem::swap(&mut srv, &mut self.inner);
+        // FIXME: ここのBox消せる
         Box::pin(async move {
             let extract_params = super::ExtractParams(req.headers());
             match ctx.extract(extract_params).await {
