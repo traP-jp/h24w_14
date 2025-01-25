@@ -12,6 +12,7 @@ import messagesAtom from "../state/message";
 import MessageIcon from "./components/MessageIcon";
 import useMessageExpanded from "./hooks/message";
 import { isInsideField } from "../util/field";
+import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 
 interface Props {
   userPosition: Position;
@@ -27,7 +28,9 @@ const World: React.FC<Props> = ({
   const { expanded, collapseMessage, expandMessage, message } =
     useMessageExpanded();
   const messages = useAtomValue(messagesAtom);
-  const messageNodes = [];
+  const speakerPhones = useAtomValue(fieldSpeakerPhonesAtom);
+
+  const messageNodes: JSX.Element[] = [];
   for (const message of messages.values()) {
     if (!isInsideField(message.position, fieldSize, userPosition)) {
       continue;
@@ -42,24 +45,49 @@ const World: React.FC<Props> = ({
     );
   }
 
+  const speakerPhoneNodes = Array.from(speakerPhones.values())
+    .filter((speakerPhone) =>
+      isInsideField(speakerPhone.position, fieldSize, userPosition),
+    )
+    .map((speakerPhone) => (
+      <SpeakerPhone
+        key={speakerPhone.name}
+        position={speakerPhone.position}
+        name={speakerPhone.name}
+        radius={100}
+      />
+    ));
+
   //TODO: モック用なので後で消す
-  for (let i = 1; i <= 3; i++) {
-    messageNodes.push(
-      <MessageIcon
-        currentExpandedMessageId={message?.id}
-        expander={expandMessage}
-        key={i}
-        message={{
-          id: i.toString(),
-          position: { x: 100 * i + 10, y: 100 * i },
-          userId: "ikura-hamu",
-          content: "Hello, World!".repeat(i * 5),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day later
-        }}
-      />,
-    );
+  {
+    for (let i = 1; i <= 3; i++) {
+      messageNodes.push(
+        <MessageIcon
+          currentExpandedMessageId={message?.id}
+          expander={expandMessage}
+          key={i}
+          message={{
+            id: i.toString(),
+            position: { x: 100 * i + 10, y: 100 * i },
+            userId: "ikura-hamu",
+            content: "Hello, World!".repeat(i * 5),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day later
+          }}
+        />,
+      );
+    }
+    for (let i = 4; i <= 6; i++) {
+      speakerPhoneNodes.push(
+        <SpeakerPhone
+          key={i}
+          position={{ x: 100 * i + 10, y: 100 * i }}
+          name="SpeakerPhone"
+          radius={100}
+        />,
+      );
+    }
   }
 
   return (
@@ -79,17 +107,7 @@ const World: React.FC<Props> = ({
         fillColor={0xeeeeee}
         fillAlpha={1}
       />
-      <SpeakerPhone
-        position={{ x: 1700, y: 1700 }}
-        name="#gps/times/ikura-hamu"
-        radius={100}
-      />
-      <SpeakerPhone
-        position={{ x: 200, y: 200 }}
-        name="#gps/times/ikura-hamu"
-        radius={100}
-      />
-
+      {speakerPhoneNodes}
       {messageNodes}
       <Reaction
         position={{ x: 300, y: 300 }}
