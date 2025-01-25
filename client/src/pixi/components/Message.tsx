@@ -3,7 +3,7 @@ import messageIcon from "/src/assets/icons/messageIcon.svg";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Graphics as PIXIGraphics, TextStyle } from "pixi.js";
 import PIXI from "pixi.js";
-import { Position } from "../Position";
+import { Position } from "../../Position";
 import { themeColors } from "../theme";
 
 const messageIconSize = 30;

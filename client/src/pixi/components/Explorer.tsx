@@ -1,5 +1,5 @@
 import { Sprite, Text, Graphics } from "@pixi/react";
-import { DisplayPosition, Position } from "../Position";
+import { DisplayPosition, Position } from "../../Position";
 import { Graphics as PIXIGraphics, TextStyle } from "pixi.js";
 import { themeColors } from "../theme";
 import { useCallback } from "react";

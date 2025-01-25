@@ -11,7 +11,7 @@ import {
   Position,
   DisplayPosition,
   displayPositionToPosition,
-} from "./Position";
+} from "../Position";
 import Explorer from "./components/Explorer";
 import PIXI from "pixi.js";
 
