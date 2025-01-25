@@ -14,8 +14,9 @@ import {
 } from "../model/position";
 import Explorer from "./components/Explorer";
 import PIXI from "pixi.js";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import dispatcherAtom from "../state/dispatcher";
+import userPositionAtom from "../state/userPosition";
 
 const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
@@ -35,7 +36,7 @@ const calcNewPosition = (position: Position, diff: Position): Position => {
 };
 
 const Canvas: React.FC<Props> = (props) => {
-  const [userPosition, setUserPosition] = useState<Position | null>(null);
+  const [userPosition, setUserPosition] = useAtom(userPositionAtom);
   const [fieldSize, setFieldSize] = useState<{
     width: number;
     height: number;
