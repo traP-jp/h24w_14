@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Reaction, { ReactionAssets } from "../model/reactions";
 
 export const StampPicker: React.FC = () => {
-  const [isPopoverOpen, setPopoverOpen] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const reactions: Reaction[] = Array(8)
     .fill([
       {
@@ -52,7 +52,7 @@ export const StampPicker: React.FC = () => {
       }
       trigger="click"
       open={isPopoverOpen}
-      onOpenChange={setPopoverOpen}
+      onOpenChange={setIsPopoverOpen}
     >
       <Button icon={<SmileOutlined />} />
     </Popover>
