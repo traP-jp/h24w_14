@@ -18,7 +18,7 @@
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    // "noUnusedParameters": true, generated code in src/schema2/ includes unused parameters
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

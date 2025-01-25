@@ -140,6 +140,7 @@ const Canvas: React.FC<Props> = (props) => {
         onMount={mountHandler}
       >
         <World
+          fieldSize={fieldSize}
           userPosition={userPosition}
           userDisplayPosition={userDisplayPosition}
         />
