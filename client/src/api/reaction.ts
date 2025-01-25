@@ -3,8 +3,6 @@ import { ReactionServiceClient } from "../schema2/reaction.client";
 import serverHostName from "./hostname";
 import { GetReactionRequest, CreateReactionRequest } from "../schema2/reaction";
 import useSWRMutation from "swr/mutation";
-import { Position } from "../model/position";
-import { ReactionName } from "../model/reactions";
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 
 const transport = new GrpcWebFetchTransport({
@@ -12,20 +10,20 @@ const transport = new GrpcWebFetchTransport({
 });
 const reactionClient = new ReactionServiceClient(transport);
 
-export const useReaction = (reactionId: string) => {
+function getReactionFetcher([_, reactionId]: [unknown, string]) {
   const req: GetReactionRequest = { id: reactionId };
-  const fetcher = () => reactionClient.getReaction(req).response;
-  return useSWR(`reaction/${reactionId}`, fetcher);
+  return reactionClient.getReaction(req).response;
+}
+export const useReaction = (reactionId: string) => {
+  return useSWR(["grpc:reaction", reactionId], getReactionFetcher);
 };
 
-export const useCreateReaction = (
-  position: Position,
-  reaction: ReactionName,
-) => {
-  const req: CreateReactionRequest = {
-    position: { x: position.x, y: position.y },
-    kind: reaction,
-  };
-  const fetcher = () => reactionClient.createReaction(req).response;
-  return useSWRMutation(`createReaction`, fetcher);
+function createReactionFetcher(
+  _: unknown,
+  { arg }: { arg: CreateReactionRequest },
+) {
+  return reactionClient.createReaction(arg).response;
+}
+export const useCreateReaction = () => {
+  return useSWRMutation("grpc:createReaction", createReactionFetcher);
 };

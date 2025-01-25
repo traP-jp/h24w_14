@@ -8,8 +8,9 @@ const transport = new GrpcWebFetchTransport({
 });
 const authClient = new AuthServiceClient(transport);
 
+function fetcher() {
+  return authClient.auth({}).response;
+}
 export const useAuth = () => {
-  const req = {};
-  const fetcher = () => authClient.auth(req).response;
-  return useSWR(`auth`, fetcher);
+  return useSWR("grpc:auth", fetcher);
 };

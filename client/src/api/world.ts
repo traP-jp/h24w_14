@@ -8,8 +8,9 @@ const transport = new GrpcWebFetchTransport({
 });
 const worldClient = new WorldServiceClient(transport);
 
+function fetcher() {
+  return worldClient.getWorld({}).response;
+}
 export const useWorld = () => {
-  const req = {};
-  const fetcher = () => worldClient.getWorld(req).response;
-  return useSWR("world", fetcher);
+  return useSWR("grpc:world", fetcher);
 };

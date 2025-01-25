@@ -8,16 +8,19 @@ const transport = new GrpcWebFetchTransport({
 });
 const userClient = new UserServiceClient(transport);
 
-export const useUser = (id: string) => {
+function getUserFetcher([_, id]: [unknown, string]) {
   const req = {
     id: id,
   };
-  const res = userClient.getUser(req);
-  return useSWR(`user/${id}`, () => res.response);
+  return userClient.getUser(req).response;
+}
+export const useUser = (id: string) => {
+  return useSWR(["grpc:user", id], getUserFetcher);
 };
 
+function getMeFetcher() {
+  return userClient.getMe({}).response;
+}
 export const useMe = () => {
-  const req = {};
-  const res = userClient.getMe(req);
-  return useSWR(`user/me`, () => res.response);
+  return useSWR("grpc:user/me", getMeFetcher);
 };

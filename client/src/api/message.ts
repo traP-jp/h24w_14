@@ -3,7 +3,6 @@ import { MessageServiceClient } from "../schema2/message.client";
 import serverHostName from "./hostname";
 import { CreateMessageRequest, GetMessageRequest } from "../schema2/message";
 import useSWRMutation from "swr/mutation";
-import { Position } from "../model/position";
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
 
 const transport = new GrpcWebFetchTransport({
@@ -11,14 +10,21 @@ const transport = new GrpcWebFetchTransport({
 });
 const messageClient = new MessageServiceClient(transport);
 
-export const useMessage = (messageId: string) => {
+function getMessageFetcher([_, messageId]: [unknown, string]) {
   const req: GetMessageRequest = { id: messageId };
-  const fetcher = () => messageClient.getMessage(req).response;
-  return useSWR(`message/${messageId}`, fetcher);
+  return messageClient.getMessage(req).response;
+}
+export const useMessage = (messageId: string) => {
+  return useSWR(["grpc:message", messageId], getMessageFetcher);
 };
 
-export const useCreateMessage = (content: string, position: Position) => {
-  const req: CreateMessageRequest = { content, position };
-  const fetcher = () => messageClient.createMessage(req).response;
-  return useSWRMutation(`createMessage`, fetcher);
+function createMessageFetcher(
+  _: unknown,
+  { arg }: { arg: CreateMessageRequest },
+) {
+  return messageClient.createMessage(arg).response;
+}
+
+export const useCreateMessage = () => {
+  return useSWRMutation(`grpc:createMessage`, createMessageFetcher);
 };
