@@ -84,8 +84,8 @@ where
     Kind: Copy + ToResponse,
 {
     type Response = Response<Body>;
-    type Error = SessionError;
-    type Future = BoxFuture<'static, Result<Response<Body>, SessionError>>;
+    type Error = Infallible;
+    type Future = BoxFuture<'static, Result<Response<Body>, Infallible>>;
 
     fn poll_ready(
         &mut self,
@@ -114,16 +114,6 @@ where
         })
     }
 }
-
-#[derive(Debug, Clone, Copy)]
-pub enum SessionError {}
-impl std::fmt::Display for SessionError {
-    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {}
-    }
-}
-
-impl std::error::Error for SessionError {}
 
 pub trait ToResponse: private::Sealed {
     fn unauthorized() -> Response<Body>;
