@@ -60,7 +60,7 @@ async fn send_message(
         .ok_or(super::Error::Unauthorized)?;
 
     let channel_id = channel_id.0;
-    let uri = format!("{traq_host}/api/v3/channels/{channel_id}/messages");
+    let uri = format!("https://{traq_host}/api/v3/channels/{channel_id}/messages");
     let params = crate::traq::auth::BuildRequestAsAuthorizedUserParams {
         user: &authorized_user,
         uri: &uri,
@@ -133,13 +133,11 @@ async fn check_message_synced(
             .bind(message_id)
             .fetch_optional(pool)
             .await?;
-    match row {
-        Some(row) => Ok(Some(super::SyncedTraqMessage {
-            id: crate::traq::message::TraqMessageId(row.id),
-            inner: message,
-            channel_id: crate::traq::channel::TraqChannelId(row.channel_id),
-            user_id: crate::traq::user::TraqUserId(row.user_id),
-        })),
-        None => return Ok(None),
-    }
+    let row = row.map(|row| super::SyncedTraqMessage {
+        id: crate::traq::message::TraqMessageId(row.id),
+        inner: message,
+        channel_id: crate::traq::channel::TraqChannelId(row.channel_id),
+        user_id: crate::traq::user::TraqUserId(row.user_id),
+    });
+    Ok(row)
 }
