@@ -34,12 +34,21 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
         };
     }
 
+    macro_rules! route_services {
+        ($router:expr; [ $( $package:ident ),+ ]) => {
+            $router $(
+                .route_service(
+                    &format!("/{}/{{*rest}}", $crate::$package::SERVICE_NAME),
+                    $package,
+                )
+            )+
+        };
+    }
+
     services! { world; }
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_grpc());
     // TODO: tonic_web::enable
-    Router::new()
-        .layer(layer)
-        .route_service(&format!("/{}/{{*rest}}", crate::world::SERVICE_NAME), world)
+    route_services!(Router::new().layer(layer); [ world ])
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
