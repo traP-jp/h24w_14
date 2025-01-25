@@ -1,20 +1,11 @@
-import { Button } from "antd";
 import Canvas from "./pixi/Canvas";
-import useExplorerDispatcher from "./api/explorer";
-import { useSetAtom } from "jotai";
-import dispatcherAtom from "./state/dispatcher";
+import { Timeline } from "./timeline/Timeline";
 
 const App = () => {
-  const dispatcher = useExplorerDispatcher();
-  useSetAtom(dispatcherAtom)(dispatcher);
-
   return (
     <div className="flex">
       <Canvas />
-      <div>
-        タイムライン
-        <Button type="primary">Primary Button</Button>
-      </div>
+      <Timeline />
     </div>
   );
 };
