@@ -47,7 +47,7 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
 
     services! { world; user; reaction; }
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_grpc());
-    route_services!(Router::new().layer(layer); [ world, user, reaction ])
+    route_services!(Router::new(); [ world, user, reaction ]).layer(layer)
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
