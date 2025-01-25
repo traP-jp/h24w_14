@@ -8,7 +8,12 @@ use tokio::sync::RwLock;
 use futures::StreamExt;
 
 use crate::{
-    event::{Event, ProvideEventService}, message::ProvideMessageService, prelude::IntoStatus, reaction::ProvideReactionService, speaker_phone::ProvideSpeakerPhoneService, user::ProvideUserService
+    event::{Event, ProvideEventService},
+    message::ProvideMessageService,
+    prelude::IntoStatus,
+    reaction::ProvideReactionService,
+    speaker_phone::ProvideSpeakerPhoneService,
+    user::ProvideUserService,
 };
 
 use super::ProvideExplorerService;
@@ -422,18 +427,25 @@ where
         .collect::<Vec<_>>();
 
     // reactions
-    let new_area_reactions = status.ctx.get_reactions_in_area(crate::reaction::GetReactionsInAreaParams {
-        center: new_exploration_field.position,
-        size: new_exploration_field.size,
-    }).await.map_err(IntoStatus::into_status)?;
+    let new_area_reactions = status
+        .ctx
+        .get_reactions_in_area(crate::reaction::GetReactionsInAreaParams {
+            center: new_exploration_field.position,
+            size: new_exploration_field.size,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?;
 
-    let reactions = new_area_reactions.iter().filter_map(|new_reaction| {
-        if !status.old_area_reactions_cache.contains(new_reaction) {
-            Some(new_reaction.clone())
-        } else {
-            None
-        }
-    }).collect::<Vec<_>>();
+    let reactions = new_area_reactions
+        .iter()
+        .filter_map(|new_reaction| {
+            if !status.old_area_reactions_cache.contains(new_reaction) {
+                Some(new_reaction.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
 
     // explorers
     let new_area_explorers = status
