@@ -69,6 +69,7 @@ where
                     id: ch.id,
                     name: ch.name,
                     children: ch.children,
+                    hidden: ch.archived || ch.force,
                 },
             )
         })
@@ -79,19 +80,26 @@ where
         .filter(|node| node.is_root)
         .collect::<Vec<_>>();
 
-    Ok(root_channels
+    let traq_channels = root_channels
         .iter()
         .flat_map(|node| node.dfs("", &channels))
-        .collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    Ok(traq_channels
+        .into_iter()
+        .filter(|ch| !channels.get(&ch.id).map(|node| node.hidden).unwrap_or(true))
+        .collect())
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 struct TraqChannelRaw {
     public: Vec<PublicChannel>,
-    dm: Vec<DmChannel>,
+    // NOTE: dm=false だから使わない
+    // dm: Vec<DmChannel>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 struct PublicChannel {
     id: super::TraqChannelId,
     parent_id: Option<super::TraqChannelId>,
@@ -114,6 +122,7 @@ struct ChannelNode {
     id: super::TraqChannelId,
     name: String,
     children: Vec<super::TraqChannelId>,
+    hidden: bool,
 }
 
 impl ChannelNode {
