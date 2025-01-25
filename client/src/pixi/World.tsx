@@ -13,6 +13,7 @@ import MessageIcon from "./components/MessageIcon";
 import useMessageExpanded from "./hooks/message";
 import { isInsideField } from "../util/field";
 import speakerPhonesAtom from "../state/speakerPhone";
+import fieldReactionsAtom from "../state/reactions";
 
 interface Props {
   userPosition: Position;
@@ -29,6 +30,7 @@ const World: React.FC<Props> = ({
     useMessageExpanded();
   const messages = useAtomValue(messagesAtom);
   const speakerPhones = useAtomValue(speakerPhonesAtom);
+  const reactions = useAtomValue(fieldReactionsAtom);
 
   const messageNodes: JSX.Element[] = [];
   for (const message of messages.values()) {
@@ -55,6 +57,22 @@ const World: React.FC<Props> = ({
         position={speakerPhone.position}
         name={speakerPhone.name}
         radius={100}
+      />
+    ));
+
+  const reactionsNodes = Array.from(reactions.values())
+    .filter((reaction) =>
+      isInsideField(reaction.position, fieldSize, userPosition),
+    )
+    .map((reaction) => (
+      <Reaction
+        key={reaction.id}
+        position={reaction.position}
+        reaction={reaction.kind}
+        user={{
+          name: reaction.userId,
+          iconURL: traqIconURL(reaction.userId),
+        }}
       />
     ));
 
@@ -88,6 +106,19 @@ const World: React.FC<Props> = ({
         />,
       );
     }
+    for (let i = 7; i <= 9; i++) {
+      reactionsNodes.push(
+        <Reaction
+          key={i}
+          position={{ x: 100 * i + 10, y: 100 * i }}
+          reaction="iine"
+          user={{
+            name: "ikura-hamu",
+            iconURL: traqIconURL("ikura-hamu"),
+          }}
+        />,
+      );
+    }
   }
 
   return (
@@ -109,30 +140,7 @@ const World: React.FC<Props> = ({
       />
       {speakerPhoneNodes}
       {messageNodes}
-      <Reaction
-        position={{ x: 300, y: 300 }}
-        reaction="kusa"
-        user={{
-          name: "SSlime",
-          iconURL: traqIconURL("SSlime"),
-        }}
-      />
-      <Reaction
-        position={{ x: 200, y: 500 }}
-        reaction="iine"
-        user={{
-          name: "Ras",
-          iconURL: traqIconURL("Ras"),
-        }}
-      />
-      <Reaction
-        position={{ x: 250, y: 500 }}
-        reaction="pro"
-        user={{
-          name: "H1rono_K",
-          iconURL: traqIconURL("H1rono_K"),
-        }}
-      />
+      {reactionsNodes}
       <Message
         expanded={expanded}
         message={message}
