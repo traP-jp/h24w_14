@@ -40,7 +40,7 @@ const Canvas: React.FC<Props> = (props) => {
     width: number;
     height: number;
   } | null>(null);
-  const [intervalID, setIntervalID] = useState<number | null>(null);
+  const intervalID = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dispatcher = useAtomValue(dispatcherAtom);
 
@@ -84,9 +84,8 @@ const Canvas: React.FC<Props> = (props) => {
             position: targetPosition,
             size: fieldSize,
           });
-          console.log("stop !", targetPosition);
 
-          clearInterval(intervalID ?? undefined);
+          clearInterval(intervalID.current ?? undefined);
           return targetPosition;
         }
         const nextPosition = calcNewPosition(position, {
@@ -97,7 +96,6 @@ const Canvas: React.FC<Props> = (props) => {
           position: nextPosition,
           size: fieldSize,
         });
-        console.log("moving...", nextPosition);
         return nextPosition;
       });
     },
@@ -129,16 +127,14 @@ const Canvas: React.FC<Props> = (props) => {
         userDisplayPosition,
       );
 
+      if (intervalID.current !== null) {
+        clearInterval(intervalID.current);
+      }
+
       const id = setInterval(() => {
         updateUserPosition(clickPosition);
       }, 1000 / 60);
-      console.log("start !", clickPosition);
-      setIntervalID((old) => {
-        if (old !== null) {
-          clearInterval(old);
-        }
-        return id;
-      });
+      intervalID.current = id;
     },
     [updateUserPosition, userDisplayPosition, userPosition],
   );
