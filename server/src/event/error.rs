@@ -1,14 +1,8 @@
-use tokio::sync::broadcast::error::{RecvError, SendError};
+use tokio::sync::broadcast::error::RecvError;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
-    SendMessage(#[from] SendError<super::Message>),
-    #[error(transparent)]
-    SendSpeakerPhone(#[from] SendError<super::SpeakerPhone>),
-    #[error(transparent)]
-    SendEvent(#[from] SendError<super::Event>),
     #[error(transparent)]
     Recv(#[from] RecvError),
     #[error(transparent)]
