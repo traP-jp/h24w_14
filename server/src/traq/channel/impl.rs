@@ -123,7 +123,7 @@ impl ChannelNode {
         channels: &HashMap<super::TraqChannelId, ChannelNode>,
     ) -> Vec<super::TraqChannel> {
         // current channel
-        let path = if path == "#" {
+        let path = if path.is_empty() {
             format!("#{}", self.name)
         } else {
             format!("{}/{}", path, self.name)
