@@ -14,6 +14,12 @@ message User {
     google.protobuf.Timestamp created_at = 4;
 }
 
+message GetMeRequest {}
+
+message GetMeResponse {
+    User user = 1;
+}
+
 message GetUserRequest {
     // UUID
     string id = 1;
@@ -25,6 +31,8 @@ message GetUserResponse {
 
 service UserService {
     rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+    rpc GetMe(GetMeRequest) returns (GetMeResponse);
 
     // ユーザーのアイコンはtraQのpublic APIから取得する
     // rpc GetUserIcon(GetUserIconRequest) returns (GetUserIconResponse);
