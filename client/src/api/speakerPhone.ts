@@ -1,41 +1,44 @@
 import useSWR from "swr";
 import { SpeakerPhoneServiceClient } from "../schema2/speaker_phone.client";
-import serverHostName from "./hostname";
 import {
   GetSpeakerPhoneRequest,
   CreateSpeakerPhoneRequest,
-  GetAvailableChannelsRequest,
   SearchChannelsRequest,
 } from "../schema2/speaker_phone";
 import useSWRMutation from "swr/mutation";
-import { Position } from "../model/position";
-import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
+import { TRANSPORT } from "./transport";
 
-const transport = new GrpcWebFetchTransport({
-  baseUrl: serverHostName,
-});
-const speakerPhoneClient = new SpeakerPhoneServiceClient(transport);
+const speakerPhoneClient = new SpeakerPhoneServiceClient(TRANSPORT);
 
-export const useSpeakerPhone = (speakerPhoneId: string) => {
+function getSpeakerPhoneFetcher([_, speakerPhoneId]: [unknown, string]) {
   const req: GetSpeakerPhoneRequest = { id: speakerPhoneId };
-  const fetcher = () => speakerPhoneClient.getSpeakerPhone(req).response;
-  return useSWR(`speakerPhone/${speakerPhoneId}`, fetcher);
+  return speakerPhoneClient.getSpeakerPhone(req).response;
+}
+export const useSpeakerPhone = (speakerPhoneId: string) => {
+  return useSWR(["grpc:speakerPhone", speakerPhoneId], getSpeakerPhoneFetcher);
 };
 
-export const useCreateSpeakerPhone = (position: Position, name: string) => {
-  const req: CreateSpeakerPhoneRequest = { position, name };
-  const fetcher = () => speakerPhoneClient.createSpeakerPhone(req).response;
-  return useSWRMutation(`createSpeakerPhone`, fetcher);
+function createSpeakerPhoneFetcher(
+  _: unknown,
+  { arg }: { arg: CreateSpeakerPhoneRequest },
+) {
+  return speakerPhoneClient.createSpeakerPhone(arg).response;
+}
+export const useCreateSpeakerPhone = () => {
+  return useSWRMutation("grpc:createSpeakerPhone", createSpeakerPhoneFetcher);
 };
 
+function getAvailableChannelsFetcher() {
+  return speakerPhoneClient.getAvailableChannels({}).response;
+}
 export const useAvailableChannels = () => {
-  const req: GetAvailableChannelsRequest = {};
-  const fetcher = () => speakerPhoneClient.getAvailableChannels(req).response;
-  return useSWR(`availableChannels`, fetcher);
+  return useSWR("grpc:availableChannels", getAvailableChannelsFetcher);
 };
 
-export const useSearchChannels = (name: string) => {
+function searchChannelsFetcher([_, name]: [unknown, string]) {
   const req: SearchChannelsRequest = { name };
-  const fetcher = () => speakerPhoneClient.searchChannels(req).response;
-  return useSWR(`searchChannels`, fetcher);
+  return speakerPhoneClient.searchChannels(req).response;
+}
+export const useSearchChannels = (name: string) => {
+  return useSWR(["grpc:searchChannels", name], searchChannelsFetcher);
 };
