@@ -4,11 +4,14 @@ pub mod error;
 pub mod r#impl;
 pub mod layer;
 
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
+pub use axum_extra::extract::cookie::PrivateCookieJar;
 pub use error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -31,7 +34,6 @@ pub struct SaveParams<'a> {
 }
 
 pub trait SessionService<Context>: Send + Sync + 'static {
-    type Jar: axum::response::IntoResponseParts + 'static;
     type Error: IntoStatus;
 
     fn extract<'a>(
@@ -43,7 +45,7 @@ pub trait SessionService<Context>: Send + Sync + 'static {
         &'a self,
         ctx: &'a Context,
         params: SaveParams,
-    ) -> BoxFuture<'a, Result<Self::Jar, Self::Error>>;
+    ) -> BoxFuture<'a, Result<PrivateCookieJar, Self::Error>>;
 }
 
 #[allow(clippy::type_complexity)]
@@ -70,10 +72,7 @@ pub trait ProvideSessionService: Send + Sync + 'static {
         params: SaveParams,
     ) -> BoxFuture<
         '_,
-        Result<
-            <Self::SessionService as SessionService<Self::Context>>::Jar,
-            <Self::SessionService as SessionService<Self::Context>>::Error,
-        >,
+        Result<PrivateCookieJar, <Self::SessionService as SessionService<Self::Context>>::Error>,
     > {
         let ctx = self.context();
         self.session_service().save(ctx, params)
@@ -82,3 +81,24 @@ pub trait ProvideSessionService: Send + Sync + 'static {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SessionServiceImpl;
+
+// extract できなかったら Unauthorized を返すレイヤー
+pub fn build_http_layer<State>(state: Arc<State>) -> layer::SessionLayer<State, layer::HTTP>
+where
+    State: ProvideSessionService,
+{
+    layer::SessionLayer {
+        state,
+        _kind: layer::HTTP,
+    }
+}
+
+pub fn build_grpc_layer<State>(state: Arc<State>) -> layer::SessionLayer<State, layer::Grpc>
+where
+    State: ProvideSessionService,
+{
+    layer::SessionLayer {
+        state,
+        _kind: layer::Grpc,
+    }
+}

@@ -85,14 +85,14 @@ pub trait ProvideWorldService: Send + Sync + 'static {
         let ctx = self.context();
         self.world_service().check_coordinate(ctx, params)
     }
+}
 
-    fn build_server(this: Arc<Self>) -> WorldServiceServer<Self>
-    where
-        Self: Sized,
-    {
-        let service = grpc::ServiceImpl::new(this);
-        WorldServiceServer::new(service)
-    }
+pub fn build_server<State>(state: Arc<State>) -> WorldServiceServer<State>
+where
+    State: ProvideWorldService + Sized,
+{
+    let service = grpc::ServiceImpl::new(state);
+    WorldServiceServer::new(service)
 }
 
 #[derive(Debug, Clone, Copy, Default)]
