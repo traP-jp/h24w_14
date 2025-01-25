@@ -46,10 +46,16 @@ where
         .map_err(IntoStatus::into_status)?
         .send()
         .await
-        .map_err(|_| super::error::Error::RequestSendError)?
+        .map_err(|e| {
+            tracing::error!(error = &e as &dyn std::error::Error);
+            super::error::Error::RequestSendError
+        })?
         .json::<TraqChannelRaw>()
         .await
-        .map_err(|_| super::error::Error::ParseError)?;
+        .map_err(|e| {
+            tracing::warn!(error = &e as &dyn std::error::Error);
+            super::error::Error::ParseError
+        })?;
 
     // build full paths
     let mut channels = HashMap::new();
@@ -76,13 +82,13 @@ where
         .collect::<Vec<_>>())
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 struct TraqChannelRaw {
     public: Vec<PublicChannel>,
     dm: Vec<DmChannel>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 struct PublicChannel {
     id: super::TraqChannelId,
     parent_id: Option<super::TraqChannelId>,
@@ -93,7 +99,7 @@ struct PublicChannel {
     children: Vec<super::TraqChannelId>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 struct DmChannel {
     id: super::TraqChannelId,
     user_id: crate::traq::user::TraqUserId,

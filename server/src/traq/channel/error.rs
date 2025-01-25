@@ -10,7 +10,11 @@ pub enum Error {
 
 impl From<Error> for tonic::Status {
     fn from(value: Error) -> Self {
-        tonic::Status::internal(value.to_string())
+        match value {
+            Error::RequestSendError => tonic::Status::internal("request sending error"),
+            Error::ParseError => tonic::Status::internal("parsing error"),
+            Error::Status(status) => status,
+        }
     }
 }
 
