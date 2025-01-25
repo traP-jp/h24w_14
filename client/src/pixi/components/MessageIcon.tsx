@@ -11,7 +11,7 @@ interface Props {
 
 const messageIconSize = 30;
 
-const ExpandedIcon: React.FC<Props> = ({
+const MessageIcon: React.FC<Props> = ({
   message,
   expander,
   currentExpandedMessageId,
@@ -37,4 +37,4 @@ const ExpandedIcon: React.FC<Props> = ({
   );
 };
 
-export default ExpandedIcon;
+export default MessageIcon;
