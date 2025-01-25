@@ -52,8 +52,8 @@ pub struct MessageRow {
     pub id: Uuid,
     pub user_id: Uuid,
     pub content: String,
-    pub position_x: u32,
-    pub position_y: u32,
+    pub position_x: i32,
+    pub position_y: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
@@ -64,8 +64,8 @@ impl From<MessageRow> for super::Message {
             id: super::MessageId(row.id),
             user_id: crate::user::UserId(row.user_id),
             position: crate::world::Coordinate {
-                x: row.position_x,
-                y: row.position_y,
+                x: row.position_x as u32,
+                y: row.position_y as u32,
             },
             content: row.content,
             created_at: Timestamp(row.created_at),
@@ -125,8 +125,8 @@ async fn create_message<P: crate::event::ProvideEventService>(
         .bind(id)
         .bind(params.user_id.0)
         .bind(params.content)
-        .bind(params.position.x)
-        .bind(params.position.y)
+        .bind(params.position.x as i32)
+        .bind(params.position.y as i32)
         .bind(calculate_expires_at(Utc::now()))
         .execute(pool)
         .await
