@@ -17,6 +17,15 @@ where
     }
 }
 
+impl<State> ServiceImpl<State>
+where
+    State: super::ProvideTraqAuthService + crate::session::ProvideSessionService,
+{
+    pub(super) fn new(state: Arc<State>) -> Self {
+        Self { state }
+    }
+}
+
 #[async_trait::async_trait]
 impl<State> schema::auth::auth_service_server::AuthService for ServiceImpl<State>
 where

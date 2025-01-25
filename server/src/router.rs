@@ -46,10 +46,19 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
     }
 
     services! { world; user; reaction; }
+    let traq_auth = tonic_web::enable(crate::traq::auth::build_server(Arc::clone(&state)))
+        .map_request(|r: http::Request<AxumBody>| {
+            r.map(|b| {
+                b.map_err(|e| tonic::Status::from_error(e.into_inner()))
+                    .boxed_unsync()
+            })
+        });
     let layer = ServiceBuilder::new()
         .layer(TraceLayer::new_for_grpc())
         .layer(crate::session::build_grpc_layer(state));
-    route_services!(Router::new(); [ world, user, reaction ]).layer(layer)
+    route_services!(Router::new(); [ world, user, reaction ])
+        .layer(layer)
+        .route_service(crate::traq::auth::SERVICE_NAME, traq_auth)
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {

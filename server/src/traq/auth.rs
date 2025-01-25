@@ -2,6 +2,8 @@ pub mod error;
 pub mod grpc;
 pub mod r#impl;
 
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
@@ -9,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::prelude::IntoStatus;
 
 pub use error::Error;
+pub use schema::auth::auth_service_server::SERVICE_NAME;
 
 #[derive(Debug, Clone)]
 pub struct TraqOauthClientConfig {
@@ -116,3 +119,14 @@ pub trait ProvideTraqAuthService: Send + Sync + 'static {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TraqAuthServiceImpl;
+
+pub fn build_server<State>(this: Arc<State>) -> AuthServiceServer<State>
+where
+    State: ProvideTraqAuthService + crate::session::ProvideSessionService + Sized,
+{
+    let service = grpc::ServiceImpl::new(this);
+    AuthServiceServer::new(service)
+}
+
+pub type AuthServiceServer<State> =
+    schema::auth::auth_service_server::AuthServiceServer<grpc::ServiceImpl<State>>;

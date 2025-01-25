@@ -1,5 +1,6 @@
 pub trait Requirements:
     crate::world::ProvideWorldService
+    + crate::traq::auth::ProvideTraqAuthService
     + crate::user::ProvideUserService
     + crate::session::ProvideSessionService
     + crate::reaction::ProvideReactionService
@@ -8,6 +9,7 @@ pub trait Requirements:
 
 impl<T> Requirements for T where
     T: crate::world::ProvideWorldService
+        + crate::traq::auth::ProvideTraqAuthService
         + crate::user::ProvideUserService
         + crate::session::ProvideSessionService
         + crate::reaction::ProvideReactionService
