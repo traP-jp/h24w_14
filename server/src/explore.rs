@@ -1,9 +1,18 @@
 //! `explore.proto`
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use futures::{future::BoxFuture, stream::BoxStream};
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
 use crate::prelude::IntoStatus;
+
+pub mod error;
+mod r#impl;
+
+pub use error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]
@@ -66,6 +75,11 @@ pub enum GetExplorersInAreaParams {
 pub struct ExploreParams<'a> {
     pub id: crate::user::UserId,
     pub stream: BoxStream<'a, ExplorationField>,
+}
+
+#[derive(Clone)]
+pub struct ExplorerStore {
+    explorers: Arc<RwLock<HashMap<ExplorerId, Explorer>>>,
 }
 
 pub trait ExploreService<Context>: Send + Sync + 'static {
@@ -160,3 +174,6 @@ pub trait ProvideExplorerService: Send + Sync + 'static {
         self.explorer_service().get_explorers_in_area(ctx, params)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExplorerServiceImpl;
