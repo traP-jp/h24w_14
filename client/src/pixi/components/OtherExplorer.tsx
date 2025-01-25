@@ -24,8 +24,8 @@ const OtherExplorer: React.FC<Props> = ({ explorer, previousPosition }) => {
       }
       setPosition((pos) => {
         const diff = {
-          x: pos.x - previousPosition.x,
-          y: pos.y - previousPosition.y,
+          x: targetPosition.x - pos.x,
+          y: targetPosition.y - pos.y,
         };
         if (Math.abs(diff.x) < 3 && Math.abs(diff.y) < 3) {
           return targetPosition;
