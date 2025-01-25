@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::prelude::IntoStatus;
 
-mod r#impl;
 pub mod error;
+mod r#impl;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(transparent)]

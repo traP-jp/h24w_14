@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+
 use futures::FutureExt;
 
-use crate::{prelude::IntoStatus, traq::{
-    bot::{BuildRequestAsBotParams, ProvideTraqBotService},
-    TraqHost,
-}};
+use crate::{
+    prelude::IntoStatus,
+    traq::{
+        bot::{BuildRequestAsBotParams, ProvideTraqBotService},
+        TraqHost,
+    },
+};
 
 impl<Context> super::TraqChannelService<Context> for super::TraqChannelServiceImpl
 where
@@ -20,9 +25,9 @@ where
     }
 }
 
-async fn get_all_channels<'a, Context>(
-    ctx: &'a Context,
-    params: super::GetAllChannelsParams,
+async fn get_all_channels<Context>(
+    ctx: &Context,
+    _params: super::GetAllChannelsParams,
 ) -> Result<Vec<super::TraqChannel>, super::error::Error>
 where
     Context: ProvideTraqBotService + AsRef<TraqHost>,
@@ -32,7 +37,7 @@ where
 
     let params = BuildRequestAsBotParams {
         method: http::Method::GET,
-        uri: &format!("https://{}/api/v3/channels", traq_host),
+        uri: &format!("https://{}/api/v3/channels?include-dm=false", traq_host),
     };
 
     let result = ctx
@@ -41,10 +46,86 @@ where
         .map_err(IntoStatus::into_status)?
         .send()
         .await
-        .map_err(|_|super::error::Error::RequestSendError)?
-        .json::<Vec<super::TraqChannel>>()
+        .map_err(|_| super::error::Error::RequestSendError)?
+        .json::<TraqChannelRaw>()
         .await
-        .map_err(|_|super::error::Error::ParseError)?;
+        .map_err(|_| super::error::Error::ParseError)?;
 
-    Ok(result)
+    // build full paths
+    let mut channels = HashMap::new();
+
+    for channel in result.public {
+        let node = ChannelNode {
+            is_root: channel.parent_id.is_none(),
+            name: channel.name,
+            children: channel.children,
+        };
+
+        channels.insert(channel.id, node);
+    }
+
+    let root_channels = channels
+        .values()
+        .filter(|node| node.is_root)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    Ok(root_channels
+        .iter()
+        .flat_map(|node| node.dfs("", &channels))
+        .collect::<Vec<_>>())
+}
+
+#[derive(serde::Deserialize)]
+struct TraqChannelRaw {
+    public: Vec<PublicChannel>,
+    dm: Vec<DmChannel>,
+}
+
+#[derive(serde::Deserialize)]
+struct PublicChannel {
+    id: super::TraqChannelId,
+    parent_id: Option<super::TraqChannelId>,
+    archived: bool,
+    force: bool,
+    topic: String,
+    name: String,
+    children: Vec<super::TraqChannelId>,
+}
+
+#[derive(serde::Deserialize)]
+struct DmChannel {
+    id: super::TraqChannelId,
+    user_id: crate::traq::user::TraqUserId,
+}
+
+#[derive(Clone)]
+struct ChannelNode {
+    is_root: bool,
+    name: String,
+    children: Vec<super::TraqChannelId>,
+}
+
+impl ChannelNode {
+    fn dfs(
+        &self,
+        path: &str,
+        channels: &HashMap<super::TraqChannelId, ChannelNode>,
+    ) -> Vec<super::TraqChannel> {
+        // current channel
+        let path = format!("{}/{}", path, self.name);
+
+        let mut result = vec![super::TraqChannel {
+            id: super::TraqChannelId(uuid::Uuid::new_v4()),
+            path: path.clone(),
+        }];
+
+        self.children
+            .iter()
+            .flat_map(|child| channels.get(child))
+            .flat_map(|child_node| child_node.dfs(&path, channels))
+            .for_each(|channel| result.push(channel));
+
+        result
+    }
 }
