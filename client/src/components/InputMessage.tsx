@@ -65,6 +65,7 @@ export const InputMessage: React.FC = () => {
         className="size-6 mb-1"
         onClick={sendMessage}
         disabled={isSending}
+        type="text"
         icon={<SendOutlined />}
       />
     </div>
