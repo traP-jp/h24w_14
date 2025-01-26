@@ -1,0 +1,40 @@
+name: h24w_14
+
+services:
+  app:
+    image: ghcr.io/trap-jp/h24w_14:server-latest
+    env_file:
+      - .env
+    ports:
+      - '8000:8000'
+  db:
+    image: mariadb:11.4.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: h24w14
+      MYSQL_USER: h24w14
+      MYSQL_PASSWORD: password
+    expose:
+      - 3306
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "healthcheck.sh",
+          "--su-mysql",
+          "--connect",
+          "--innodb_initialized",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  adminer:
+    image: adminer:4.7.7
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
