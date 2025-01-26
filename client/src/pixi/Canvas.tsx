@@ -9,7 +9,7 @@ import {
 import Explorer from "./components/Explorer";
 import PIXI from "pixi.js";
 import { useAtom, useAtomValue } from "jotai";
-import dispatcherAtom from "../state/dispatcher";
+import { useThrottledDispatcher } from "../state/dispatcher";
 import userPositionAtom from "../state/userPosition";
 import meAtom from "../state/me";
 import { traqIconURL } from "../util/icon";
@@ -37,7 +37,7 @@ const Canvas: React.FC<Props> = (props) => {
   const [fieldSize, setFieldSize] = useAtom(fieldSizeAtom);
   const intervalID = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const dispatcher = useAtomValue(dispatcherAtom);
+  const dispatcher = useThrottledDispatcher();
   const me = useAtomValue(meAtom);
 
   useEffect(() => {

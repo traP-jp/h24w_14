@@ -25,7 +25,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-infinite-scroll-component": "^6.1.0",
-    "swr": "^2.3.0"
+    "swr": "^2.3.0",
+    "throttle-debounce": "^5.0.2"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.50.0",
@@ -33,6 +34,7 @@
     "@protobuf-ts/plugin": "^2.9.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/throttle-debounce": "^5.0.2",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
