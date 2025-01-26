@@ -15,7 +15,8 @@ where
         + crate::event::ProvideEventService
         + crate::traq::channel::ProvideTraqChannelService
         + crate::traq::message::ProvideTraqMessageService
-        + crate::traq::user::ProvideTraqUserService,
+        + crate::traq::user::ProvideTraqUserService
+        + crate::world::ProvideWorldService,
 {
     type Error = super::Error;
 
@@ -40,7 +41,7 @@ where
         ctx: &'a Context,
         params: super::CreateSpeakerPhoneParams,
     ) -> futures::future::BoxFuture<'a, Result<super::SpeakerPhone, Self::Error>> {
-        create_speaker_phone(ctx, ctx, ctx.as_ref(), params).boxed()
+        create_speaker_phone(ctx, ctx, ctx, ctx.as_ref(), params).boxed()
     }
 
     fn load_all_speaker_phones(
@@ -140,10 +141,18 @@ async fn get_speaker_phones_in_area(
 async fn create_speaker_phone(
     event_service: &impl crate::event::ProvideEventService,
     traq_channel_service: &impl crate::traq::channel::ProvideTraqChannelService,
+    world_service: &impl crate::world::ProvideWorldService,
     pool: &MySqlPool,
     params: super::CreateSpeakerPhoneParams,
 ) -> Result<super::SpeakerPhone, super::Error> {
     let super::CreateSpeakerPhoneParams { position, name } = params;
+    let world_size = world_service
+        .get_world_size(crate::world::GetWorldSizeParams {})
+        .await
+        .map_err(IntoStatus::into_status)?;
+    if position.x >= world_size.width || position.y >= world_size.height {
+        return Err(super::Error::BadPositionProvided);
+    }
     let all_channels = traq_channel_service
         .get_all_channels(crate::traq::channel::GetAllChannelsParams {})
         .await
