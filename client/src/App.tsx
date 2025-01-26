@@ -1,4 +1,4 @@
-import { ConfigProvider } from "antd";
+import { Button, ConfigProvider } from "antd";
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import useExplorerDispatcher from "./api/explorer";
@@ -6,6 +6,10 @@ import { StampPicker } from "./components/StampPicker";
 import { Timeline } from "./components/Timeline";
 import Canvas from "./pixi/Canvas";
 import dispatcherAtom from "./state/dispatcher";
+import { useMe } from "./api/user";
+import { User } from "./schema2/user";
+import { useAuth } from "./api/auth";
+import meAtom from "./state/me";
 
 const App = () => {
   const dispatcher = useExplorerDispatcher();
@@ -13,6 +17,30 @@ const App = () => {
   useEffect(() => {
     setDispatcher(() => dispatcher);
   }, [dispatcher, setDispatcher]);
+  const { data: resUser, error, isLoading } = useMe();
+  const { trigger: authTrigger } = useAuth();
+  const setMe = useSetAtom(meAtom);
+
+  const loginOnClick = async () => {
+    const res = await authTrigger();
+    window.location.href = res.location;
+  };
+
+  useEffect(
+    () => setMe({ id: resUser?.user?.id, name: resUser?.user?.name } as User),
+    [resUser, setMe],
+  );
+
+  if (error) {
+    console.log(error);
+  }
+
+  if (isLoading) {
+    return <div>loading...</div>;
+  }
+  if (!resUser) {
+    return <Button onClick={loginOnClick}>ログイン</Button>;
+  }
 
   return (
     <div className="flex">
