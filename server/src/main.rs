@@ -19,6 +19,7 @@ struct State {
     traq_host: lib::traq::TraqHost,
     traq_bot_config: lib::traq::bot::TraqBotConfig,
     traq_bot_channels: lib::traq::bot::TraqBotChannels,
+    frontend_dist_dir: lib::router::FrontendDistDir,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -59,6 +60,7 @@ async fn main() -> anyhow::Result<()> {
     let traq_oauth_client_config = load::traq_oauth_client_config()?;
     let traq_host = load::traq_host()?;
     let traq_bot_config = load::traq_bot_config()?;
+    let frontend_dist_dir = load::frontend_dist_dir()?;
     let state = Arc::new(State {
         pool,
         task_manager,
@@ -72,6 +74,7 @@ async fn main() -> anyhow::Result<()> {
         traq_host,
         traq_bot_config,
         traq_bot_channels: lib::traq::bot::TraqBotChannels::default(),
+        frontend_dist_dir,
     });
     state.migrate().await?;
 
@@ -216,6 +219,11 @@ mod load {
             .build();
         Ok(config)
     }
+
+    pub fn frontend_dist_dir() -> anyhow::Result<lib::router::FrontendDistDir> {
+        let v = env_var!("FRONTEND_DIST_DIR")?;
+        Ok(lib::router::FrontendDistDir(v))
+    }
 }
 
 #[tracing::instrument]
@@ -326,6 +334,12 @@ impl AsRef<lib::traq::bot::TraqBotConfig> for State {
 impl AsRef<lib::traq::bot::TraqBotChannels> for State {
     fn as_ref(&self) -> &lib::traq::bot::TraqBotChannels {
         &self.traq_bot_channels
+    }
+}
+
+impl AsRef<lib::router::FrontendDistDir> for State {
+    fn as_ref(&self) -> &lib::router::FrontendDistDir {
+        &self.frontend_dist_dir
     }
 }
 

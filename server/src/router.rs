@@ -24,6 +24,9 @@ use crate::{
 pub mod grpc;
 pub mod other;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FrontendDistDir(pub String);
+
 pub fn make<State>(state: Arc<State>) -> Router<()>
 where
     State: grpc::Requirements + other::Requirements,
@@ -105,6 +108,8 @@ fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
             tracing::error!(error = &e as &dyn std::error::Error);
             http::StatusCode::INTERNAL_SERVER_ERROR
         });
+    let serve_dir: &FrontendDistDir = (*state).as_ref();
+    let serve_dir = tower_http::services::ServeDir::new(&serve_dir.0);
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_http());
     Router::new()
         .route("/ping", routing::get(|| async { "pong".to_string() }))
@@ -112,6 +117,7 @@ fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
         .route("/ws", routing::get(handle_ws))
         .route_service("/bot", bot)
         .with_state(state)
+        .fallback_service(serve_dir)
         .layer(layer)
 }
 
