@@ -150,8 +150,8 @@ const World: React.FC<Props> = ({
 
   return (
     <Container
-      width={2000}
-      height={2000}
+      width={5000}
+      height={5000}
       x={-userPosition.x + userDisplayPosition.left}
       y={-userPosition.y + userDisplayPosition.top}
       anchor={{ x: 0, y: 0 }}
@@ -160,8 +160,8 @@ const World: React.FC<Props> = ({
       <Rectangle
         lineWidth={2}
         color={0xffffff}
-        width={2000}
-        height={2000}
+        width={5000}
+        height={5000}
         fillColor={0xeeeeee}
         fillAlpha={1}
       />

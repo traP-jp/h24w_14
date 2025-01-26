@@ -27,8 +27,8 @@ interface Props {
 }
 
 const calcNewPosition = (position: Position, diff: Position): Position => {
-  const x = Math.max(Math.min(position.x + diff.x, 2000), 0);
-  const y = Math.max(Math.min(position.y + diff.y, 2000), 0);
+  const x = Math.max(Math.min(position.x + diff.x, 5000), 0);
+  const y = Math.max(Math.min(position.y + diff.y, 5000), 0);
   return { x, y };
 };
 
