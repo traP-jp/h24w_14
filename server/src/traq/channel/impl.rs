@@ -12,7 +12,7 @@ use crate::{
 
 impl<Context> super::TraqChannelService<Context> for super::TraqChannelServiceImpl
 where
-    Context: ProvideTraqBotService + AsRef<TraqHost>,
+    Context: ProvideTraqBotService + AsRef<TraqHost> + AsRef<super::TraqChannelsCache>,
 {
     type Error = super::error::Error;
 
@@ -30,8 +30,12 @@ async fn get_all_channels<Context>(
     _params: super::GetAllChannelsParams,
 ) -> Result<Vec<super::TraqChannel>, super::error::Error>
 where
-    Context: ProvideTraqBotService + AsRef<TraqHost>,
+    Context: ProvideTraqBotService + AsRef<TraqHost> + AsRef<super::TraqChannelsCache>,
 {
+    let cache: &super::TraqChannelsCache = ctx.as_ref();
+    if let Some(cache) = &*cache.0.read().await {
+        return Ok(cache.clone());
+    }
     // send request
     let traq_host: &TraqHost = ctx.as_ref();
 
@@ -85,10 +89,13 @@ where
         .flat_map(|node| node.dfs("", &channels))
         .collect::<Vec<_>>();
 
-    Ok(traq_channels
+    let res: Vec<_> = traq_channels
         .into_iter()
         .filter(|ch| !channels.get(&ch.id).map(|node| node.hidden).unwrap_or(true))
-        .collect())
+        .collect();
+    let mut cache = cache.0.write().await;
+    cache.replace(res.clone());
+    Ok(res)
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
