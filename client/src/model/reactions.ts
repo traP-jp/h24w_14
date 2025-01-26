@@ -1,10 +1,10 @@
 import Abao_iyaaaa from "../assets/reactions/Abao_iyaaaa.webp";
 import Eyes from "../assets/reactions/eyes.webp";
+import Fire from "../assets/reactions/fire.png";
 import Hetareneko_iyaaa from "../assets/reactions/Hetareneko_iyaaa.webp";
 import Iine from "../assets/reactions/iine.webp";
 import Kusa from "../assets/reactions/kusa.webp";
 import Pro from "../assets/reactions/pro.webp";
-import Fire from "../assets/reactions/fire.png";
 import Smile from "../assets/reactions/smile.png";
 
 import { Position } from "./position";
