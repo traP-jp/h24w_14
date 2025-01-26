@@ -58,7 +58,7 @@ const Canvas: React.FC<Props> = (props) => {
       y: height / 2,
     });
     // TODO: リサイズオブザーバー入れる
-  }, []);
+  }, [setUserPosition]);
 
   const userDisplayPosition = useMemo(() => {
     if (fieldSize === null) {
