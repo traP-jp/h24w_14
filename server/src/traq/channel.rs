@@ -6,7 +6,6 @@ use tokio::sync::RwLock;
 
 use crate::prelude::IntoStatus;
 
-mod cache;
 pub mod error;
 mod r#impl;
 
