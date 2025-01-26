@@ -30,7 +30,23 @@ where
 {
     let grpcs = grpc_routes(state.clone());
     let others = other_routes(state.clone());
-    Router::merge(grpcs, others)
+    Router::merge(grpcs, others).layer(
+        CorsLayer::new()
+            .allow_origin(AllowOrigin::any()) // FIXME
+            .allow_methods(AllowMethods::list(vec![
+                Method::POST,
+                Method::OPTIONS,
+                Method::GET,
+            ]))
+            .allow_headers(AllowHeaders::list(vec![
+                header::CONTENT_TYPE,
+                header::AUTHORIZATION,
+                header::COOKIE,
+                // header::X_GRPC_WEB,
+                HeaderName::from_static("x-grpc-web"),
+            ]))
+            .allow_credentials(true),
+    )
 }
 
 fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
@@ -70,44 +86,31 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
                     .boxed_unsync()
             })
         });
-    let layer = ServiceBuilder::new()
-        .layer(TraceLayer::new_for_grpc())
-        .layer(crate::session::build_grpc_layer(state));
+    let trace_layer = TraceLayer::new_for_grpc();
+    let session_layer = crate::session::build_grpc_layer(state);
     route_services!(Router::new(); [ world, user, reaction, message, speaker_phone ])
-        .layer(layer)
+        .layer(session_layer)
         .route_service(
             &format!("/{}/{{*res}}", crate::traq::auth::SERVICE_NAME),
             traq_auth,
         )
-        .layer(
-            CorsLayer::new()
-                .allow_origin(AllowOrigin::list(vec!["http://localhost:5173"
-                    .parse()
-                    .unwrap()]))
-                .allow_methods(AllowMethods::list(vec![
-                    Method::POST,
-                    Method::OPTIONS,
-                    Method::GET,
-                ]))
-                .allow_headers(AllowHeaders::list(vec![
-                    header::CONTENT_TYPE,
-                    header::AUTHORIZATION,
-                    header::COOKIE,
-                    // header::X_GRPC_WEB,
-                    HeaderName::from_static("x-grpc-web"),
-                ]))
-                .allow_credentials(true),
-        )
+        .layer(trace_layer)
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
-    use axum::routing;
+    use axum::{routing, ServiceExt};
 
+    let bot = crate::traq::bot::tower::build_server::<_, axum::body::Body>(Arc::clone(&state))
+        .handle_error::<_, ()>(|e: traq_bot_http::Error| async move {
+            tracing::error!(error = &e as &dyn std::error::Error);
+            http::StatusCode::INTERNAL_SERVER_ERROR
+        });
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_http());
     Router::new()
         .route("/ping", routing::get(|| async { "pong".to_string() }))
         .route("/oauth2/redirect", routing::get(handle_redirect))
         .route("/ws", routing::get(handle_ws))
+        .route_service("/bot", bot)
         .with_state(state)
         .layer(layer)
 }
