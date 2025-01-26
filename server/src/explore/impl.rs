@@ -235,10 +235,6 @@ where
         }).await?;
         let exploration_field = exploration_field_first_value;
 
-        ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Arrive(
-            explorer.clone(),
-        ))).await?;
-
         // create status
         let old_area_messages_cache = ctx.get_messages_in_area(
             crate::message::GetMessagesInAreaParams {
@@ -279,7 +275,7 @@ where
 
         let mut status = ExplorerStatus {
             ctx,
-            explorer,
+            explorer: explorer.clone(),
             exploration_field_size: exploration_field.size,
             old_area_messages_cache,
             old_area_speaker_phones_cache,
@@ -317,9 +313,7 @@ where
         }
 
         // explorer leaves
-        ctx.publish_event(crate::event::Event::Explorer(super::ExplorerAction::Leave(
-            status.explorer.clone(),
-        ))).await?;
+        ctx.delete_explorer(crate::explore::DeleteExplorerParams { id: explorer.id }).await.map_err(IntoStatus::into_status)?;
     }
 }
 
@@ -382,9 +376,10 @@ where
     // publish explorer move event
     status
         .ctx
-        .publish_event(crate::event::Event::Explorer(super::ExplorerAction::Move(
-            status.explorer.clone(),
-        )))
+        .update_explorer(crate::explore::UpdateExplorerParams {
+            id: status.explorer.id,
+            position: status.explorer.position,
+        })
         .await
         .map_err(IntoStatus::into_status)?;
 
