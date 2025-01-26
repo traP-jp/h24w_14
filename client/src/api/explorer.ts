@@ -164,11 +164,12 @@ const useExplorerDispatcher = () => {
         // NOTE: バックエンドは proto に従ってない
         const explorerActions =
           events.explorerActions as unknown as ExplorerAction[];
+        const newExplorers = new Map(explorers);
         explorerActions.forEach((action) => {
           switch (action.type) {
             case "arrive": {
               const explorer = action;
-              explorers.set(explorer.id ?? "", {
+              newExplorers.set(explorer.id ?? "", {
                 id: explorer.id ?? "",
                 position: {
                   x: explorer.position?.x ?? 0,
@@ -179,14 +180,14 @@ const useExplorerDispatcher = () => {
               break;
             }
             case "leave": {
-              explorers.delete(action.id);
+              newExplorers.delete(action.id);
               break;
             }
             case "move": {
               const explorer = action;
-              const prevExplorer = explorers.get(explorer.id ?? "");
+              const prevExplorer = newExplorers.get(explorer.id ?? "");
               if (!prevExplorer) return;
-              explorers.set(explorer.id ?? "", {
+              newExplorers.set(explorer.id ?? "", {
                 id: explorer.id ?? "",
                 position: {
                   x: explorer.position?.x ?? 0,
@@ -203,7 +204,7 @@ const useExplorerDispatcher = () => {
           }
           if (action.type === "arrive") {
             const explorer = action;
-            explorers.set(explorer.id ?? "", {
+            newExplorers.set(explorer.id ?? "", {
               id: explorer.id ?? "",
               position: {
                 x: explorer.position?.x ?? 0,
@@ -213,7 +214,7 @@ const useExplorerDispatcher = () => {
             });
           }
         });
-        return explorers;
+        return newExplorers;
       });
     };
     return () => {

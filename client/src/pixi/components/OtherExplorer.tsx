@@ -1,7 +1,7 @@
 import { Position } from "../../model/position";
 import ExplorerModel from "../../model/explorer";
 import Explorer from "./Explorer";
-import { useUser } from "../../api/user";
+import { useMe, useUser } from "../../api/user";
 import { traqIconURL } from "../../util/icon";
 import { useTick } from "@pixi/react";
 import { useState } from "react";
@@ -16,6 +16,7 @@ const OtherExplorer: React.FC<Props> = ({ explorer, previousPosition }) => {
   const { position: targetPosition, userId } = explorer; // 目標の位置
   const { data, error, isLoading } = useUser(userId);
   const [position, setPosition] = useState(targetPosition); // 実際の現在の位置
+  const { data: me } = useMe();
 
   useTick(() => {
     if (previousPosition) {
@@ -44,6 +45,9 @@ const OtherExplorer: React.FC<Props> = ({ explorer, previousPosition }) => {
   }
   const user = data.user;
   if (!user) {
+    return null;
+  }
+  if (me?.user?.id === user.id) {
     return null;
   }
 
