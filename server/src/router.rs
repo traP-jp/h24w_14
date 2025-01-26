@@ -86,15 +86,15 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
                     .boxed_unsync()
             })
         });
-    let layer = ServiceBuilder::new()
-        .layer(TraceLayer::new_for_grpc())
-        .layer(crate::session::build_grpc_layer(state));
+    let trace_layer = TraceLayer::new_for_grpc();
+    let session_layer = crate::session::build_grpc_layer(state);
     route_services!(Router::new(); [ world, user, reaction, message, speaker_phone ])
-        .layer(layer)
+        .layer(session_layer)
         .route_service(
             &format!("/{}/{{*res}}", crate::traq::auth::SERVICE_NAME),
             traq_auth,
         )
+        .layer(trace_layer)
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
