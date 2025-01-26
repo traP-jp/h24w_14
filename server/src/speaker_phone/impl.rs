@@ -40,7 +40,7 @@ where
         ctx: &'a Context,
         params: super::CreateSpeakerPhoneParams,
     ) -> futures::future::BoxFuture<'a, Result<super::SpeakerPhone, Self::Error>> {
-        create_speaker_phone(ctx, ctx.as_ref(), params).boxed()
+        create_speaker_phone(ctx, ctx, ctx.as_ref(), params).boxed()
     }
 
     fn load_all_speaker_phones(
@@ -139,10 +139,18 @@ async fn get_speaker_phones_in_area(
 
 async fn create_speaker_phone(
     event_service: &impl crate::event::ProvideEventService,
+    traq_channel_service: &impl crate::traq::channel::ProvideTraqChannelService,
     pool: &MySqlPool,
     params: super::CreateSpeakerPhoneParams,
 ) -> Result<super::SpeakerPhone, super::Error> {
     let super::CreateSpeakerPhoneParams { position, name } = params;
+    let all_channels = traq_channel_service
+        .get_all_channels(crate::traq::channel::GetAllChannelsParams {})
+        .await
+        .map_err(IntoStatus::into_status)?;
+    let Some(_traq_channel) = all_channels.iter().find(|ch| ch.path == name) else {
+        return Err(super::Error::BadChannelProvided);
+    };
     let speaker_phone = SpeakerPhoneRow {
         id: uuid::Uuid::now_v7(),
         position_x: position.x,

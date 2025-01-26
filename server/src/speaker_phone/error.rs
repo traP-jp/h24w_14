@@ -2,6 +2,8 @@
 pub enum Error {
     #[error("Not found")]
     NotFound,
+    #[error("Bad channel name")]
+    BadChannelProvided,
     #[error("Database error")]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
@@ -12,6 +14,7 @@ impl From<Error> for tonic::Status {
     fn from(value: Error) -> Self {
         match value {
             Error::NotFound => tonic::Status::not_found("Not found"),
+            Error::BadChannelProvided => tonic::Status::invalid_argument("Bad channel name"),
             Error::Sqlx(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error);
                 tonic::Status::internal("Database error")
