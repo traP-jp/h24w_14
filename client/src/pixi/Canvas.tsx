@@ -151,6 +151,7 @@ const Canvas: React.FC<Props> = (props) => {
         className={props.className}
         onClick={onFieldClick}
         onMount={mountHandler}
+        raf={false}
       >
         <World
           fieldSize={fieldSize}
