@@ -1,12 +1,6 @@
 import { Stage } from "@pixi/react";
 import World from "./World";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Position,
   DisplayPosition,
@@ -19,6 +13,7 @@ import dispatcherAtom from "../state/dispatcher";
 import userPositionAtom from "../state/userPosition";
 import meAtom from "../state/me";
 import { traqIconURL } from "../util/icon";
+import fieldSizeAtom from "../state/field";
 
 const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
@@ -39,10 +34,7 @@ const calcNewPosition = (position: Position, diff: Position): Position => {
 
 const Canvas: React.FC<Props> = (props) => {
   const [userPosition, setUserPosition] = useAtom(userPositionAtom);
-  const [fieldSize, setFieldSize] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const [fieldSize, setFieldSize] = useAtom(fieldSizeAtom);
   const intervalID = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dispatcher = useAtomValue(dispatcherAtom);
@@ -61,7 +53,7 @@ const Canvas: React.FC<Props> = (props) => {
       y: height / 2,
     });
     // TODO: リサイズオブザーバー入れる
-  }, [setUserPosition]);
+  }, [setFieldSize, setUserPosition]);
 
   const userDisplayPosition = useMemo(() => {
     if (fieldSize === null) {
