@@ -1,7 +1,7 @@
 import { SendOutlined } from "@ant-design/icons";
-import { Input } from "antd";
-import React, { useCallback, useState } from "react";
+import { Button, Input } from "antd";
 import { useAtomValue } from "jotai";
+import React, { useCallback, useState } from "react";
 import { useCreateMessage } from "../api/message";
 import { roundedUserPositionAtom } from "../state/userPosition";
 const { TextArea } = Input;
@@ -61,14 +61,12 @@ export const InputMessage: React.FC = () => {
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
       />
-      <button
+      <Button
         className="size-6 mb-1"
         onClick={sendMessage}
-        type="button"
         disabled={isSending}
-      >
-        <SendOutlined role="img" aria-label="Send Message" />
-      </button>
+        icon={<SendOutlined />}
+      />
     </div>
   );
 };
