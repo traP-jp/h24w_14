@@ -18,6 +18,7 @@ pub use error::Error;
 pub struct UserId(pub uuid::Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: UserId,
     pub name: String,

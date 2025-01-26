@@ -22,6 +22,7 @@ pub struct SpeakerPhoneId(pub uuid::Uuid);
 pub struct Channel(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SpeakerPhone {
     pub id: SpeakerPhoneId,
     pub position: crate::world::Coordinate,
