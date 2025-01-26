@@ -306,6 +306,10 @@ async fn post_message_to_traq(
     channel_map: &HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
     message: &crate::message::Message,
 ) {
+    if message.content.starts_with("[]()") {
+        return;
+    }
+
     if !message
         .position
         .is_inside_circle(speaker_phone.position, speaker_phone.receive_range)
@@ -335,9 +339,11 @@ async fn post_message_to_traq(
         }
     };
 
+    let mut modified_message = message.clone();
+    modified_message.content = format!("[](){}", message.content);
     let res = traq_message_service
         .send_message(crate::traq::message::SendMessageParams {
-            inner: message.clone(),
+            inner: modified_message,
             channel_id: channel.id,
             user_id: traq_user.id,
         })
