@@ -96,7 +96,7 @@ const World: React.FC<Props> = ({
     return Array.from(explorers.values()).map((explorer) => {
       return (
         <OtherExplorer
-          key={explorer.userId}
+          key={explorer.id}
           explorer={explorer}
           previousPosition={explorer.previousPosition}
         />
