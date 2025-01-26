@@ -1,79 +1,58 @@
-import { Avatar, Divider, List, Skeleton } from "antd";
-import React, { useCallback, useEffect, useState } from "react";
-import InfiniteScroll from "react-infinite-scroll-component";
+import { Avatar, List } from "antd";
+import React from "react";
 import { InputMessage } from "./InputMessage";
+import { useAtomValue } from "jotai";
+import fieldMessagesAtom from "../state/message";
+import { isInsideField } from "../util/field";
+import fieldSizeAtom from "../state/field";
+import userPositionAtom from "../state/userPosition";
+import { Message } from "../model/message";
+import { useUser } from "../api/user";
+import { traqIconURL } from "../util/icon";
 
-interface DataType {
-  gender: string;
-  name: {
-    title: string;
-    first: string;
-    last: string;
-  };
-  email: string;
-  picture: {
-    large: string;
-    medium: string;
-    thumbnail: string;
-  };
-  nat: string;
+interface TimelineItemProps {
+  message: Message;
 }
 
+const TimelineItem: React.FC<TimelineItemProps> = ({ message }) => {
+  const { data, error, isLoading } = useUser(message.userId);
+  if (isLoading || error || !data) {
+    return null;
+  }
+
+  return (
+    <List.Item key={message.id}>
+      <List.Item.Meta
+        avatar={<Avatar src={traqIconURL(data.user?.name ?? "")} />}
+        title={data.user?.displayName}
+        description={data.user?.name}
+      />
+      {message.content}
+    </List.Item>
+  );
+};
+
 export const Timeline: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<DataType[]>([]);
+  const messagesMap = useAtomValue(fieldMessagesAtom);
+  const fieldSize = useAtomValue(fieldSizeAtom);
+  const mePosition = useAtomValue(userPositionAtom);
 
-  const loadMoreData = useCallback(() => {
-    if (loading) {
-      return;
+  const messages = Array.from(messagesMap.values()).filter((message) => {
+    if (!fieldSize || !mePosition) {
+      return false;
     }
-    setLoading(true);
-    fetch(
-      "https://randomuser.me/api/?results=10&inc=name,gender,email,nat,picture&noinfo",
-    )
-      .then((res) => res.json())
-      .then((body) => {
-        setData([...data, ...body.results]);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, [data, loading]);
-
-  useEffect(() => {
-    loadMoreData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return isInsideField(message.position, fieldSize, mePosition);
+  });
 
   return (
     <div className="flex flex-col h-screen w-full bg-background-primary">
       <div id="scrollableDiv" className="size-full overflow-auto px-4">
-        <InfiniteScroll
-          dataLength={data.length}
-          next={loadMoreData}
-          hasMore={data.length < 50}
-          loader={<Skeleton avatar paragraph={{ rows: 1 }} active />}
-          endMessage={<Divider plain>It is all, nothing more</Divider>}
-          scrollableTarget="scrollableDiv"
-        >
-          <List
-            dataSource={data}
-            renderItem={(item) => (
-              // TODO: traQ ID に置き換える
-              <List.Item key={item.email}>
-                <List.Item.Meta
-                  avatar={<Avatar src={item.picture.large} />} // TODO: traQ のアイコンに置き換える
-                  title={item.name.last} // TODO: traQ のユーザー名に置き換える
-                  description={item.email} // TODO: traQ ID に置き換える
-                />
-                Content Content Content Content Content Content Content Content
-                Content Content Content Content Content Content Content Content
-                Content Content Content Content Content Content Content
-              </List.Item>
-            )}
-          />
-        </InfiniteScroll>
+        <List
+          dataSource={messages}
+          renderItem={(message) => (
+            <TimelineItem message={message} key={message.id} />
+          )}
+        />
       </div>
       <InputMessage />
     </div>
