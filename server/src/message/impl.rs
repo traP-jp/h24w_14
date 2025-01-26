@@ -1,4 +1,4 @@
-use crate::prelude::Timestamp;
+use crate::prelude::{IntoStatus, Timestamp};
 use chrono::{DateTime, Utc};
 use futures::FutureExt;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,8 @@ fn calculate_expires_at(created_at: DateTime<Utc>) -> DateTime<Utc> {
 
 impl<Context> super::MessageService<Context> for super::MessageServiceImpl
 where
-    Context: AsRef<MySqlPool> + crate::event::ProvideEventService,
+    Context:
+        AsRef<MySqlPool> + crate::event::ProvideEventService + crate::world::ProvideWorldService,
 {
     type Error = super::Error;
 
@@ -40,8 +41,9 @@ where
         params: super::CreateMessageParams,
     ) -> futures::future::BoxFuture<'a, Result<super::Message, Self::Error>> {
         let event_service = ctx;
+        let world_service = ctx;
         let pool = ctx.as_ref();
-        create_message(event_service, pool, params).boxed()
+        create_message(event_service, world_service, pool, params).boxed()
     }
 }
 
@@ -115,11 +117,26 @@ async fn get_messages_in_area(
     .map_err(super::Error::Sqlx)
 }
 
-async fn create_message<P: crate::event::ProvideEventService>(
+async fn create_message<
+    P: crate::event::ProvideEventService,
+    W: crate::world::ProvideWorldService,
+>(
     event_service: &P,
+    world_service: &W,
     pool: &MySqlPool,
     params: super::CreateMessageParams,
 ) -> Result<super::Message, super::Error> {
+    // check if the position is in the world.
+    if let crate::world::CheckCoordinateAnswer::Invalid = world_service
+        .check_coordinate(crate::world::CheckCoordinateParams {
+            coordinate: params.position,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?
+    {
+        return Err(super::Error::MessageNotInWorld);
+    }
+
     let id = Uuid::now_v7();
     sqlx::query("INSERT INTO `messages` (`id`, `user_id`, `content`, `position_x`, `position_y`, `expires_at`) VALUES (?, ?, ?, ?, ?, ?)")
         .bind(id)
