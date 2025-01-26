@@ -1,6 +1,7 @@
 import { Button, ConfigProvider } from "antd";
 import { useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
+import { useAuth } from "./api/auth";
 import useExplorerDispatcher from "./api/explorer";
 import { useMe } from "./api/user";
 import { ReactionPicker } from "./components/RactionPicker";
