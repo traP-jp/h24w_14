@@ -17,6 +17,8 @@ import PIXI from "pixi.js";
 import { useAtom, useAtomValue } from "jotai";
 import dispatcherAtom from "../state/dispatcher";
 import userPositionAtom from "../state/userPosition";
+import meAtom from "../state/me";
+import { traqIconURL } from "../util/icon";
 
 const mountHandler = import.meta.env.DEV
   ? (app: PIXI.Application) => {
@@ -44,6 +46,7 @@ const Canvas: React.FC<Props> = (props) => {
   const intervalID = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dispatcher = useAtomValue(dispatcherAtom);
+  const me = useAtomValue(meAtom);
 
   useEffect(() => {
     const width = (window.innerWidth * 3) / 5;
@@ -100,7 +103,7 @@ const Canvas: React.FC<Props> = (props) => {
         return nextPosition;
       });
     },
-    [dispatcher, fieldSize, intervalID],
+    [dispatcher, fieldSize, setUserPosition],
   );
 
   const onFieldClick = useCallback(
@@ -163,10 +166,10 @@ const Canvas: React.FC<Props> = (props) => {
           userDisplayPosition={userDisplayPosition}
         />
         <Explorer
-          imgURL="https://q.trap.jp/api/v3/public/icon/ikura-hamu"
+          imgURL={traqIconURL(me?.name ?? "")}
           position={userDisplayPosition}
           isMe
-          name="ikura-hamu"
+          name={me?.name ?? ""}
         />
       </Stage>
     </div>
