@@ -87,6 +87,7 @@ const World: React.FC<Props> = ({
             name: reaction.userId,
             iconURL: traqIconURL(reaction.userId),
           }}
+          userId={reaction.userId}
         />
       ));
   }, [fieldSize, reactions, userPosition]);
