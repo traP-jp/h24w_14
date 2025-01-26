@@ -15,7 +15,6 @@ export const SpeakerPhoneButton: React.FC = () => {
   const position = useAtomValue(roundedUserPositionAtom);
   const { trigger } = useCreateSpeakerPhone();
   const [isSending, setIsSending] = useState(false);
-  const [isInputFocused, setIsInputFocused] = useState(false);
   const { data } = useAvailableChannels();
   const availableChannelNames = data ? data.channels : [];
 
@@ -37,21 +36,6 @@ export const SpeakerPhoneButton: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setChannelName(e.target.value);
-  };
-
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (isInputFocused && (e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      await putSpeakerPhone(channelName);
-    }
-  };
-
-  const handleFocus = () => {
-    setIsInputFocused(true);
-  };
-
-  const handleBlur = () => {
-    setIsInputFocused(false);
   };
 
   const putSpeakerPhone = async (channelName: string) => {
@@ -80,9 +64,6 @@ export const SpeakerPhoneButton: React.FC = () => {
             placeholder="チャンネル名を入力"
             options={options}
             onChange={handleInputChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
           />
           <Button
             onClick={() => {
