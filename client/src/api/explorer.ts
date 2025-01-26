@@ -147,19 +147,21 @@ const useExplorerDispatcher = () => {
         const oldIDs = new Set(speakerPhones.map((sp) => sp.id));
         return [
           ...speakerPhones,
-          ...events.speakerPhones.filter((speakerPhone) => {
-            return !oldIDs.has(speakerPhone.id);
-          }).map((speakerPhone) => ({
-            id: speakerPhone.id,
-            position: {
-              x: speakerPhone.position?.x ?? 0,
-              y: speakerPhone.position?.y ?? 0,
-            },
-            receiveRange: speakerPhone.receiveRange,
-            name: speakerPhone.name,
-            createdAt: new Date(speakerPhone.createdAt as unknown as string),
-            updatedAt: new Date(speakerPhone.updatedAt as unknown as string),
-          })),
+          ...events.speakerPhones
+            .filter((speakerPhone) => {
+              return !oldIDs.has(speakerPhone.id);
+            })
+            .map((speakerPhone) => ({
+              id: speakerPhone.id,
+              position: {
+                x: speakerPhone.position?.x ?? 0,
+                y: speakerPhone.position?.y ?? 0,
+              },
+              receiveRange: speakerPhone.receiveRange,
+              name: speakerPhone.name,
+              createdAt: new Date(speakerPhone.createdAt as unknown as string),
+              updatedAt: new Date(speakerPhone.updatedAt as unknown as string),
+            })),
         ];
       });
 
