@@ -1,14 +1,15 @@
 import { Button, ConfigProvider } from "antd";
 import { useSetAtom } from "jotai";
 import { useCallback, useEffect } from "react";
+import { useAuth } from "./api/auth";
 import useExplorerDispatcher from "./api/explorer";
+import { useMe } from "./api/user";
 import { ReactionPicker } from "./components/RactionPicker";
+import { SpeakerPhoneButton } from "./components/SpeakerPhoneButton";
 import { Timeline } from "./components/Timeline";
 import Canvas from "./pixi/Canvas";
-import dispatcherAtom from "./state/dispatcher";
-import { useMe } from "./api/user";
 import { User } from "./schema2/user";
-import { useAuth } from "./api/auth";
+import dispatcherAtom from "./state/dispatcher";
 import meAtom from "./state/me";
 
 const App = () => {
@@ -58,9 +59,12 @@ const App = () => {
             left-1/2
             -translate-x-1/2
             bottom-4
+            flex
+            gap-2
           "
         >
           <ReactionPicker />
+          <SpeakerPhoneButton />
         </div>
         <Timeline />
       </ConfigProvider>
