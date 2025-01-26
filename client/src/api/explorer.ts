@@ -1,4 +1,4 @@
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Position } from "../model/position";
 import { ExplorationField, ExplorationFieldEvents } from "../schema2/explore";
 import { serverWSHostName } from "./hostname";
@@ -10,6 +10,8 @@ import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 import fieldExplorersAtom from "../state/explorer";
 import { Message } from "../model/message";
 import type { ExplorerAction } from "../model/ExplorerAction";
+import userPositionAtom from "../state/userPosition";
+import fieldSizeAtom from "../state/field";
 
 type ExplorerMessage = {
   position: Position;
@@ -23,6 +25,8 @@ const explorerEvent = "explorer";
 const useExplorerDispatcher = () => {
   const subscriber = new EventTarget();
   const subscriberRef = useRef<EventTarget>(subscriber);
+  const userPosition = useAtomValue(userPositionAtom);
+  const fieldSize = useAtomValue(fieldSizeAtom);
   const setFieldMessages = useSetAtom(fieldMessagesAtom);
   const setFieldReactions = useSetAtom(fieldReactionsAtom);
   const setFieldSpeakerPhones = useSetAtom(fieldSpeakerPhonesAtom);
@@ -66,6 +70,17 @@ const useExplorerDispatcher = () => {
       ws.send(JSON.stringify(explorationField));
     };
     currentSubscriber.addEventListener(explorerEvent, subscriverHandler);
+
+    ws.addEventListener("open", () => {
+      if (userPosition === null || fieldSize === null) return;
+      dispatcher({
+        position: userPosition,
+        size: {
+          width: fieldSize.width,
+          height: fieldSize.height,
+        },
+      });
+    });
     ws.onmessage = (event) => {
       if (event.type !== "message") {
         return;
@@ -198,6 +213,9 @@ const useExplorerDispatcher = () => {
     setFieldReactions,
     setFieldSpeakerPhones,
     setFieldExplorers,
+    userPosition,
+    fieldSize,
+    dispatcher,
   ]);
 
   return dispatcher;

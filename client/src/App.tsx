@@ -1,6 +1,6 @@
 import { Button, ConfigProvider } from "antd";
 import { useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import useExplorerDispatcher from "./api/explorer";
 import { ReactionPicker } from "./components/RactionPicker";
 import { Timeline } from "./components/Timeline";
@@ -21,10 +21,10 @@ const App = () => {
   const { trigger: authTrigger } = useAuth();
   const setMe = useSetAtom(meAtom);
 
-  const loginOnClick = async () => {
+  const loginOnClick = useCallback(async () => {
     const res = await authTrigger();
     window.location.href = res.location;
-  };
+  }, [authTrigger]);
 
   useEffect(
     () => setMe({ id: resUser?.user?.id, name: resUser?.user?.name } as User),
