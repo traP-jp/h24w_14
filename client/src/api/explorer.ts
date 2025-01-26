@@ -2,7 +2,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { Position } from "../model/position";
 import { ExplorationField, ExplorationFieldEvents } from "../schema2/explore";
 import { serverWSHostName } from "./hostname";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import fieldMessagesAtom from "../state/message";
 import fieldReactionsAtom from "../state/reactions";
 import { ReactionName } from "../model/reactions";
@@ -31,6 +31,18 @@ const useExplorerDispatcher = () => {
   const setFieldReactions = useSetAtom(fieldReactionsAtom);
   const setFieldSpeakerPhones = useSetAtom(fieldSpeakerPhonesAtom);
   const setFieldExplorers = useSetAtom(fieldExplorersAtom);
+
+  const [initialPosition, setInitialPosition] = useState<Position | null>(null);
+  const [initialSize, setInitialSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+  if (initialPosition === null && userPosition !== null) {
+    setInitialPosition(userPosition);
+  }
+  if (initialSize === null && fieldSize !== null) {
+    setInitialSize(fieldSize);
+  }
 
   const dispatcher: ExplorerMessageDispatcher = useCallback((mes) => {
     if (!mes) return;
@@ -72,12 +84,12 @@ const useExplorerDispatcher = () => {
     currentSubscriber.addEventListener(explorerEvent, subscriverHandler);
 
     ws.addEventListener("open", () => {
-      if (userPosition === null || fieldSize === null) return;
+      if (initialPosition === null || initialSize === null) return;
       dispatcher({
-        position: userPosition,
+        position: initialPosition,
         size: {
-          width: fieldSize.width,
-          height: fieldSize.height,
+          width: initialSize.width,
+          height: initialSize.height,
         },
       });
     });
@@ -213,9 +225,9 @@ const useExplorerDispatcher = () => {
     setFieldReactions,
     setFieldSpeakerPhones,
     setFieldExplorers,
-    userPosition,
-    fieldSize,
     dispatcher,
+    initialPosition,
+    initialSize,
   ]);
 
   return dispatcher;
