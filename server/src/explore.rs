@@ -50,6 +50,7 @@ impl ExplorerAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExplorationFieldEvents {
     pub messages: Vec<crate::message::Message>,
     pub speaker_phones: Vec<crate::speaker_phone::SpeakerPhone>,

@@ -268,6 +268,15 @@ where
             },
         ).await?;
 
+        yield super::ExplorationFieldEvents {
+            messages: old_area_messages_cache.clone(),
+            speaker_phones: old_area_speaker_phones_cache.clone(),
+            reactions: old_area_reactions_cache.clone(),
+            explorer_actions: old_area_explorers_cache.iter().map(|e| {
+                super::ExplorerAction::Arrive(e.clone())
+            }).collect(),
+        };
+
         let mut status = ExplorerStatus {
             ctx,
             explorer,

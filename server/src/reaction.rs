@@ -18,6 +18,7 @@ pub use error::Error;
 pub struct ReactionId(pub uuid::Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Reaction {
     pub id: ReactionId,
     pub user_id: crate::user::UserId,

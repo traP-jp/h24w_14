@@ -9,7 +9,7 @@ import { ReactionName } from "../model/reactions";
 import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 import fieldExplorersAtom from "../state/explorer";
 import { Message } from "../model/message";
-import { Timestamp } from "../schema2/google/protobuf/timestamp";
+import type { ExplorerAction } from "../model/ExplorerAction";
 
 type ExplorerMessage = {
   position: Position;
@@ -67,7 +67,7 @@ const useExplorerDispatcher = () => {
     };
     currentSubscriber.addEventListener(explorerEvent, subscriverHandler);
     ws.onmessage = (event) => {
-      if (event.type !== "text") {
+      if (event.type !== "message") {
         return;
       }
       const events = JSON.parse(event.data) as ExplorationFieldEvents;
@@ -75,6 +75,7 @@ const useExplorerDispatcher = () => {
       setFieldMessages((messages) => {
         const newMessagesMap: Map<string, Message> = new Map();
         messages.forEach((message) => {
+          // TODO: expireAt の判定を復活させる
           if (message.expiresAt > now) {
             newMessagesMap.set(message.id, message);
           }
@@ -84,15 +85,9 @@ const useExplorerDispatcher = () => {
             id: message.id,
             userId: message.userId,
             content: message.content,
-            createdAt: message.createdAt
-              ? Timestamp.toDate(message.createdAt)
-              : new Date(),
-            updatedAt: message.updatedAt
-              ? Timestamp.toDate(message.updatedAt)
-              : new Date(),
-            expiresAt: message.expiresAt
-              ? Timestamp.toDate(message.expiresAt)
-              : new Date(),
+            createdAt: new Date(message.createdAt as unknown as string),
+            updatedAt: new Date(message.updatedAt as unknown as string),
+            expiresAt: new Date(message.expiresAt as unknown as string),
             position: {
               x: message.position?.x ?? 0,
               y: message.position?.y ?? 0,
@@ -115,12 +110,8 @@ const useExplorerDispatcher = () => {
                 y: reaction.position?.y ?? 0,
               },
               kind: kind,
-              createdAt: reaction.createdAt
-                ? Timestamp.toDate(reaction.createdAt)
-                : new Date(),
-              expiresAt: reaction.expiresAt
-                ? Timestamp.toDate(reaction.expiresAt)
-                : new Date(),
+              createdAt: new Date(reaction.createdAt as unknown as string),
+              expiresAt: new Date(reaction.expiresAt as unknown as string),
             };
           }),
         ];
@@ -136,39 +127,36 @@ const useExplorerDispatcher = () => {
             },
             receiveRange: speakerPhone.receiveRange,
             name: speakerPhone.name,
-            createdAt: speakerPhone.createdAt
-              ? Timestamp.toDate(speakerPhone.createdAt)
-              : new Date(),
-            updatedAt: speakerPhone.updatedAt
-              ? Timestamp.toDate(speakerPhone.updatedAt)
-              : new Date(),
+            createdAt: new Date(speakerPhone.createdAt as unknown as string),
+            updatedAt: new Date(speakerPhone.updatedAt as unknown as string),
           })),
         ];
       });
+
       setFieldExplorers((explorers) => {
-        const explorerActions = events.explorerActions;
+        // NOTE: バックエンドは proto に従ってない
+        const explorerActions =
+          events.explorerActions as unknown as ExplorerAction[];
         explorerActions.forEach((action) => {
-          switch (action.action.oneofKind) {
+          switch (action.type) {
             case "arrive": {
-              const explorer = action.action.arrive.explorer;
-              if (!explorer) return;
+              const explorer = action;
               explorers.set(explorer.id ?? "", {
                 id: explorer.id ?? "",
                 position: {
                   x: explorer.position?.x ?? 0,
                   y: explorer.position?.y ?? 0,
                 },
-                userId: explorer.userId ?? "",
+                userId: explorer.inner.id ?? "",
               });
               break;
             }
             case "leave": {
-              explorers.delete(action.action.leave.id);
+              explorers.delete(action.id);
               break;
             }
             case "move": {
-              const explorer = action.action.move.explorer;
-              if (!explorer) return;
+              const explorer = action;
               const prevExplorer = explorers.get(explorer.id ?? "");
               if (!prevExplorer) return;
               explorers.set(explorer.id ?? "", {
@@ -177,7 +165,7 @@ const useExplorerDispatcher = () => {
                   x: explorer.position?.x ?? 0,
                   y: explorer.position?.y ?? 0,
                 },
-                userId: explorer.userId ?? "",
+                userId: explorer.inner.id ?? "",
                 previousPosition: prevExplorer.position,
               });
               break;
@@ -186,16 +174,15 @@ const useExplorerDispatcher = () => {
             default:
               break;
           }
-          if (action.action.oneofKind === "arrive") {
-            const explorer = action.action.arrive.explorer;
-            if (!explorer) return;
+          if (action.type === "arrive") {
+            const explorer = action;
             explorers.set(explorer.id ?? "", {
               id: explorer.id ?? "",
               position: {
                 x: explorer.position?.x ?? 0,
                 y: explorer.position?.y ?? 0,
               },
-              userId: explorer.userId ?? "",
+              userId: explorer.inner.id ?? "",
             });
           }
         });
