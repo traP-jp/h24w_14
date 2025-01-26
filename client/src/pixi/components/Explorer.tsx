@@ -18,7 +18,7 @@ export type Props =
       position: Position;
     };
 
-const iconSize = 50;
+const iconSize = 40;
 
 const Explorer: React.FC<Props> = ({ position, imgURL, isMe, name }) => {
   const pos = isMe ? { x: position.left, y: position.top } : position;

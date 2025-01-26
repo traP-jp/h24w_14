@@ -67,7 +67,7 @@ const World: React.FC<Props> = ({
             key={speakerPhone.name}
             position={speakerPhone.position}
             name={speakerPhone.name}
-            radius={100}
+            radius={150}
           />
         );
       });
