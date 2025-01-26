@@ -39,9 +39,9 @@ const App = () => {
   if (isLoading) {
     return <div>loading...</div>;
   }
-  // if (!resUser) {
-  //   return <Button onClick={loginOnClick}>ログイン</Button>;
-  // }
+  if (!resUser) {
+    return <Button onClick={loginOnClick}>ログイン</Button>;
+  }
 
   return (
     <div className="flex">
