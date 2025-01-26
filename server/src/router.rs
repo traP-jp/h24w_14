@@ -30,7 +30,23 @@ where
 {
     let grpcs = grpc_routes(state.clone());
     let others = other_routes(state.clone());
-    Router::merge(grpcs, others)
+    Router::merge(grpcs, others).layer(
+        CorsLayer::new()
+            .allow_origin(AllowOrigin::any()) // FIXME
+            .allow_methods(AllowMethods::list(vec![
+                Method::POST,
+                Method::OPTIONS,
+                Method::GET,
+            ]))
+            .allow_headers(AllowHeaders::list(vec![
+                header::CONTENT_TYPE,
+                header::AUTHORIZATION,
+                header::COOKIE,
+                // header::X_GRPC_WEB,
+                HeaderName::from_static("x-grpc-web"),
+            ]))
+            .allow_credentials(true),
+    )
 }
 
 fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
@@ -78,25 +94,6 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
         .route_service(
             &format!("/{}/{{*res}}", crate::traq::auth::SERVICE_NAME),
             traq_auth,
-        )
-        .layer(
-            CorsLayer::new()
-                .allow_origin(AllowOrigin::list(vec!["http://localhost:5173"
-                    .parse()
-                    .unwrap()]))
-                .allow_methods(AllowMethods::list(vec![
-                    Method::POST,
-                    Method::OPTIONS,
-                    Method::GET,
-                ]))
-                .allow_headers(AllowHeaders::list(vec![
-                    header::CONTENT_TYPE,
-                    header::AUTHORIZATION,
-                    header::COOKIE,
-                    // header::X_GRPC_WEB,
-                    HeaderName::from_static("x-grpc-web"),
-                ]))
-                .allow_credentials(true),
         )
 }
 
