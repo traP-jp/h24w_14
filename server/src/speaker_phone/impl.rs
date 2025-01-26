@@ -228,18 +228,13 @@ where
     let task_manager: &crate::task::TaskManager = (*ctx_clone).as_ref();
     task_manager
         .spawn(|_cancellation_token| async move {
-            let speaker_phone_rx = ctx
-                .subscribe_speaker_phones()
-                .map_err(|e| super::Error::from(e.into_status()));
-            let message_rx = ctx
-                .subscribe_messages()
-                .map_err(|e| super::Error::from(e.into_status()));
-
+            let traq_user_service = &*ctx;
+            let traq_message_service = &*ctx;
+            let event_service = &*ctx;
             run_subscription_loop(
-                &*ctx,
-                &*ctx,
-                speaker_phone_rx,
-                message_rx,
+                traq_user_service,
+                traq_message_service,
+                event_service,
                 speaker_phones,
                 channel_map,
             )
@@ -250,18 +245,20 @@ where
     Ok(())
 }
 
-trait Receiver<T>: futures::stream::Stream<Item = Result<T, super::Error>> + Unpin {}
-impl<T, U> Receiver<T> for U where U: futures::stream::Stream<Item = Result<T, super::Error>> + Unpin
-{}
-
 async fn run_subscription_loop(
     traq_user_service: &impl crate::traq::user::ProvideTraqUserService,
     traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
-    mut speaker_phone_rx: impl Receiver<super::SpeakerPhone>,
-    mut message_rx: impl Receiver<crate::message::Message>,
+    event_service: &impl crate::event::ProvideEventService,
     mut speaker_phones: Vec<super::SpeakerPhone>,
     channel_map: HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
 ) {
+    let mut speaker_phone_rx = event_service
+        .subscribe_speaker_phones()
+        .map_err(|e| super::Error::from(e.into_status()));
+    let mut message_rx = event_service
+        .subscribe_messages()
+        .map_err(|e| super::Error::from(e.into_status()));
+
     loop {
         let channel_map = channel_map.clone();
         tokio::select! {
