@@ -1,6 +1,21 @@
 # context: ../
 
-FROM rust:bookworm AS builder
+FROM node:22 AS frontend-builder
+
+WORKDIR /app
+
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    --mount=type=cache,target=/app/node_modules,sharing=locked \
+    --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=package-lock.json,target=package-lock.json \
+    npm ci
+
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    --mount=type=cache,target=/app/node_modules,sharing=locked \
+    --mount=type=bind,source=.,target=. \
+    npm run build
+
+FROM rust:bookworm AS backend-builder
 
 ARG PROTOC_VERSION=29.3
 
@@ -29,6 +44,8 @@ RUN --mount=type=cache,target=/var/cache/rustup,sharing=locked \
 FROM debian:bookworm-slim AS server-debian-slim
 
 WORKDIR /srv
-COPY --from=builder /artifact/release/h24w14 /srv/bin/h24w14
+ENV FRONTEND_DIST_DIR /srv/frontend/dist
+COPY --from=frontend-builder /app/dist ${FRONTEND_DIST_DIR}
+COPY --from=backend-builder /artifact/release/h24w14 /srv/bin/h24w14
 
 CMD [ "/srv/bin/h24w14" ]
