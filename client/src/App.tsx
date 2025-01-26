@@ -26,6 +26,11 @@ const App = () => {
     window.location.href = res.location;
   };
 
+  useEffect(
+    () => setMe({ id: resUser?.user?.id, name: resUser?.user?.name } as User),
+    [resUser, setMe],
+  );
+
   if (error) {
     console.log(error);
   }
@@ -36,8 +41,6 @@ const App = () => {
   if (!resUser) {
     return <Button onClick={loginOnClick}>ログイン</Button>;
   }
-
-  setMe({ id: resUser.user?.id, name: resUser.user?.name } as User);
 
   return (
     <div className="flex">
