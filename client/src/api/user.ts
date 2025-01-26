@@ -12,7 +12,10 @@ function getUserFetcher([_, id]: [unknown, string]) {
   return userClient.getUser(req).response;
 }
 export const useUser = (id: string) => {
-  return useSWR(["grpc:user", id], getUserFetcher);
+  return useSWRImmutable(
+    id !== "" ? ["grpc:user", id] : undefined,
+    getUserFetcher,
+  );
 };
 
 function getMeFetcher() {
