@@ -2,9 +2,12 @@ use futures::{future, FutureExt};
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 
+use crate::prelude::IntoStatus;
+
 impl<Context> super::ReactionService<Context> for super::ReactionServiceImpl
 where
-    Context: AsRef<MySqlPool> + crate::event::ProvideEventService,
+    Context:
+        AsRef<MySqlPool> + crate::event::ProvideEventService + crate::world::ProvideWorldService,
 {
     type Error = super::Error;
 
@@ -29,7 +32,7 @@ where
         ctx: &'a Context,
         params: super::CreateReactionParams,
     ) -> future::BoxFuture<'a, Result<super::Reaction, Self::Error>> {
-        create_reaction(ctx, ctx.as_ref(), params).boxed()
+        create_reaction(ctx, ctx, ctx.as_ref(), params).boxed()
     }
 }
 
@@ -104,8 +107,12 @@ async fn get_reactions_in_area(
     Ok(reactions.into_iter().map(Into::into).collect())
 }
 
-async fn create_reaction<P: crate::event::ProvideEventService>(
+async fn create_reaction<
+    P: crate::event::ProvideEventService,
+    W: crate::world::ProvideWorldService,
+>(
     event_service: &P,
+    world_service: &W,
     pool: &MySqlPool,
     params: super::CreateReactionParams,
 ) -> Result<super::Reaction, super::Error> {
@@ -114,6 +121,18 @@ async fn create_reaction<P: crate::event::ProvideEventService>(
         position,
         kind,
     } = params;
+
+    // check if the position is in the world
+    let crate::world::CheckCoordinateAnswer::Valid(position) = world_service
+        .check_coordinate(crate::world::CheckCoordinateParams {
+            coordinate: position,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?
+    else {
+        return Err(super::Error::ReactionNotInWorld);
+    };
+
     let reaction = ReactionRow {
         id: uuid::Uuid::now_v7(),
         user_id: user_id.0,
