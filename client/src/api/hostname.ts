@@ -1,4 +1,5 @@
-const host = URL.parse(import.meta.env.BASE_URL)?.host;
+const host =
+  URL.parse(import.meta.env.BASE_URL)?.host ?? "ping-point.trap.show";
 
 const serverHostName = import.meta.env.DEV
   ? "http://localhost:8000"
@@ -6,6 +7,6 @@ const serverHostName = import.meta.env.DEV
 
 export const serverWSHostName = import.meta.env.DEV
   ? "ws://localhost:8000/ws"
-  : `ws://${host}/ws`;
+  : `wss://${host}/ws`;
 
 export default serverHostName;
