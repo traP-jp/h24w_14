@@ -57,6 +57,7 @@ jobs:
           images: ghcr.io/trap-jp/h24w_14
           tags: |
             type=raw,value=server-latest
+            type=raw,value=latest
             type=ref,event=branch,prefix=server-,suffix=
             type=sha,prefix=server-,suffix=
       - uses: docker/build-push-action@v6
