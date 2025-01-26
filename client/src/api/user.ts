@@ -1,4 +1,3 @@
-import useSWR from "swr";
 import { UserServiceClient } from "../schema2/user.client";
 import { TRANSPORT } from "./transport";
 import useSWRImmutable from "swr/immutable";
@@ -12,7 +11,10 @@ function getUserFetcher([_, id]: [unknown, string]) {
   return userClient.getUser(req).response;
 }
 export const useUser = (id: string) => {
-  return useSWR(["grpc:user", id], getUserFetcher);
+  return useSWRImmutable(
+    id !== "" ? ["grpc:user", id] : undefined,
+    getUserFetcher,
+  );
 };
 
 function getMeFetcher() {
