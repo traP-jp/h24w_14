@@ -5,6 +5,7 @@ import PIXI from "pixi.js";
 import { Message as MessageModel } from "../../model/message";
 import { themeColors } from "../theme";
 import { traqIconURL } from "../../util/icon";
+import { useUser } from "../../api/user";
 
 const messageIconSize = 30;
 
@@ -45,9 +46,9 @@ const messageTextStyle = new TextStyle({
 const Message: React.FC<Props> = ({ expanded, message, collapse }) => {
   const textRef = useRef<PIXI.Text>(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 200, height: 100 });
-  const user = {
-    name: "ikura-hamu",
-  };
+  const userId = message?.userId;
+  const { data } = useUser(userId ?? "");
+  const userName = data?.user?.name;
 
   useEffect(() => {
     if (textRef.current) {
@@ -59,8 +60,8 @@ const Message: React.FC<Props> = ({ expanded, message, collapse }) => {
     }
   }, [message]);
 
-  const iconImageSrc = traqIconURL(user?.name || "");
-  if (!message || !user) return null;
+  const iconImageSrc = traqIconURL(userName || "");
+  if (!message || !userName) return null;
   if (!expanded) return null;
 
   return (
@@ -75,7 +76,7 @@ const Message: React.FC<Props> = ({ expanded, message, collapse }) => {
         interactive={true}
       />
       <Text
-        text={user.name}
+        text={userName}
         x={messageIconSize / 2}
         y={messageIconSize / 2}
         anchor={{ x: 0, y: 1 }}
