@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use futures::future::BoxFuture;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
 use crate::prelude::IntoStatus;
 
@@ -16,6 +19,9 @@ pub struct TraqChannel {
     /// フルパス
     pub path: String,
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct TraqChannelsCache(Arc<RwLock<Option<Vec<TraqChannel>>>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct GetAllChannelsParams {}
