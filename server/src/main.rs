@@ -77,6 +77,7 @@ async fn main() -> anyhow::Result<()> {
         frontend_dist_dir,
     });
     state.migrate().await?;
+    Arc::clone(&state).load().await?;
 
     let router = lib::router::make(Arc::clone(&state));
     let tcp_listener = load::tcp_listener().await?;
@@ -261,6 +262,17 @@ impl State {
         let duration = std::time::Duration::from_secs(5);
         let fut = self.task_manager.graceful_shutdown();
         tokio::time::timeout(duration, fut).await?;
+        Ok(())
+    }
+
+    #[tracing::instrument(skip_all)]
+    async fn load(self: Arc<Self>) -> anyhow::Result<()> {
+        use lib::speaker_phone::{LoadAllSpeakerPhonesParams, SpeakerPhoneService};
+
+        self.services
+            .speaker_phone_service
+            .load_all_speaker_phones(Arc::clone(&self), LoadAllSpeakerPhonesParams {})
+            .await?;
         Ok(())
     }
 }
