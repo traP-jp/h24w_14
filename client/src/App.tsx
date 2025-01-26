@@ -2,7 +2,7 @@ import { Button, ConfigProvider } from "antd";
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
 import useExplorerDispatcher from "./api/explorer";
-import { StampPicker } from "./components/StampPicker";
+import { ReactionPicker } from "./components/RactionPicker";
 import { Timeline } from "./components/Timeline";
 import Canvas from "./pixi/Canvas";
 import dispatcherAtom from "./state/dispatcher";
@@ -60,7 +60,7 @@ const App = () => {
             bottom-4
           "
         >
-          <StampPicker />
+          <ReactionPicker />
         </div>
         <Timeline />
       </ConfigProvider>
