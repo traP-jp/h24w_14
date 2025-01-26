@@ -1,4 +1,3 @@
-import useSWR from "swr";
 import { UserServiceClient } from "../schema2/user.client";
 import { TRANSPORT } from "./transport";
 import useSWRImmutable from "swr/immutable";
