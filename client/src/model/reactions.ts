@@ -9,7 +9,15 @@ import Smile from "../assets/reactions/smile.png";
 
 import { Position } from "./position";
 
-export type ReactionName = "iine" | "kusa" | "pro" | "fire" | "smile";
+export type ReactionName =
+  | "iine"
+  | "kusa"
+  | "pro"
+  | "fire"
+  | "smile"
+  | "hetareneko_iyaaa"
+  | "abao_iyaaaa"
+  | "eyes";
 
 export const ReactionAssets = {
   iine: Iine,
