@@ -9,7 +9,7 @@ import { ReactionName } from "../model/reactions";
 import fieldSpeakerPhonesAtom from "../state/speakerPhone";
 import fieldExplorersAtom from "../state/explorer";
 import { Message } from "../model/message";
-import { Timestamp } from "../schema2/google/protobuf/timestamp";
+import type { ExplorerAction } from "../model/ExplorerAction";
 
 type ExplorerMessage = {
   position: Position;
@@ -76,24 +76,18 @@ const useExplorerDispatcher = () => {
         const newMessagesMap: Map<string, Message> = new Map();
         messages.forEach((message) => {
           // TODO: expireAt の判定を復活させる
-          // if (message.expiresAt > now) {
-          newMessagesMap.set(message.id, message);
-          // }
+          if (message.expiresAt > now) {
+            newMessagesMap.set(message.id, message);
+          }
         });
         events.messages.forEach((message) => {
           newMessagesMap.set(message.id, {
             id: message.id,
             userId: message.userId,
             content: message.content,
-            createdAt: message.createdAt
-              ? Timestamp.toDate(message.createdAt)
-              : new Date(),
-            updatedAt: message.updatedAt
-              ? Timestamp.toDate(message.updatedAt)
-              : new Date(),
-            expiresAt: message.expiresAt
-              ? Timestamp.toDate(message.expiresAt)
-              : new Date(),
+            createdAt: new Date(message.createdAt as unknown as string),
+            updatedAt: new Date(message.updatedAt as unknown as string),
+            expiresAt: new Date(message.expiresAt as unknown as string),
             position: {
               x: message.position?.x ?? 0,
               y: message.position?.y ?? 0,
@@ -116,12 +110,8 @@ const useExplorerDispatcher = () => {
                 y: reaction.position?.y ?? 0,
               },
               kind: kind,
-              createdAt: reaction.createdAt
-                ? Timestamp.toDate(reaction.createdAt)
-                : new Date(),
-              expiresAt: reaction.expiresAt
-                ? Timestamp.toDate(reaction.expiresAt)
-                : new Date(),
+              createdAt: new Date(reaction.createdAt as unknown as string),
+              expiresAt: new Date(reaction.expiresAt as unknown as string),
             };
           }),
         ];
@@ -137,73 +127,67 @@ const useExplorerDispatcher = () => {
             },
             receiveRange: speakerPhone.receiveRange,
             name: speakerPhone.name,
-            createdAt: speakerPhone.createdAt
-              ? Timestamp.toDate(speakerPhone.createdAt)
-              : new Date(),
-            updatedAt: speakerPhone.updatedAt
-              ? Timestamp.toDate(speakerPhone.updatedAt)
-              : new Date(),
+            createdAt: new Date(speakerPhone.createdAt as unknown as string),
+            updatedAt: new Date(speakerPhone.updatedAt as unknown as string),
           })),
         ];
       });
-      //  TODO: バックエンドと型を揃える
-      // setFieldExplorers((explorers) => {
-      //   const explorerActions = events.explorerActions;
-      //   explorerActions.forEach((action_) => {
-      //     const action = action_ as unknown as typeof action_.action;
-      //     switch (action.oneofKind) {
-      //       case "arrive": {
-      //         const explorer = action.arrive.explorer;
-      //         if (!explorer) return;
-      //         explorers.set(explorer.id ?? "", {
-      //           id: explorer.id ?? "",
-      //           position: {
-      //             x: explorer.position?.x ?? 0,
-      //             y: explorer.position?.y ?? 0,
-      //           },
-      //           userId: explorer.userId ?? "",
-      //         });
-      //         break;
-      //       }
-      //       case "leave": {
-      //         explorers.delete(action.leave.id);
-      //         break;
-      //       }
-      //       case "move": {
-      //         const explorer = action.move.explorer;
-      //         if (!explorer) return;
-      //         const prevExplorer = explorers.get(explorer.id ?? "");
-      //         if (!prevExplorer) return;
-      //         explorers.set(explorer.id ?? "", {
-      //           id: explorer.id ?? "",
-      //           position: {
-      //             x: explorer.position?.x ?? 0,
-      //             y: explorer.position?.y ?? 0,
-      //           },
-      //           userId: explorer.userId ?? "",
-      //           previousPosition: prevExplorer.position,
-      //         });
-      //         break;
-      //       }
 
-      //       default:
-      //         break;
-      //     }
-      //     if (action.oneofKind === "arrive") {
-      //       const explorer = action.arrive.explorer;
-      //       if (!explorer) return;
-      //       explorers.set(explorer.id ?? "", {
-      //         id: explorer.id ?? "",
-      //         position: {
-      //           x: explorer.position?.x ?? 0,
-      //           y: explorer.position?.y ?? 0,
-      //         },
-      //         userId: explorer.userId ?? "",
-      //       });
-      //     }
-      //   });
-      //   return explorers;
-      // });
+      setFieldExplorers((explorers) => {
+        // NOTE: バックエンドは proto に従ってない
+        const explorerActions =
+          events.explorerActions as unknown as ExplorerAction[];
+        explorerActions.forEach((action) => {
+          switch (action.type) {
+            case "arrive": {
+              const explorer = action;
+              explorers.set(explorer.id ?? "", {
+                id: explorer.id ?? "",
+                position: {
+                  x: explorer.position?.x ?? 0,
+                  y: explorer.position?.y ?? 0,
+                },
+                userId: explorer.inner.id ?? "",
+              });
+              break;
+            }
+            case "leave": {
+              explorers.delete(action.id);
+              break;
+            }
+            case "move": {
+              const explorer = action;
+              const prevExplorer = explorers.get(explorer.id ?? "");
+              if (!prevExplorer) return;
+              explorers.set(explorer.id ?? "", {
+                id: explorer.id ?? "",
+                position: {
+                  x: explorer.position?.x ?? 0,
+                  y: explorer.position?.y ?? 0,
+                },
+                userId: explorer.inner.id ?? "",
+                previousPosition: prevExplorer.position,
+              });
+              break;
+            }
+
+            default:
+              break;
+          }
+          if (action.type === "arrive") {
+            const explorer = action;
+            explorers.set(explorer.id ?? "", {
+              id: explorer.id ?? "",
+              position: {
+                x: explorer.position?.x ?? 0,
+                y: explorer.position?.y ?? 0,
+              },
+              userId: explorer.inner.id ?? "",
+            });
+          }
+        });
+        return explorers;
+      });
     };
     return () => {
       ws.close();

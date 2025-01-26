@@ -56,8 +56,6 @@ const World: React.FC<Props> = ({
       });
   }, [messages, fieldSize, userPosition, expandedMessage?.id, expandMessage]);
 
-  console.log(messageNodes);
-
   const speakerPhoneNodes = useMemo(() => {
     return Array.from(speakerPhones.values())
       .filter((speakerPhone) =>
