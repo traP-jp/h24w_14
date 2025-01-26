@@ -162,13 +162,10 @@ where
         }
     };
 
-    let body = serde_json::to_string(&serde_json::json!({
-        "id": user.inner.id.0
-    }));
-    let Ok(body) = body else {
-        return http::StatusCode::INTERNAL_SERVER_ERROR.into_response();
-    };
-    (http::StatusCode::OK, jar, body).into_response()
+    let headers: http::HeaderMap = [(http::header::LOCATION, "/".parse().unwrap())]
+        .into_iter()
+        .collect();
+    (http::StatusCode::FOUND, headers, jar).into_response()
 }
 
 async fn handle_ws<AppState>(
