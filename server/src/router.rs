@@ -98,13 +98,19 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
-    use axum::routing;
+    use axum::{routing, ServiceExt};
 
+    let bot = crate::traq::bot::tower::build_server::<_, axum::body::Body>(Arc::clone(&state))
+        .handle_error::<_, ()>(|e: traq_bot_http::Error| async move {
+            tracing::error!(error = &e as &dyn std::error::Error);
+            http::StatusCode::INTERNAL_SERVER_ERROR
+        });
     let layer = ServiceBuilder::new().layer(TraceLayer::new_for_http());
     Router::new()
         .route("/ping", routing::get(|| async { "pong".to_string() }))
         .route("/oauth2/redirect", routing::get(handle_redirect))
         .route("/ws", routing::get(handle_ws))
+        .route_service("/bot", bot)
         .with_state(state)
         .layer(layer)
 }

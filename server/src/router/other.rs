@@ -3,6 +3,8 @@ pub trait Requirements:
     + crate::explore::ProvideExploreService
     + crate::session::ProvideSessionService
     + crate::traq::user::ProvideTraqUserService
+    + crate::traq::bot::ProvideTraqBotService
+    + AsRef<crate::traq::bot::TraqBotConfig>
 {
 }
 
@@ -11,5 +13,7 @@ impl<T> Requirements for T where
         + crate::explore::ProvideExploreService
         + crate::session::ProvideSessionService
         + crate::traq::user::ProvideTraqUserService
+        + crate::traq::bot::ProvideTraqBotService
+        + AsRef<crate::traq::bot::TraqBotConfig>
 {
 }
