@@ -14,7 +14,7 @@ impl From<Error> for tonic::Status {
     fn from(value: Error) -> Self {
         match value {
             Error::NotFound => tonic::Status::not_found("Not found"),
-            Error::ReactionNotInWorld => tonic::Status::not_found("Reaction not in world"),
+            Error::ReactionNotInWorld => tonic::Status::invalid_argument("Reaction not in world"),
             Error::Sqlx(e) => {
                 tracing::error!(error = &e as &dyn std::error::Error);
                 tonic::Status::internal("Database error")
