@@ -19,6 +19,7 @@ struct State {
     traq_host: lib::traq::TraqHost,
     traq_bot_config: lib::traq::bot::TraqBotConfig,
     traq_bot_channels: lib::traq::bot::TraqBotChannels,
+    traq_channels_cache: lib::traq::channel::TraqChannelsCache,
     frontend_dist_dir: lib::router::FrontendDistDir,
 }
 
@@ -74,6 +75,7 @@ async fn main() -> anyhow::Result<()> {
         traq_host,
         traq_bot_config,
         traq_bot_channels: lib::traq::bot::TraqBotChannels::default(),
+        traq_channels_cache: Default::default(),
         frontend_dist_dir,
     });
     state.migrate().await?;
@@ -352,6 +354,12 @@ impl AsRef<lib::traq::bot::TraqBotChannels> for State {
 impl AsRef<lib::router::FrontendDistDir> for State {
     fn as_ref(&self) -> &lib::router::FrontendDistDir {
         &self.frontend_dist_dir
+    }
+}
+
+impl AsRef<lib::traq::channel::TraqChannelsCache> for State {
+    fn as_ref(&self) -> &lib::traq::channel::TraqChannelsCache {
+        &self.traq_channels_cache
     }
 }
 
