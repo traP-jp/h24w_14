@@ -49,8 +49,8 @@ const Canvas: React.FC<Props> = (props) => {
       height: height,
     });
     setUserPosition({
-      x: width / 2,
-      y: height / 2,
+      x: Math.random() * 5000,
+      y: Math.random() * 5000,
     });
     // TODO: リサイズオブザーバー入れる
   }, [setFieldSize, setUserPosition]);
