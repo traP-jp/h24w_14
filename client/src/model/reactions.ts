@@ -1,3 +1,6 @@
+import Abao_iyaaaa from "../assets/reactions/Abao_iyaaaa.webp";
+import Eyes from "../assets/reactions/eyes.webp";
+import Hetareneko_iyaaa from "../assets/reactions/Hetareneko_iyaaa.webp";
 import Iine from "../assets/reactions/iine.webp";
 import Kusa from "../assets/reactions/kusa.webp";
 import Pro from "../assets/reactions/pro.webp";
@@ -12,6 +15,9 @@ export const ReactionAssets = {
   iine: Iine,
   kusa: Kusa,
   pro: Pro,
+  hetareneko_iyaaa: Hetareneko_iyaaa,
+  abao_iyaaaa: Abao_iyaaaa,
+  eyes: Eyes,
   fire: Fire,
   smile: Smile,
 };
