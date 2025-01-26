@@ -44,8 +44,8 @@ RUN --mount=type=cache,target=/var/cache/rustup,sharing=locked \
 FROM debian:bookworm-slim AS server-debian-slim
 
 WORKDIR /srv
-ENV DIST_DIR=/srv/client/dist
-COPY --from=frontend-builder /app/dist ${DIST_DIR}
+ENV FRONTEND_DIST_DIR /srv/frontend/dist
+COPY --from=frontend-builder /app/dist ${FRONTEND_DIST_DIR}
 COPY --from=backend-builder /artifact/release/h24w14 /srv/bin/h24w14
 
 CMD [ "/srv/bin/h24w14" ]
