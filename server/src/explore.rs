@@ -32,7 +32,7 @@ pub struct ExplorationField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-#[serde(tag = "oneofKind", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum ExplorerAction {
     Arrive(Explorer),
     Move(Explorer),
