@@ -4,6 +4,8 @@ import { ReactionAssets, ReactionName } from "../../model/reactions";
 import { Position } from "../../model/position";
 import Bubble from "./Bubble";
 import { TextStyle } from "pixi.js";
+import { useUser } from "../../api/user";
+import { traqIconURL } from "../../util/icon";
 
 interface Props {
   position: Position;
@@ -12,13 +14,19 @@ interface Props {
     name: string;
     iconURL: string;
   };
+  userId: string;
 }
 
 const reactionImageSize = 25;
 const userIconSize = 14;
 
-const Reaction: React.FC<Props> = ({ position, reaction, user }) => {
+const Reaction: React.FC<Props> = ({ position, reaction, userId }) => {
   const [showUser, setShowUser] = useState(false);
+  const { data } = useUser(userId);
+  const user = data?.user;
+  if (!user) {
+    return null;
+  }
 
   return (
     <Container
@@ -47,7 +55,7 @@ const Reaction: React.FC<Props> = ({ position, reaction, user }) => {
             lineWidth={2}
           >
             <Sprite
-              image={user.iconURL}
+              image={traqIconURL(user.name)}
               width={userIconSize}
               height={userIconSize}
             />
