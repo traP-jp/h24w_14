@@ -54,7 +54,7 @@ export const InputMessage: React.FC = () => {
     <div className="flex items-end gap-1 p-2 bg-background-secondary">
       <TextArea
         placeholder="メッセージを入力"
-        autoSize={{ minRows: 1, maxRows: 9 }}
+        autoSize={{ minRows: 3, maxRows: 9 }}
         value={message}
         onChange={handleInputChange}
         onFocus={handleFocus}
