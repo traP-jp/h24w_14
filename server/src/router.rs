@@ -32,7 +32,7 @@ where
     let others = other_routes(state.clone());
     Router::merge(grpcs, others).layer(
         CorsLayer::new()
-            .allow_origin(AllowOrigin::any()) // FIXME
+            .allow_origin(AllowOrigin::mirror_request()) // FIXME
             .allow_methods(AllowMethods::list(vec![
                 Method::POST,
                 Method::OPTIONS,
