@@ -34,8 +34,8 @@ export const SpeakerPhoneButton: React.FC = () => {
     }));
   }, [availableChannelNamesFiltered]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setChannelName(e.target.value);
+  const handleInputChange = (query: string) => {
+    setChannelName(query);
   };
 
   const putSpeakerPhone = async (channelName: string) => {
