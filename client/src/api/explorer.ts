@@ -144,9 +144,12 @@ const useExplorerDispatcher = () => {
         ];
       });
       setFieldSpeakerPhones((speakerPhones) => {
+        const oldIDs = new Set(speakerPhones.map((sp) => sp.id));
         return [
           ...speakerPhones,
-          ...events.speakerPhones.map((speakerPhone) => ({
+          ...events.speakerPhones.filter((speakerPhone) => {
+            return !oldIDs.has(speakerPhone.id);
+          }).map((speakerPhone) => ({
             id: speakerPhone.id,
             position: {
               x: speakerPhone.position?.x ?? 0,
