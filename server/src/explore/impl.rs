@@ -232,13 +232,18 @@ where
         let Some(arrived) = arrived else {
             return;
         };
-        let Arrived { explorer, initial_events, stream: field_stream } = arrived;
+        let Arrived {
+            explorer,
+            field_size,
+            initial_events,
+            stream: field_stream,
+        } = arrived;
         yield initial_events.clone();
 
         let explorer_id = explorer.id;
 
         // updates
-        let explore_state = ExploreState::new(ctx, explorer, initial_events, field_stream);
+        let explore_state = ExploreState::new(ctx, explorer, field_size, initial_events, field_stream);
         let explore_stream = explore_state.into_stream();
         tokio::pin!(explore_stream);
         while let Some(events) = explore_stream.try_next().await? {
@@ -254,6 +259,7 @@ where
 
 struct Arrived<'a> {
     explorer: super::Explorer,
+    field_size: crate::world::Size,
     initial_events: super::ExplorationFieldEvents,
     stream: futures::stream::BoxStream<'a, super::ExplorationField>,
 }
@@ -335,6 +341,7 @@ where
 
     let arrived = Arrived {
         explorer,
+        field_size: initial_field.size,
         initial_events,
         stream,
     };
@@ -351,6 +358,7 @@ struct ReadEvents {
 struct ExploreState<'a, Context, E> {
     ctx: &'a Context,
     explorer: super::Explorer,
+    field_size: crate::world::Size,
     read_events: ReadEvents,
     field_stream: futures::stream::BoxStream<'a, super::ExplorationField>,
     event_stream: futures::stream::BoxStream<'static, Result<crate::event::Event, E>>,
@@ -371,6 +379,7 @@ where
     fn new(
         ctx: &'a Context,
         explorer: super::Explorer,
+        field_size: crate::world::Size,
         initial_events: super::ExplorationFieldEvents,
         field_stream: futures::stream::BoxStream<'a, super::ExplorationField>,
     ) -> Self {
@@ -396,6 +405,7 @@ where
         Self {
             ctx,
             explorer,
+            field_size,
             read_events,
             field_stream,
             event_stream,
@@ -459,6 +469,7 @@ where
             .update_explorer(super::UpdateExplorerParams { id, position })
             .await
             .map_err(IntoStatus::into_status)?;
+        self.field_size = field.size;
 
         let new_explorers: Vec<_> = self
             .ctx
@@ -550,22 +561,35 @@ where
         use crate::event::Event;
 
         match event {
-            Event::Explorer(ExplorerAction::Arrive(e)) if e.id != self.explorer.id => {
+            Event::Explorer(ExplorerAction::Arrive(e))
+                if e.id != self.explorer.id && self.is_inside(e.position) =>
+            {
                 self.update_explorer_arrive(e).await
             }
-            Event::Explorer(ExplorerAction::Move(e)) if e.id != self.explorer.id => {
+            Event::Explorer(ExplorerAction::Move(e))
+                if e.id != self.explorer.id && self.is_inside(e.position) =>
+            {
                 self.update_explorer_move(e).await
             }
-            Event::Explorer(ExplorerAction::Leave(e)) if e.id != self.explorer.id => {
+            Event::Explorer(ExplorerAction::Leave(e))
+                if e.id != self.explorer.id && self.is_inside(e.position) =>
+            {
                 self.update_explorer_leave(e).await
             }
-            Event::Message(m) if !self.read_events.message.contains(&m.id) => {
+            Event::Message(m)
+                if !self.read_events.message.contains(&m.id) && self.is_inside(m.position) =>
+            {
                 self.update_new_message(m).await
             }
-            Event::SpeakerPhone(sp) if !self.read_events.speaker_phone.contains(&sp.id) => {
+            Event::SpeakerPhone(sp)
+                if !self.read_events.speaker_phone.contains(&sp.id)
+                    && self.is_inside(sp.position) =>
+            {
                 self.update_new_speaker_phone(sp).await
             }
-            Event::Reaction(r) if !self.read_events.reaction.contains(&r.id) => {
+            Event::Reaction(r)
+                if !self.read_events.reaction.contains(&r.id) && self.is_inside(r.position) =>
+            {
                 self.update_new_reaction(r).await
             }
             _ => Ok(ControlFlow::Continue(())),
@@ -669,6 +693,14 @@ where
             };
             Ok(ControlFlow::Break(Some(events)))
         }
+    }
+
+    fn is_inside(&self, point: crate::world::Coordinate) -> bool {
+        let x_min = u32::saturating_sub(self.explorer.position.x, self.field_size.width >> 1);
+        let x_max = u32::saturating_add(self.explorer.position.x, self.field_size.width >> 1);
+        let y_min = u32::saturating_sub(self.explorer.position.y, self.field_size.height >> 1);
+        let y_max = u32::saturating_add(self.explorer.position.y, self.field_size.height >> 1);
+        x_min < point.x && x_max < point.x && y_min < point.y && point.y < y_max
     }
 }
 
