@@ -176,29 +176,25 @@ async fn handle_ws<AppState>(
 where
     AppState: other::Requirements,
 {
-    ws.on_upgrade(|socket| handle_socket(socket, headers, state))
-}
-
-async fn handle_socket<AppState>(mut ws: WebSocket, headers: HeaderMap, state: Arc<AppState>)
-where
-    AppState: other::Requirements,
-{
     let user_id = state.extract(ExtractParams(&headers)).await;
     let user_id = match user_id {
         Ok(session) => session.user_id,
         Err(e) => {
-            tracing::error!(
+            tracing::warn!(
                 error = &e as &dyn std::error::Error,
                 "failed to extract session"
             );
-            if let Err(err) = ws.close().await {
-                tracing::error!(error = &err as &dyn std::error::Error, "failed to close ws");
-            }
-            return;
+            return http::StatusCode::UNAUTHORIZED.into_response();
         }
     };
+    ws.on_upgrade(move |socket| handle_socket(socket, user_id, state))
+}
 
-    let (mut ws_tx, mut ws_rx) = ws.split();
+async fn handle_socket<AppState>(ws: WebSocket, user_id: crate::user::UserId, state: Arc<AppState>)
+where
+    AppState: other::Requirements,
+{
+    let (mut ws_tx, mut ws_rx) = futures::StreamExt::split(ws);
     let notify_close = Arc::new(Notify::new());
     let notify_close2 = Arc::clone(&notify_close);
 
