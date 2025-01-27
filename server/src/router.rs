@@ -202,8 +202,13 @@ async fn handle_websocket<AppState: other::Requirements>(
         stream: field_stream.boxed(),
     });
     let close = Arc::new(Notify::new());
-    let send = ws_message_to_field(ws_rx, field_sink, Arc::clone(&close));
-    let recv = events_to_ws_message(events_stream, ws_tx, close);
+    let close2 = Arc::clone(&close);
+    let send = async move {
+        let r = ws_message_to_field(ws_rx, field_sink).await;
+        close.notify_one();
+        r
+    };
+    let recv = events_to_ws_message(events_stream, ws_tx, close2);
     match tokio::join!(send, recv) {
         (Ok(()), Ok(())) => tracing::info!("Finish websocket session cleanly"),
         (Err(e), Ok(())) => tracing::error!(error = ?e, "Sending error"),
@@ -216,11 +221,7 @@ async fn handle_websocket<AppState: other::Requirements>(
 }
 
 #[tracing::instrument(skip_all)]
-async fn ws_message_to_field<M, F>(
-    mut message: M,
-    mut field: F,
-    close: Arc<Notify>,
-) -> anyhow::Result<()>
+async fn ws_message_to_field<M, F>(mut message: M, mut field: F) -> anyhow::Result<()>
 where
     M: futures::TryStream<Ok = Message> + Send + Unpin,
     M::Error: std::error::Error + Send + Sync + 'static,
@@ -247,7 +248,6 @@ where
             Message::Close(_) => break,
         }
     }
-    close.notify_one();
     tracing::debug!("Finish");
     Ok(())
 }
