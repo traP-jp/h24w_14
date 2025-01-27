@@ -652,14 +652,14 @@ where
         &mut self,
         message: crate::message::Message,
     ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
-        if self.read_events.message.contains(&message.id) {
-            Ok(ControlFlow::Continue(()))
-        } else {
+        if self.read_events.message.insert(message.id) {
             let events = super::ExplorationFieldEvents {
                 messages: vec![message],
                 ..Default::default()
             };
             Ok(ControlFlow::Break(Some(events)))
+        } else {
+            Ok(ControlFlow::Continue(()))
         }
     }
 
@@ -667,14 +667,14 @@ where
         &mut self,
         speaker_phone: crate::speaker_phone::SpeakerPhone,
     ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
-        if self.read_events.speaker_phone.contains(&speaker_phone.id) {
-            Ok(ControlFlow::Continue(()))
-        } else {
+        if self.read_events.speaker_phone.insert(speaker_phone.id) {
             let events = super::ExplorationFieldEvents {
                 speaker_phones: vec![speaker_phone],
                 ..Default::default()
             };
             Ok(ControlFlow::Break(Some(events)))
+        } else {
+            Ok(ControlFlow::Continue(()))
         }
     }
 
@@ -682,14 +682,14 @@ where
         &mut self,
         reaction: crate::reaction::Reaction,
     ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
-        if self.read_events.reaction.contains(&reaction.id) {
-            Ok(ControlFlow::Continue(()))
-        } else {
+        if self.read_events.reaction.insert(reaction.id) {
             let events = super::ExplorationFieldEvents {
                 reactions: vec![reaction],
                 ..Default::default()
             };
             Ok(ControlFlow::Break(Some(events)))
+        } else {
+            Ok(ControlFlow::Continue(()))
         }
     }
 
