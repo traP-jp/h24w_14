@@ -6,18 +6,8 @@ use std::sync::Arc;
 use futures::future::{BoxFuture, FutureExt};
 use tokio::sync::RwLock;
 
-use futures::StreamExt;
-
-use crate::{
-    event::{Event, ProvideEventService},
-    message::ProvideMessageService,
-    prelude::IntoStatus,
-    reaction::ProvideReactionService,
-    speaker_phone::ProvideSpeakerPhoneService,
-    user::ProvideUserService,
-};
-
-use super::ProvideExplorerService;
+use crate::event::{Event, ProvideEventService};
+use crate::prelude::IntoStatus;
 
 // MARK: ExplorerService
 
@@ -192,11 +182,11 @@ async fn delete_explorer<E: ProvideEventService>(
 impl<Context> super::ExploreService<Context> for super::ExploreServiceImpl
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::user::ProvideUserService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
 {
     // type Error = super::error::Error;
     type Error = tonic::Status;
@@ -206,6 +196,8 @@ where
         ctx: &'a Context,
         params: super::ExploreParams<'a>,
     ) -> futures::stream::BoxStream<'a, Result<super::ExplorationFieldEvents, Self::Error>> {
+        use futures::StreamExt;
+
         explore(ctx, params).boxed()
     }
 }
@@ -218,11 +210,11 @@ fn explore<'a, Context>(
        + use<'a, Context>
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::user::ProvideUserService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
 {
     use futures::TryStreamExt;
 
@@ -257,6 +249,8 @@ where
     }
 }
 
+// MARK: explore / arrive
+
 struct Arrived<'a> {
     explorer: super::Explorer,
     field_size: crate::world::Size,
@@ -270,11 +264,11 @@ async fn explore_arrive<'a, Context>(
 ) -> Result<Option<Arrived<'a>>, tonic::Status>
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::user::ProvideUserService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
 {
     use futures::StreamExt;
 
@@ -348,6 +342,8 @@ where
     Ok(Some(arrived))
 }
 
+// MARK: explore / update-loop
+
 struct ReadEvents {
     explorer: HashMap<super::ExplorerId, crate::world::Coordinate>,
     message: HashSet<crate::message::MessageId>,
@@ -367,11 +363,10 @@ struct ExploreState<'a, Context, E> {
 impl<'a, Context, E> ExploreState<'a, Context, E>
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
     E: IntoStatus,
     Context::EventService:
         crate::event::EventService<<Context as ProvideEventService>::Context, Error = E>,
@@ -417,7 +412,7 @@ where
     ) -> impl futures::Stream<Item = Result<super::ExplorationFieldEvents, tonic::Status>>
            + Send
            + use<'a, Context, E> {
-        use futures::{stream, StreamExt};
+        use futures::{future, stream, StreamExt};
 
         let (tx, rx) = tokio::sync::mpsc::channel(2);
         let generate = async move {
@@ -426,8 +421,7 @@ where
             }
             Ok(None)
         };
-        let tx_stream =
-            stream::once(generate).filter_map(|g| futures::future::ready(g.transpose()));
+        let tx_stream = stream::once(generate).filter_map(|g| future::ready(g.transpose()));
         let rx_stream = tokio_stream::wrappers::ReceiverStream::new(rx);
         stream::select(tx_stream, rx_stream)
     }
@@ -457,6 +451,8 @@ where
             }
         }
     }
+
+    // MARK: ExploreState::update_field
 
     async fn update_field(
         &mut self,
@@ -552,6 +548,8 @@ where
         };
         Ok(ControlFlow::Break(Some(events)))
     }
+
+    // MARK: ExploreState::update_event
 
     async fn update_event(
         &mut self,
