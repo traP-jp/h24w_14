@@ -267,7 +267,10 @@ where
 
     loop {
         let events = tokio::select! {
-            () = close.notified() => break,
+            () = close.notified() => {
+                clean_rest_events(events).await?;
+                break;
+            },
             events = events.try_next() => events.context("Failed to receive event")?,
         };
         let Some(events) = events else {
@@ -280,6 +283,7 @@ where
             .await
             .context("Failed to send text message")?;
     }
+
     message
         .flush()
         .await
@@ -289,5 +293,38 @@ where
         .await
         .context("Failed to close message sink")?;
     tracing::debug!("Finish");
+    Ok(())
+}
+
+/// eventsがNoneを返すまで待つ
+async fn clean_rest_events<E>(mut events: E) -> anyhow::Result<()>
+where
+    E: futures::TryStream<Ok = crate::explore::ExplorationFieldEvents> + Send + Unpin,
+    E::Error: std::error::Error + Send + Sync + 'static,
+{
+    use anyhow::Context;
+    use futures::TryStreamExt;
+
+    let rest = async move {
+        loop {
+            let Some(_) = events.try_next().await.context("Failed to receive event")? else {
+                break;
+            };
+        }
+        Ok::<(), anyhow::Error>(())
+    };
+    let rest = tokio::time::timeout(std::time::Duration::from_secs(1), rest);
+    match rest.await {
+        Ok(r) => {
+            let () = r?;
+            tracing::debug!("Cleaned up events stream successfully");
+        }
+        Err(e) => {
+            tracing::error!(
+                error = &e as &dyn std::error::Error,
+                "Cleanup events stream timed out"
+            );
+        }
+    }
     Ok(())
 }
