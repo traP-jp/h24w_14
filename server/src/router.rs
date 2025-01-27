@@ -1,17 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{
-        ws::{Message, WebSocket},
-        State,
-    },
+    extract::{ws, State},
     response::{IntoResponse, Response},
     Router,
 };
-use http::{header, HeaderMap, HeaderName, Method};
 use tokio::sync::Notify;
 use tower::{ServiceBuilder, ServiceExt};
-use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use crate::session::ExtractParams;
@@ -26,6 +21,9 @@ pub fn make<State>(state: Arc<State>) -> Router<()>
 where
     State: grpc::Requirements + other::Requirements,
 {
+    use http::{header, HeaderName, Method};
+    use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
+
     let grpcs = grpc_routes(state.clone());
     let others = other_routes(state.clone());
     Router::merge(grpcs, others).layer(
@@ -96,7 +94,7 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
-    use axum::{routing, ServiceExt};
+    use axum::{routing, ServiceExt as _};
 
     let bot = crate::traq::bot::tower::build_server::<_, axum::body::Body>(Arc::clone(&state))
         .handle_error::<_, ()>(|e: traq_bot_http::Error| async move {
@@ -165,8 +163,8 @@ where
 
 async fn handle_ws<AppState>(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    ws: axum::extract::WebSocketUpgrade,
+    headers: http::HeaderMap,
+    ws: ws::WebSocketUpgrade,
 ) -> Response
 where
     AppState: other::Requirements,
@@ -187,7 +185,7 @@ where
 
 #[tracing::instrument(skip_all)]
 async fn handle_websocket<AppState: other::Requirements>(
-    ws: WebSocket,
+    ws: ws::WebSocket,
     user_id: crate::user::UserId,
     state: Arc<AppState>,
 ) {
@@ -223,7 +221,7 @@ async fn handle_websocket<AppState: other::Requirements>(
 #[tracing::instrument(skip_all)]
 async fn ws_message_to_field<M, F>(mut message: M, mut field: F) -> anyhow::Result<()>
 where
-    M: futures::TryStream<Ok = Message> + Send + Unpin,
+    M: futures::TryStream<Ok = ws::Message> + Send + Unpin,
     M::Error: std::error::Error + Send + Sync + 'static,
     F: futures::Sink<crate::explore::ExplorationField> + Send + Unpin,
     F::Error: std::error::Error + Send + Sync + 'static,
@@ -237,15 +235,15 @@ where
         .context("Failed to receive WebSocket message")?
     {
         match msg {
-            Message::Text(text) => {
+            ws::Message::Text(text) => {
                 let text = text.as_str();
                 let f: crate::explore::ExplorationField =
                     serde_json::from_str(text).context("Failed to parse message")?;
                 field.send(f).await.context("Failed to send message")?;
             }
-            Message::Binary(_) => anyhow::bail!("Received unexpected binary message"),
-            Message::Ping(_) | Message::Pong(_) => continue,
-            Message::Close(_) => break,
+            ws::Message::Binary(_) => anyhow::bail!("Received unexpected binary message"),
+            ws::Message::Ping(_) | ws::Message::Pong(_) => continue,
+            ws::Message::Close(_) => break,
         }
     }
     tracing::debug!("Finish");
@@ -261,7 +259,7 @@ async fn events_to_ws_message<E, M>(
 where
     E: futures::TryStream<Ok = crate::explore::ExplorationFieldEvents> + Send + Unpin,
     E::Error: std::error::Error + Send + Sync + 'static,
-    M: futures::Sink<Message> + Send + Unpin,
+    M: futures::Sink<ws::Message> + Send + Unpin,
     M::Error: std::error::Error + Send + Sync + 'static,
 {
     use anyhow::Context;
@@ -276,7 +274,7 @@ where
             break;
         };
         let msg_text = serde_json::to_string(&events).context("Failed to serialize JSON")?;
-        let msg = Message::text(msg_text);
+        let msg = ws::Message::text(msg_text);
         message
             .send(msg)
             .await
