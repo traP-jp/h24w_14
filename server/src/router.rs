@@ -190,6 +190,115 @@ where
     ws.on_upgrade(move |socket| handle_socket(socket, user_id, state))
 }
 
+#[tracing::instrument(skip_all)]
+async fn handle_websocket<AppState: other::Requirements>(
+    ws: WebSocket,
+    user_id: crate::user::UserId,
+    state: Arc<AppState>,
+) {
+    use futures::StreamExt;
+
+    let (ws_tx, ws_rx) = ws.split();
+    let (field_tx, field_rx) = tokio::sync::mpsc::channel(2);
+    let field_sink = tokio_util::sync::PollSender::new(field_tx);
+    let field_stream = tokio_stream::wrappers::ReceiverStream::new(field_rx);
+    let events_stream = (*state).explore(crate::explore::ExploreParams {
+        id: user_id,
+        stream: field_stream.boxed(),
+    });
+    let close = Arc::new(Notify::new());
+    let send = ws_message_to_field(ws_rx, field_sink, Arc::clone(&close));
+    let recv = events_to_ws_message(events_stream, ws_tx, close);
+    match tokio::join!(send, recv) {
+        (Ok(()), Ok(())) => tracing::info!("Finish websocket session cleanly"),
+        (Err(e), Ok(())) => tracing::error!(error = ?e, "Sending error"),
+        (Ok(()), Err(e)) => tracing::error!(error = ?e, "Receiving error"),
+        (Err(se), Err(re)) => {
+            tracing::error!(error = ?se, "Sending error");
+            tracing::error!(error = ?re, "Receiving error");
+        }
+    };
+}
+
+#[tracing::instrument(skip_all)]
+async fn ws_message_to_field<M, F>(
+    mut message: M,
+    mut field: F,
+    close: Arc<Notify>,
+) -> anyhow::Result<()>
+where
+    M: futures::TryStream<Ok = Message> + Send + Unpin,
+    M::Error: std::error::Error + Send + Sync + 'static,
+    F: futures::Sink<crate::explore::ExplorationField> + Send + Unpin,
+    F::Error: std::error::Error + Send + Sync + 'static,
+{
+    use anyhow::Context;
+    use futures::{SinkExt, TryStreamExt};
+
+    while let Some(msg) = message
+        .try_next()
+        .await
+        .context("Failed to receive WebSocket message")?
+    {
+        match msg {
+            Message::Text(text) => {
+                let text = text.as_str();
+                let f: crate::explore::ExplorationField =
+                    serde_json::from_str(text).context("Failed to parse message")?;
+                field.send(f).await.context("Failed to send message")?;
+            }
+            Message::Binary(_) => anyhow::bail!("Received unexpected binary message"),
+            Message::Ping(_) | Message::Pong(_) => continue,
+            Message::Close(_) => break,
+        }
+    }
+    close.notify_one();
+    tracing::debug!("Finish");
+    Ok(())
+}
+
+#[tracing::instrument(skip_all)]
+async fn events_to_ws_message<E, M>(
+    mut events: E,
+    mut message: M,
+    close: Arc<Notify>,
+) -> anyhow::Result<()>
+where
+    E: futures::TryStream<Ok = crate::explore::ExplorationFieldEvents> + Send + Unpin,
+    E::Error: std::error::Error + Send + Sync + 'static,
+    M: futures::Sink<Message> + Send + Unpin,
+    M::Error: std::error::Error + Send + Sync + 'static,
+{
+    use anyhow::Context;
+    use futures::{SinkExt, TryStreamExt};
+
+    loop {
+        let events = tokio::select! {
+            () = close.notified() => break,
+            events = events.try_next() => events.context("Failed to receive event")?,
+        };
+        let Some(events) = events else {
+            break;
+        };
+        let msg_text = serde_json::to_string(&events).context("Failed to serialize JSON")?;
+        let msg = Message::text(msg_text);
+        message
+            .send(msg)
+            .await
+            .context("Failed to send text message")?;
+    }
+    message
+        .flush()
+        .await
+        .context("Failed to flush message sink")?;
+    message
+        .close()
+        .await
+        .context("Failed to close message sink")?;
+    tracing::debug!("Finish");
+    Ok(())
+}
+
 async fn handle_socket<AppState>(ws: WebSocket, user_id: crate::user::UserId, state: Arc<AppState>)
 where
     AppState: other::Requirements,
