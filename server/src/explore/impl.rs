@@ -479,7 +479,7 @@ where
         field: super::ExplorationField,
     ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
         let id = self.explorer.id;
-        let super::ExplorationField { position, size } = field;
+        let position = field.position;
 
         match self
             .ctx
@@ -503,86 +503,117 @@ where
             .map_err(IntoStatus::into_status)?;
         self.field_size = field.size;
 
-        let new_explorers: Vec<_> = self
-            .ctx
-            .get_explorers_in_area(super::GetExplorersInAreaParams::Rect {
-                center: position,
-                size,
-            })
-            .await
-            .map_err(IntoStatus::into_status)?
-            .into_iter()
-            .filter_map(|e| {
-                let p = e.id != id
-                    && self
-                        .read_events
-                        .explorer
-                        .get(&e.id)
-                        .is_none_or(|p| *p != e.position);
-                p.then_some(e)
-            })
-            .collect();
-        let new_messages: Vec<_> = self
-            .ctx
-            .get_messages_in_area(crate::message::GetMessagesInAreaParams {
-                center: position,
-                size,
-            })
-            .await
-            .map_err(IntoStatus::into_status)?
-            .into_iter()
-            .filter_map(|m| (!self.read_events.message.contains(&m.id)).then_some(m))
-            .collect();
-        let new_speaker_phones: Vec<_> = self
-            .ctx
-            .get_speaker_phones_in_area(crate::speaker_phone::GetSpeakerPhonesInAreaParams {
-                center: position,
-                size,
-            })
-            .await
-            .map_err(IntoStatus::into_status)?
-            .into_iter()
-            .filter_map(|sp| (!self.read_events.speaker_phone.contains(&sp.id)).then_some(sp))
-            .collect();
-        let new_reactions: Vec<_> = self
-            .ctx
-            .get_reactions_in_area(crate::reaction::GetReactionsInAreaParams {
-                center: position,
-                size,
-            })
-            .await
-            .map_err(IntoStatus::into_status)?
-            .into_iter()
-            .filter_map(|r| (!self.read_events.reaction.contains(&r.id)).then_some(r))
-            .collect();
+        let explorer_actions = self.update_field_explorer_actions().await?;
+        let messages = self.update_field_messages().await?;
+        let speaker_phones = self.update_field_speaker_phones().await?;
+        let reactions = self.update_field_reactions().await?;
 
-        self.read_events
-            .explorer
-            .extend(new_explorers.iter().map(|e| (e.id, e.position)));
-        self.read_events
-            .message
-            .extend(new_messages.iter().map(|m| m.id));
-        self.read_events
-            .speaker_phone
-            .extend(new_speaker_phones.iter().map(|sp| sp.id));
-        self.read_events
-            .reaction
-            .extend(new_reactions.iter().map(|r| r.id));
-
-        let explorer_actions = new_explorers
-            .into_iter()
-            .map(|e1| match self.read_events.explorer.get(&e1.id) {
-                Some(_) => super::ExplorerAction::Move(e1),
-                None => super::ExplorerAction::Arrive(e1),
-            })
-            .collect();
         let events = super::ExplorationFieldEvents {
             explorer_actions,
-            messages: new_messages,
-            speaker_phones: new_speaker_phones,
-            reactions: new_reactions,
+            messages,
+            speaker_phones,
+            reactions,
         };
         Ok(ControlFlow::Break(Some(events)))
+    }
+
+    async fn update_field_explorer_actions(
+        &mut self,
+    ) -> Result<Vec<super::ExplorerAction>, tonic::Status> {
+        let id = self.explorer.id;
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let explorers = self
+            .ctx
+            .get_explorers_in_area(super::GetExplorersInAreaParams::Rect { center, size })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let explorer_actions = explorers.into_iter().filter_map(|e| {
+            if e.id == id {
+                return None;
+            }
+            match self.read_events.explorer.get(&e.id) {
+                Some(pos) if pos == &e.position => None,
+                Some(_) => Some(super::ExplorerAction::Move(e)),
+                None => Some(super::ExplorerAction::Arrive(e)),
+            }
+        });
+        let explorer_actions: Vec<_> = explorer_actions.collect();
+        self.read_events
+            .explorer
+            .extend(explorer_actions.iter().map(|e| match e {
+                super::ExplorerAction::Arrive(e) => (e.id, e.position),
+                super::ExplorerAction::Move(e) => (e.id, e.position),
+                super::ExplorerAction::Leave(_) => unreachable!(),
+            }));
+        Ok(explorer_actions)
+    }
+
+    async fn update_field_messages(
+        &mut self,
+    ) -> Result<Vec<crate::message::Message>, tonic::Status> {
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let messages = self
+            .ctx
+            .get_messages_in_area(crate::message::GetMessagesInAreaParams { center, size })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let messages: Vec<_> = messages
+            .into_iter()
+            .filter(|m| !self.read_events.message.contains(&m.id))
+            .collect();
+        self.read_events
+            .message
+            .extend(messages.iter().map(|m| m.id));
+        Ok(messages)
+    }
+
+    async fn update_field_speaker_phones(
+        &mut self,
+    ) -> Result<Vec<crate::speaker_phone::SpeakerPhone>, tonic::Status> {
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let speaker_phones = self
+            .ctx
+            .get_speaker_phones_in_area(crate::speaker_phone::GetSpeakerPhonesInAreaParams {
+                center,
+                size,
+            })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let speaker_phones: Vec<_> = speaker_phones
+            .into_iter()
+            .filter(|sp| !self.read_events.speaker_phone.contains(&sp.id))
+            .collect();
+        self.read_events
+            .speaker_phone
+            .extend(speaker_phones.iter().map(|sp| sp.id));
+        Ok(speaker_phones)
+    }
+
+    async fn update_field_reactions(
+        &mut self,
+    ) -> Result<Vec<crate::reaction::Reaction>, tonic::Status> {
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let reactions = self
+            .ctx
+            .get_reactions_in_area(crate::reaction::GetReactionsInAreaParams { center, size })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let reactions: Vec<_> = reactions
+            .into_iter()
+            .filter(|r| !self.read_events.reaction.contains(&r.id))
+            .collect();
+        self.read_events
+            .reaction
+            .extend(reactions.iter().map(|r| r.id));
+        Ok(reactions)
     }
 
     // MARK: ExploreState::update_event
