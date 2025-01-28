@@ -182,6 +182,7 @@ async fn delete_explorer<E: ProvideEventService>(
 impl<Context> super::ExploreService<Context> for super::ExploreServiceImpl
 where
     Context: ProvideEventService
+        + crate::world::ProvideWorldService
         + crate::user::ProvideUserService
         + crate::message::ProvideMessageService
         + crate::speaker_phone::ProvideSpeakerPhoneService
@@ -210,6 +211,7 @@ fn explore<'a, Context>(
        + use<'a, Context>
 where
     Context: ProvideEventService
+        + crate::world::ProvideWorldService
         + crate::user::ProvideUserService
         + crate::message::ProvideMessageService
         + crate::speaker_phone::ProvideSpeakerPhoneService
@@ -258,12 +260,14 @@ struct Arrived<'a> {
     stream: futures::stream::BoxStream<'a, super::ExplorationField>,
 }
 
+#[tracing::instrument(skip_all)]
 async fn explore_arrive<'a, Context>(
     ctx: &'a Context,
     params: super::ExploreParams<'a>,
 ) -> Result<Option<Arrived<'a>>, tonic::Status>
 where
     Context: ProvideEventService
+        + crate::world::ProvideWorldService
         + crate::user::ProvideUserService
         + crate::message::ProvideMessageService
         + crate::speaker_phone::ProvideSpeakerPhoneService
@@ -276,6 +280,21 @@ where
     let Some(initial_field) = stream.next().await else {
         return Ok(None);
     };
+
+    match ctx
+        .check_coordinate(crate::world::CheckCoordinateParams {
+            coordinate: initial_field.position,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?
+    {
+        crate::world::CheckCoordinateAnswer::Valid(_) => {}
+        crate::world::CheckCoordinateAnswer::Invalid => {
+            tracing::warn!(position = ?initial_field.position, "Received invalid position");
+            return Ok(None);
+        }
+    }
+
     let user = ctx
         .get_user(crate::user::GetUserParams { id })
         .await
@@ -363,6 +382,7 @@ struct ExploreState<'a, Context, E> {
 impl<'a, Context, E> ExploreState<'a, Context, E>
 where
     Context: ProvideEventService
+        + crate::world::ProvideWorldService
         + crate::message::ProvideMessageService
         + crate::speaker_phone::ProvideSpeakerPhoneService
         + super::ProvideExplorerService
@@ -460,6 +480,22 @@ where
     ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
         let id = self.explorer.id;
         let super::ExplorationField { position, size } = field;
+
+        match self
+            .ctx
+            .check_coordinate(crate::world::CheckCoordinateParams {
+                coordinate: position,
+            })
+            .await
+            .map_err(IntoStatus::into_status)?
+        {
+            crate::world::CheckCoordinateAnswer::Valid(_) => {}
+            crate::world::CheckCoordinateAnswer::Invalid => {
+                tracing::warn!(?position, "Received invalid position");
+                return Ok(ControlFlow::Break(None));
+            }
+        }
+
         self.explorer = self
             .ctx
             .update_explorer(super::UpdateExplorerParams { id, position })
