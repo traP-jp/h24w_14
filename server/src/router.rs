@@ -1,25 +1,15 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{
-        ws::{Message, WebSocket},
-        State,
-    },
+    extract::{ws, State},
     response::{IntoResponse, Response},
     Router,
 };
-use futures::{stream::SplitSink, SinkExt, StreamExt};
-use http::{header, HeaderMap, HeaderName, Method};
 use tokio::sync::Notify;
 use tower::{ServiceBuilder, ServiceExt};
-use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use crate::{
-    explore::{ExplorationField, ExplorationFieldEvents},
-    prelude::IntoStatus as _,
-    session::ExtractParams,
-};
+use crate::session::ExtractParams;
 
 pub mod grpc;
 pub mod other;
@@ -31,6 +21,9 @@ pub fn make<State>(state: Arc<State>) -> Router<()>
 where
     State: grpc::Requirements + other::Requirements,
 {
+    use http::{header, HeaderName, Method};
+    use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
+
     let grpcs = grpc_routes(state.clone());
     let others = other_routes(state.clone());
     Router::merge(grpcs, others).layer(
@@ -101,7 +94,7 @@ fn grpc_routes<State: grpc::Requirements>(state: Arc<State>) -> Router<()> {
 }
 
 fn other_routes<State: other::Requirements>(state: Arc<State>) -> Router<()> {
-    use axum::{routing, ServiceExt};
+    use axum::{routing, ServiceExt as _};
 
     let bot = crate::traq::bot::tower::build_server::<_, axum::body::Body>(Arc::clone(&state))
         .handle_error::<_, ()>(|e: traq_bot_http::Error| async move {
@@ -170,16 +163,9 @@ where
 
 async fn handle_ws<AppState>(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    ws: axum::extract::WebSocketUpgrade,
+    headers: http::HeaderMap,
+    ws: ws::WebSocketUpgrade,
 ) -> Response
-where
-    AppState: other::Requirements,
-{
-    ws.on_upgrade(|socket| handle_socket(socket, headers, state))
-}
-
-async fn handle_socket<AppState>(mut ws: WebSocket, headers: HeaderMap, state: Arc<AppState>)
 where
     AppState: other::Requirements,
 {
@@ -187,112 +173,158 @@ where
     let user_id = match user_id {
         Ok(session) => session.user_id,
         Err(e) => {
-            tracing::error!(
+            tracing::warn!(
                 error = &e as &dyn std::error::Error,
                 "failed to extract session"
             );
-            if let Err(err) = ws.close().await {
-                tracing::error!(error = &err as &dyn std::error::Error, "failed to close ws");
-            }
-            return;
+            return http::StatusCode::UNAUTHORIZED.into_response();
         }
     };
-
-    let (mut ws_tx, mut ws_rx) = ws.split();
-    let notify_close = Arc::new(Notify::new());
-    let notify_close2 = Arc::clone(&notify_close);
-
-    let ws_rx = Box::pin(async_stream::stream! {
-        while let Some(msg) = ws_rx.next().await {
-            let msg = match msg {
-                Ok(msg) => msg,
-                Err(e) => {
-                    tracing::error!(error = &e as &dyn std::error::Error, "failed to receive ws message");
-                    return;
-                }
-            };
-
-            match msg {
-                axum::extract::ws::Message::Text(msg) => {
-                    let msg = match serde_json::from_str::<ExplorationField>(&msg) {
-                        Ok(msg) => msg,
-                        Err(e) => {
-                            tracing::error!(error = &e as &dyn std::error::Error, "failed to parse ws message");
-                            notify_close.notify_one();
-                            return;
-                        }
-                    };
-                    yield msg;
-                }
-                axum::extract::ws::Message::Binary(msg) => {
-                    tracing::error!("unexpected binary message {:?}", msg);
-                    return;
-                }
-                axum::extract::ws::Message::Close(_) => {
-                    notify_close.notify_one();
-                    return;
-                }
-                axum::extract::ws::Message::Ping(_) | axum::extract::ws::Message::Pong(_) => {
-                    // NOTE: Ping/Pong は勝手に処理してくれる
-                }
-            }
-        }
-    });
-
-    let mut event_rx = state.explore(crate::explore::ExploreParams {
-        id: user_id,
-        stream: ws_rx,
-    });
-
-    loop {
-        tokio::select! {
-            () = notify_close2.notified() => {
-                if let Err(e) = ws_tx.close().await {
-                    tracing::error!(error = &e as &dyn std::error::Error, "failed to close ws");
-                }
-            }
-            Some(event) = event_rx.next() => {
-                handle_explore_event(event.map_err(
-                    |e| e.into_status()
-                ), &mut ws_tx, Arc::clone(&notify_close2)).await;
-            }
-            else => {
-                notify_close2.notify_one();
-                return;
-            }
-        }
-    }
+    ws.on_upgrade(move |socket| handle_websocket(socket, user_id, state))
 }
 
-async fn handle_explore_event(
-    event: Result<ExplorationFieldEvents, tonic::Status>,
-    ws_tx: &mut SplitSink<WebSocket, Message>,
-    notify_close2: Arc<Notify>,
+#[tracing::instrument(skip_all)]
+async fn handle_websocket<AppState: other::Requirements>(
+    ws: ws::WebSocket,
+    user_id: crate::user::UserId,
+    state: Arc<AppState>,
 ) {
-    let event = match event {
-        Ok(event) => event,
+    use futures::StreamExt;
+
+    let (ws_tx, ws_rx) = ws.split();
+    let (field_tx, field_rx) = tokio::sync::mpsc::channel(2);
+    let field_sink = tokio_util::sync::PollSender::new(field_tx);
+    let field_stream = tokio_stream::wrappers::ReceiverStream::new(field_rx);
+    let events_stream = (*state).explore(crate::explore::ExploreParams {
+        id: user_id,
+        stream: field_stream.boxed(),
+    });
+    let close = Arc::new(Notify::new());
+    let close2 = Arc::clone(&close);
+    let send = async move {
+        let r = ws_message_to_field(ws_rx, field_sink).await;
+        close.notify_one();
+        r
+    };
+    let recv = events_to_ws_message(events_stream, ws_tx, close2);
+    match tokio::join!(send, recv) {
+        (Ok(()), Ok(())) => tracing::info!("Finish websocket session cleanly"),
+        (Err(e), Ok(())) => tracing::error!(error = ?e, "Sending error"),
+        (Ok(()), Err(e)) => tracing::error!(error = ?e, "Receiving error"),
+        (Err(se), Err(re)) => {
+            tracing::error!(error = ?se, "Sending error");
+            tracing::error!(error = ?re, "Receiving error");
+        }
+    };
+}
+
+#[tracing::instrument(skip_all)]
+async fn ws_message_to_field<M, F>(mut message: M, mut field: F) -> anyhow::Result<()>
+where
+    M: futures::TryStream<Ok = ws::Message> + Send + Unpin,
+    M::Error: std::error::Error + Send + Sync + 'static,
+    F: futures::Sink<crate::explore::ExplorationField> + Send + Unpin,
+    F::Error: std::error::Error + Send + Sync + 'static,
+{
+    use anyhow::Context;
+    use futures::{SinkExt, TryStreamExt};
+
+    while let Some(msg) = message
+        .try_next()
+        .await
+        .context("Failed to receive WebSocket message")?
+    {
+        match msg {
+            ws::Message::Text(text) => {
+                let text = text.as_str();
+                let f: crate::explore::ExplorationField =
+                    serde_json::from_str(text).context("Failed to parse message")?;
+                field.send(f).await.context("Failed to send message")?;
+            }
+            ws::Message::Binary(_) => anyhow::bail!("Received unexpected binary message"),
+            ws::Message::Ping(_) | ws::Message::Pong(_) => continue,
+            ws::Message::Close(_) => break,
+        }
+    }
+    tracing::debug!("Finish");
+    Ok(())
+}
+
+#[tracing::instrument(skip_all)]
+async fn events_to_ws_message<E, M>(
+    mut events: E,
+    mut message: M,
+    close: Arc<Notify>,
+) -> anyhow::Result<()>
+where
+    E: futures::TryStream<Ok = crate::explore::ExplorationFieldEvents> + Send + Unpin,
+    E::Error: std::error::Error + Send + Sync + 'static,
+    M: futures::Sink<ws::Message> + Send + Unpin,
+    M::Error: std::error::Error + Send + Sync + 'static,
+{
+    use anyhow::Context;
+    use futures::{SinkExt, TryStreamExt};
+
+    loop {
+        let events = tokio::select! {
+            () = close.notified() => {
+                clean_rest_events(events).await?;
+                break;
+            },
+            events = events.try_next() => events.context("Failed to receive event")?,
+        };
+        let Some(events) = events else {
+            break;
+        };
+        let msg_text = serde_json::to_string(&events).context("Failed to serialize JSON")?;
+        let msg = ws::Message::text(msg_text);
+        message
+            .send(msg)
+            .await
+            .context("Failed to send text message")?;
+    }
+
+    message
+        .flush()
+        .await
+        .context("Failed to flush message sink")?;
+    message
+        .close()
+        .await
+        .context("Failed to close message sink")?;
+    tracing::debug!("Finish");
+    Ok(())
+}
+
+/// eventsがNoneを返すまで待つ
+async fn clean_rest_events<E>(mut events: E) -> anyhow::Result<()>
+where
+    E: futures::TryStream<Ok = crate::explore::ExplorationFieldEvents> + Send + Unpin,
+    E::Error: std::error::Error + Send + Sync + 'static,
+{
+    use anyhow::Context;
+    use futures::TryStreamExt;
+
+    let rest = async move {
+        loop {
+            let Some(_) = events.try_next().await.context("Failed to receive event")? else {
+                break;
+            };
+        }
+        Ok::<(), anyhow::Error>(())
+    };
+    let rest = tokio::time::timeout(std::time::Duration::from_secs(1), rest);
+    match rest.await {
+        Ok(r) => {
+            let () = r?;
+            tracing::debug!("Cleaned up events stream successfully");
+        }
         Err(e) => {
             tracing::error!(
                 error = &e as &dyn std::error::Error,
-                "failed to receive event"
+                "Cleanup events stream timed out"
             );
-            notify_close2.notify_one();
-            return;
         }
-    };
-
-    if let Err(e) = ws_tx
-        .send(axum::extract::ws::Message::Text(
-            serde_json::to_string(&event)
-                .expect("failed to serialize event")
-                .into(),
-        ))
-        .await
-    {
-        tracing::error!(
-            error = &e as &dyn std::error::Error,
-            "failed to send ws message"
-        );
-        notify_close2.notify_one();
     }
+    Ok(())
 }
