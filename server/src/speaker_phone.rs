@@ -3,6 +3,7 @@
 pub mod error;
 pub mod grpc;
 mod r#impl;
+mod load;
 
 use std::sync::Arc;
 
