@@ -37,6 +37,13 @@ pub struct SendMessageParams {
     // ユーザーはtraQのユーザーと1対1で紐づいている前提
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct RecvMessageParams {
+    pub traq_message: TraqMessage,
+    pub user_id: crate::user::UserId,
+    pub position: crate::world::Coordinate,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CheckMessageSyncedParams {
     ToTraq(crate::message::Message),
@@ -46,10 +53,17 @@ pub enum CheckMessageSyncedParams {
 pub trait TraqMessageService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
 
+    /// アプリに投稿されたメッセージをtraQに反映される
     fn send_message<'a>(
         &'a self,
         ctx: &'a Context,
         params: SendMessageParams,
+    ) -> BoxFuture<'a, Result<SyncedTraqMessage, Self::Error>>;
+    /// traQのメッセージをアプリに反映させる
+    fn recv_message<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: RecvMessageParams,
     ) -> BoxFuture<'a, Result<SyncedTraqMessage, Self::Error>>;
     fn check_message_synced<'a>(
         &'a self,
@@ -78,6 +92,19 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.traq_message_service().send_message(ctx, params)
+    }
+    fn recv_message(
+        &self,
+        params: RecvMessageParams,
+    ) -> BoxFuture<
+        '_,
+        Result<
+            SyncedTraqMessage,
+            <Self::TraqMessageService as TraqMessageService<Self::Context>>::Error,
+        >,
+    > {
+        let ctx = self.context();
+        self.traq_message_service().recv_message(ctx, params)
     }
     fn check_message_synced(
         &self,
