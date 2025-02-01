@@ -8,7 +8,10 @@ use crate::{prelude::IntoStatus, traq::TraqHost};
 
 impl<Context> super::TraqMessageService<Context> for super::TraqMessageServiceImpl
 where
-    Context: AsRef<MySqlPool> + AsRef<TraqHost> + crate::traq::auth::ProvideTraqAuthService,
+    Context: AsRef<MySqlPool>
+        + AsRef<TraqHost>
+        + crate::message::ProvideMessageService
+        + crate::traq::auth::ProvideTraqAuthService,
 {
     type Error = super::Error;
 
@@ -23,9 +26,16 @@ where
     fn check_message_synced<'a>(
         &'a self,
         ctx: &'a Context,
-        message: crate::message::Message,
+        params: super::CheckMessageSyncedParams,
     ) -> BoxFuture<'a, Result<Option<super::SyncedTraqMessage>, Self::Error>> {
-        check_message_synced(ctx.as_ref(), message).boxed()
+        use super::CheckMessageSyncedParams::{FromTraq, ToTraq};
+
+        match params {
+            FromTraq(traq_message) => {
+                check_message_already_received(ctx, ctx.as_ref(), traq_message).boxed()
+            }
+            ToTraq(message) => check_message_already_sent(ctx.as_ref(), message).boxed(),
+        }
     }
 }
 
@@ -129,7 +139,42 @@ async fn send_message(
 }
 
 #[tracing::instrument(skip_all)]
-async fn check_message_synced(
+async fn check_message_already_received(
+    message_service: &impl crate::message::ProvideMessageService,
+    pool: &MySqlPool,
+    traq_message: super::TraqMessage,
+) -> Result<Option<super::SyncedTraqMessage>, super::Error> {
+    let row: Option<TraqMessageRow> =
+        sqlx::query_as(r#"SELECT * FROM `traq_messages` WHERE `id` = ?"#)
+            .bind(traq_message.id.0)
+            .fetch_optional(pool)
+            .await?;
+    let Some(row) = row else {
+        return Ok(None);
+    };
+    let inner = message_service
+        .get_message(crate::message::GetMessageParams {
+            id: crate::message::MessageId(row.message_id),
+        })
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                error = &e as &dyn std::error::Error,
+                "Failed to get app message"
+            );
+            e.into_status()
+        })?;
+    let synced_message = super::SyncedTraqMessage {
+        id: super::TraqMessageId(row.id),
+        channel_id: crate::traq::channel::TraqChannelId(row.channel_id),
+        user_id: crate::traq::user::TraqUserId(row.user_id),
+        inner,
+    };
+    Ok(Some(synced_message))
+}
+
+#[tracing::instrument(skip_all)]
+async fn check_message_already_sent(
     pool: &MySqlPool,
     message: crate::message::Message,
 ) -> Result<Option<super::SyncedTraqMessage>, super::Error> {
