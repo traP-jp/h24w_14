@@ -23,6 +23,14 @@ where
         send_message(ctx, ctx.as_ref(), ctx.as_ref(), params).boxed()
     }
 
+    fn recv_message<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: super::RecvMessageParams,
+    ) -> BoxFuture<'a, Result<super::SyncedTraqMessage, Self::Error>> {
+        recv_message(ctx, ctx.as_ref(), params).boxed()
+    }
+
     fn check_message_synced<'a>(
         &'a self,
         ctx: &'a Context,
@@ -136,6 +144,65 @@ async fn send_message(
         channel_id: crate::traq::channel::TraqChannelId(channel_id),
         user_id: crate::traq::user::TraqUserId(user_id),
     })
+}
+
+#[tracing::instrument(skip_all)]
+async fn recv_message(
+    message_service: &impl crate::message::ProvideMessageService,
+    pool: &MySqlPool,
+    params: super::RecvMessageParams,
+) -> Result<super::SyncedTraqMessage, super::Error> {
+    let super::RecvMessageParams {
+        traq_message,
+        user_id,
+        position,
+    } = params;
+    let inner = message_service
+        .create_message(crate::message::CreateMessageParams {
+            user_id,
+            position,
+            content: traq_message.content,
+        })
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                error = &e as &dyn std::error::Error,
+                "Failed to create app message"
+            );
+            e.into_status()
+        })?;
+
+    sqlx::query(
+        r#"
+            INSERT INTO `traq_messages` (
+                `id`,
+                `message_id`,
+                `channel_id`,
+                `user_id`,
+                `content`
+            ) VALUES (?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(traq_message.id.0)
+    .bind(inner.id.0)
+    .bind(traq_message.channel_id.0)
+    .bind(user_id.0)
+    .bind(&inner.content)
+    .execute(pool)
+    .await?;
+    tracing::trace!(
+        traq_message_id = ?traq_message.id,
+        message_id = ?inner.id,
+        "Reflected traQ message to app",
+    );
+
+    let synced_message = super::SyncedTraqMessage {
+        id: traq_message.id,
+        channel_id: traq_message.channel_id,
+        user_id: traq_message.user_id,
+        inner,
+    };
+    Ok(synced_message)
 }
 
 #[tracing::instrument(skip_all)]
