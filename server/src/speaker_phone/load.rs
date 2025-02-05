@@ -26,7 +26,7 @@ where
     let message_stream = ctx
         .subscribe_messages()
         .map(|r| r.context("Failed to receive new message"));
-    let traq_message_stream = pending().boxed();
+    let traq_message_stream = futures::stream::select_all([pending().boxed()]);
     let mut state = State {
         ctx: Arc::clone(&ctx),
         speaker_phones: Default::default(),
@@ -44,9 +44,11 @@ struct State<Context, SP, M> {
     speaker_phones: Arc<RwLock<Vec<super::SpeakerPhone>>>,
     speaker_phone_stream: SP,
     message_stream: M,
-    traq_message_stream: BoxStream<
-        'static,
-        anyhow::Result<(crate::traq::message::TraqMessage, super::SpeakerPhone)>,
+    traq_message_stream: futures::stream::SelectAll<
+        BoxStream<
+            'static,
+            anyhow::Result<(crate::traq::message::TraqMessage, super::SpeakerPhone)>,
+        >,
     >,
 }
 
@@ -135,7 +137,7 @@ where
         &mut self,
         speaker_phone: super::SpeakerPhone,
     ) -> anyhow::Result<()> {
-        use futures::{stream, StreamExt, TryStreamExt};
+        use futures::{StreamExt, TryStreamExt};
 
         let traq_channel = find_traq_channel(&*self.ctx, &speaker_phone.name.0).await?;
         let new_traq_message_stream = self
@@ -146,18 +148,13 @@ where
             .await
             .context("Failed to subscribe traQ channel")?;
         let new_traq_message_stream = {
-            let speaker_phone = Arc::new(speaker_phone.clone());
+            let speaker_phone = speaker_phone.clone();
             new_traq_message_stream
-                .map_ok(move |m| (m, super::SpeakerPhone::clone(&speaker_phone)))
+                .map_ok(move |m| (m, speaker_phone.clone()))
                 .map_err(anyhow::Error::new)
+                .boxed()
         };
-        let mut tmp_traq_message_stream = stream::pending::<
-            anyhow::Result<(crate::traq::message::TraqMessage, super::SpeakerPhone)>,
-        >()
-        .boxed();
-        std::mem::swap(&mut self.traq_message_stream, &mut tmp_traq_message_stream);
-        self.traq_message_stream =
-            stream::select(tmp_traq_message_stream, new_traq_message_stream).boxed();
+        self.traq_message_stream.push(new_traq_message_stream);
 
         self.speaker_phones.write().await.push(speaker_phone);
         tracing::info!("Done");
