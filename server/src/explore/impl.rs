@@ -773,6 +773,6 @@ where
         let x_max = u32::saturating_add(self.explorer.position.x, self.field_size.width >> 1);
         let y_min = u32::saturating_sub(self.explorer.position.y, self.field_size.height >> 1);
         let y_max = u32::saturating_add(self.explorer.position.y, self.field_size.height >> 1);
-        x_min < point.x && x_max < point.x && y_min < point.y && point.y < y_max
+        x_min < point.x && point.x < x_max && y_min < point.y && point.y < y_max
     }
 }
