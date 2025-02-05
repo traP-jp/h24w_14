@@ -45,9 +45,13 @@ pub struct RecvMessageParams {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum CheckMessageSyncedParams {
-    ToTraq(crate::message::Message),
-    FromTraq(TraqMessage),
+pub struct CheckMessageSentParams {
+    pub message: crate::message::Message,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CheckMessageReceivedParams {
+    pub traq_message: TraqMessage,
 }
 
 pub trait TraqMessageService<Context>: Send + Sync + 'static {
@@ -65,10 +69,15 @@ pub trait TraqMessageService<Context>: Send + Sync + 'static {
         ctx: &'a Context,
         params: RecvMessageParams,
     ) -> BoxFuture<'a, Result<SyncedTraqMessage, Self::Error>>;
-    fn check_message_synced<'a>(
+    fn check_message_sent<'a>(
         &'a self,
         ctx: &'a Context,
-        params: CheckMessageSyncedParams,
+        params: CheckMessageSentParams,
+    ) -> BoxFuture<'a, Result<Option<SyncedTraqMessage>, Self::Error>>;
+    fn check_message_received<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: CheckMessageReceivedParams,
     ) -> BoxFuture<'a, Result<Option<SyncedTraqMessage>, Self::Error>>;
 }
 
@@ -106,9 +115,22 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
         let ctx = self.context();
         self.traq_message_service().recv_message(ctx, params)
     }
-    fn check_message_synced(
+    fn check_message_sent(
         &self,
-        params: CheckMessageSyncedParams,
+        params: CheckMessageSentParams,
+    ) -> BoxFuture<
+        '_,
+        Result<
+            Option<SyncedTraqMessage>,
+            <Self::TraqMessageService as TraqMessageService<Self::Context>>::Error,
+        >,
+    > {
+        let ctx = self.context();
+        self.traq_message_service().check_message_sent(ctx, params)
+    }
+    fn check_message_received(
+        &self,
+        params: CheckMessageReceivedParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -118,7 +140,7 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.traq_message_service()
-            .check_message_synced(ctx, params)
+            .check_message_received(ctx, params)
     }
 }
 

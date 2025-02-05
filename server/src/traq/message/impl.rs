@@ -31,19 +31,22 @@ where
         recv_message(ctx, ctx.as_ref(), params).boxed()
     }
 
-    fn check_message_synced<'a>(
+    fn check_message_sent<'a>(
         &'a self,
         ctx: &'a Context,
-        params: super::CheckMessageSyncedParams,
+        params: super::CheckMessageSentParams,
     ) -> BoxFuture<'a, Result<Option<super::SyncedTraqMessage>, Self::Error>> {
-        use super::CheckMessageSyncedParams::{FromTraq, ToTraq};
+        let super::CheckMessageSentParams { message } = params;
+        check_message_sent(ctx.as_ref(), message).boxed()
+    }
 
-        match params {
-            FromTraq(traq_message) => {
-                check_message_already_received(ctx, ctx.as_ref(), traq_message).boxed()
-            }
-            ToTraq(message) => check_message_already_sent(ctx.as_ref(), message).boxed(),
-        }
+    fn check_message_received<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: super::CheckMessageReceivedParams,
+    ) -> BoxFuture<'a, Result<Option<super::SyncedTraqMessage>, Self::Error>> {
+        let super::CheckMessageReceivedParams { traq_message } = params;
+        check_message_received(ctx, ctx.as_ref(), traq_message).boxed()
     }
 }
 
@@ -206,7 +209,7 @@ async fn recv_message(
 }
 
 #[tracing::instrument(skip_all)]
-async fn check_message_already_received(
+async fn check_message_received(
     message_service: &impl crate::message::ProvideMessageService,
     pool: &MySqlPool,
     traq_message: super::TraqMessage,
@@ -241,7 +244,7 @@ async fn check_message_already_received(
 }
 
 #[tracing::instrument(skip_all)]
-async fn check_message_already_sent(
+async fn check_message_sent(
     pool: &MySqlPool,
     message: crate::message::Message,
 ) -> Result<Option<super::SyncedTraqMessage>, super::Error> {
