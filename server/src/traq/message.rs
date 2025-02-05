@@ -37,18 +37,47 @@ pub struct SendMessageParams {
     // ユーザーはtraQのユーザーと1対1で紐づいている前提
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub struct RecvMessageParams {
+    pub traq_message: TraqMessage,
+    pub user_id: crate::user::UserId,
+    pub position: crate::world::Coordinate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CheckMessageSentParams {
+    pub message: crate::message::Message,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CheckMessageReceivedParams {
+    pub traq_message: TraqMessage,
+}
+
 pub trait TraqMessageService<Context>: Send + Sync + 'static {
     type Error: IntoStatus;
 
+    /// アプリに投稿されたメッセージをtraQに反映される
     fn send_message<'a>(
         &'a self,
         ctx: &'a Context,
         params: SendMessageParams,
     ) -> BoxFuture<'a, Result<SyncedTraqMessage, Self::Error>>;
-    fn check_message_synced<'a>(
+    /// traQのメッセージをアプリに反映させる
+    fn recv_message<'a>(
         &'a self,
         ctx: &'a Context,
-        message: crate::message::Message,
+        params: RecvMessageParams,
+    ) -> BoxFuture<'a, Result<SyncedTraqMessage, Self::Error>>;
+    fn check_message_sent<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: CheckMessageSentParams,
+    ) -> BoxFuture<'a, Result<Option<SyncedTraqMessage>, Self::Error>>;
+    fn check_message_received<'a>(
+        &'a self,
+        ctx: &'a Context,
+        params: CheckMessageReceivedParams,
     ) -> BoxFuture<'a, Result<Option<SyncedTraqMessage>, Self::Error>>;
 }
 
@@ -73,9 +102,35 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
         let ctx = self.context();
         self.traq_message_service().send_message(ctx, params)
     }
-    fn check_message_synced(
+    fn recv_message(
         &self,
-        message: crate::message::Message,
+        params: RecvMessageParams,
+    ) -> BoxFuture<
+        '_,
+        Result<
+            SyncedTraqMessage,
+            <Self::TraqMessageService as TraqMessageService<Self::Context>>::Error,
+        >,
+    > {
+        let ctx = self.context();
+        self.traq_message_service().recv_message(ctx, params)
+    }
+    fn check_message_sent(
+        &self,
+        params: CheckMessageSentParams,
+    ) -> BoxFuture<
+        '_,
+        Result<
+            Option<SyncedTraqMessage>,
+            <Self::TraqMessageService as TraqMessageService<Self::Context>>::Error,
+        >,
+    > {
+        let ctx = self.context();
+        self.traq_message_service().check_message_sent(ctx, params)
+    }
+    fn check_message_received(
+        &self,
+        params: CheckMessageReceivedParams,
     ) -> BoxFuture<
         '_,
         Result<
@@ -85,7 +140,7 @@ pub trait ProvideTraqMessageService: Send + Sync + 'static {
     > {
         let ctx = self.context();
         self.traq_message_service()
-            .check_message_synced(ctx, message)
+            .check_message_received(ctx, params)
     }
 }
 
