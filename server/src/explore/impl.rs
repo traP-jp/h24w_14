@@ -1,22 +1,15 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::ops::ControlFlow;
 use std::sync::Arc;
 
 use futures::future::{BoxFuture, FutureExt};
 use tokio::sync::RwLock;
 
-use futures::StreamExt;
+use crate::event::{Event, ProvideEventService};
+use crate::prelude::IntoStatus;
 
-use crate::{
-    event::{Event, ProvideEventService},
-    message::ProvideMessageService,
-    prelude::IntoStatus,
-    reaction::ProvideReactionService,
-    speaker_phone::ProvideSpeakerPhoneService,
-    user::ProvideUserService,
-};
-
-use super::ProvideExplorerService;
+// MARK: ExplorerService
 
 impl super::ExplorerStore {
     pub fn new() -> Self {
@@ -184,14 +177,17 @@ async fn delete_explorer<E: ProvideEventService>(
     Ok(deleted)
 }
 
+// MARK: ExploreService
+
 impl<Context> super::ExploreService<Context> for super::ExploreServiceImpl
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::world::ProvideWorldService
+        + crate::user::ProvideUserService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
 {
     // type Error = super::error::Error;
     type Error = tonic::Status;
@@ -201,6 +197,8 @@ where
         ctx: &'a Context,
         params: super::ExploreParams<'a>,
     ) -> futures::stream::BoxStream<'a, Result<super::ExplorationFieldEvents, Self::Error>> {
+        use futures::StreamExt;
+
         explore(ctx, params).boxed()
     }
 }
@@ -213,369 +211,568 @@ fn explore<'a, Context>(
        + use<'a, Context>
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::world::ProvideWorldService
+        + crate::user::ProvideUserService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
 {
+    use futures::TryStreamExt;
+
     async_stream::try_stream! {
-        let super::ExploreParams { id, stream: mut exploration_field_stream } = params;
-        let event_stream = ctx.subscribe_events();
-
-        let exploration_field_first_value = exploration_field_stream.next()
-            .await
-            .ok_or(super::error::Error::ExplorationFieldStreamClosed)?;
-
-        // new explorer arrives
-        let user = ctx.get_user(crate::user::GetUserParams { id }).await?;
-        let explorer = ctx.create_explorer(super::CreateExplorerParams {
-            inner: user,
-            position: exploration_field_first_value.position,
-        }).await?;
-        let exploration_field = exploration_field_first_value;
-
-        // create status
-        let old_area_messages_cache = ctx.get_messages_in_area(
-            crate::message::GetMessagesInAreaParams {
-                center: exploration_field.position,
-                size: exploration_field.size,
-            },
-        ).await?;
-
-        let old_area_speaker_phones_cache = ctx.get_speaker_phones_in_area(
-            crate::speaker_phone::GetSpeakerPhonesInAreaParams {
-                center: exploration_field.position,
-                size: exploration_field.size,
-            },
-        ).await?;
-
-        let old_area_reactions_cache = ctx.get_reactions_in_area(
-            crate::reaction::GetReactionsInAreaParams {
-                center: exploration_field.position,
-                size: exploration_field.size,
-            },
-        ).await?;
-
-        let old_area_explorers_cache = ctx.get_explorers_in_area(
-            crate::explore::GetExplorersInAreaParams::Rect {
-                center: exploration_field.position,
-                size: exploration_field.size,
-            },
-        ).await?;
-
-        yield super::ExplorationFieldEvents {
-            messages: old_area_messages_cache.clone(),
-            speaker_phones: old_area_speaker_phones_cache.clone(),
-            reactions: old_area_reactions_cache.clone(),
-            explorer_actions: old_area_explorers_cache.iter().map(|e| {
-                super::ExplorerAction::Arrive(e.clone())
-            }).collect(),
+        // arrive
+        let arrived = explore_arrive(ctx, params).await.map_err(IntoStatus::into_status)?;
+        let Some(arrived) = arrived else {
+            return;
         };
+        let Arrived {
+            explorer,
+            field_size,
+            initial_events,
+            stream: field_stream,
+        } = arrived;
+        yield initial_events.clone();
 
-        let mut status = ExplorerStatus {
-            ctx,
-            explorer: explorer.clone(),
-            exploration_field_size: exploration_field.size,
-            old_area_messages_cache,
-            old_area_speaker_phones_cache,
-            old_area_reactions_cache,
-            old_area_explorers_cache,
-        };
+        let explorer_id = explorer.id;
 
-        // main loop
-        let mut select = futures::stream::select(exploration_field_stream.map(
-            SelectResult::ExplorationField,
-        ), event_stream.map(
-            |event| {
-                let event = match event {
-                    Ok(event) => event,
-                    Err(e) => {
-                        return SelectResult::EventStreamClosed(super::error::Error::Status(e.into()));
-                    },
-                };
-                SelectResult::Event(event)
-            },
-        ));
-
-        loop {
-            let Some(select_result) = select.next().await else {
-                // explore leaves
-                break;
-            };
-
-            if let Some(exploration_field_events) = event_handle(
-                select_result,
-                &mut status,
-            ).await? {
-                yield exploration_field_events;
-            }
+        // updates
+        let explore_state = ExploreState::new(ctx, explorer, field_size, initial_events, field_stream);
+        let explore_stream = explore_state.into_stream();
+        tokio::pin!(explore_stream);
+        while let Some(events) = explore_stream.try_next().await? {
+            yield events;
         }
 
-        // explorer leaves
-        ctx.delete_explorer(crate::explore::DeleteExplorerParams { id: explorer.id }).await.map_err(IntoStatus::into_status)?;
+        // leave
+        ctx.delete_explorer(super::DeleteExplorerParams {
+            id: explorer_id
+        }).await.map_err(IntoStatus::into_status)?;
     }
 }
 
-enum SelectResult {
-    ExplorationField(super::ExplorationField),
-    Event(crate::event::Event),
-    EventStreamClosed(super::error::Error),
+// MARK: explore / arrive
+
+struct Arrived<'a> {
+    explorer: super::Explorer,
+    field_size: crate::world::Size,
+    initial_events: super::ExplorationFieldEvents,
+    stream: futures::stream::BoxStream<'a, super::ExplorationField>,
 }
 
-struct ExplorerStatus<'a, Context>
+#[tracing::instrument(skip_all)]
+async fn explore_arrive<'a, Context>(
+    ctx: &'a Context,
+    params: super::ExploreParams<'a>,
+) -> Result<Option<Arrived<'a>>, tonic::Status>
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService,
+        + crate::world::ProvideWorldService
+        + crate::user::ProvideUserService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
 {
+    use futures::StreamExt;
+
+    let super::ExploreParams { id, mut stream } = params;
+    let Some(initial_field) = stream.next().await else {
+        return Ok(None);
+    };
+
+    match ctx
+        .check_coordinate(crate::world::CheckCoordinateParams {
+            coordinate: initial_field.position,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?
+    {
+        crate::world::CheckCoordinateAnswer::Valid(_) => {}
+        crate::world::CheckCoordinateAnswer::Invalid => {
+            tracing::warn!(position = ?initial_field.position, "Received invalid position");
+            return Ok(None);
+        }
+    }
+
+    let user = ctx
+        .get_user(crate::user::GetUserParams { id })
+        .await
+        .map_err(IntoStatus::into_status)?;
+    let explorer = ctx
+        .create_explorer(super::CreateExplorerParams {
+            inner: user,
+            position: initial_field.position,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?;
+
+    let other_explorers: Vec<_> = ctx
+        .get_explorers_in_area(super::GetExplorersInAreaParams::Rect {
+            center: initial_field.position,
+            size: initial_field.size,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?
+        .into_iter()
+        .filter_map(|e| {
+            if e.id != explorer.id {
+                Some(super::ExplorerAction::Arrive(e))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let messages = ctx
+        .get_messages_in_area(crate::message::GetMessagesInAreaParams {
+            center: initial_field.position,
+            size: initial_field.size,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?;
+    let reactions = ctx
+        .get_reactions_in_area(crate::reaction::GetReactionsInAreaParams {
+            center: initial_field.position,
+            size: initial_field.size,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?;
+    let speaker_phones = ctx
+        .get_speaker_phones_in_area(crate::speaker_phone::GetSpeakerPhonesInAreaParams {
+            center: initial_field.position,
+            size: initial_field.size,
+        })
+        .await
+        .map_err(IntoStatus::into_status)?;
+
+    let initial_events = super::ExplorationFieldEvents {
+        explorer_actions: other_explorers,
+        messages,
+        reactions,
+        speaker_phones,
+    };
+
+    let arrived = Arrived {
+        explorer,
+        field_size: initial_field.size,
+        initial_events,
+        stream,
+    };
+    Ok(Some(arrived))
+}
+
+// MARK: explore / update-loop
+
+struct ReadEvents {
+    explorer: HashMap<super::ExplorerId, crate::world::Coordinate>,
+    message: HashSet<crate::message::MessageId>,
+    reaction: HashSet<crate::reaction::ReactionId>,
+    speaker_phone: HashSet<crate::speaker_phone::SpeakerPhoneId>,
+}
+
+struct ExploreState<'a, Context, E> {
     ctx: &'a Context,
     explorer: super::Explorer,
-    exploration_field_size: crate::world::Size,
-    old_area_messages_cache: Vec<crate::message::Message>,
-    old_area_speaker_phones_cache: Vec<crate::speaker_phone::SpeakerPhone>,
-    old_area_reactions_cache: Vec<crate::reaction::Reaction>,
-    old_area_explorers_cache: Vec<super::Explorer>,
+    field_size: crate::world::Size,
+    read_events: ReadEvents,
+    field_stream: futures::stream::BoxStream<'a, super::ExplorationField>,
+    event_stream: futures::stream::BoxStream<'static, Result<crate::event::Event, E>>,
 }
 
-async fn event_handle<Context>(
-    select_result: SelectResult,
-    status: &mut ExplorerStatus<'_, Context>,
-) -> Result<Option<super::ExplorationFieldEvents>, tonic::Status>
+impl<'a, Context, E> ExploreState<'a, Context, E>
 where
     Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
+        + crate::world::ProvideWorldService
+        + crate::message::ProvideMessageService
+        + crate::speaker_phone::ProvideSpeakerPhoneService
+        + super::ProvideExplorerService
+        + crate::reaction::ProvideReactionService,
+    E: IntoStatus,
+    Context::EventService:
+        crate::event::EventService<<Context as ProvideEventService>::Context, Error = E>,
 {
-    match select_result {
-        SelectResult::EventStreamClosed(e) => Err(e.into()),
-        SelectResult::ExplorationField(exploration_field) => {
-            when_exploration_field_moved(exploration_field, status).await
+    fn new(
+        ctx: &'a Context,
+        explorer: super::Explorer,
+        field_size: crate::world::Size,
+        initial_events: super::ExplorationFieldEvents,
+        field_stream: futures::stream::BoxStream<'a, super::ExplorationField>,
+    ) -> Self {
+        let super::ExplorationFieldEvents {
+            explorer_actions,
+            messages,
+            speaker_phones,
+            reactions,
+        } = initial_events;
+        let explorer_it = explorer_actions.into_iter().filter_map(|a| match a {
+            super::ExplorerAction::Arrive(e) if e.id != explorer.id => Some((e.id, e.position)),
+            super::ExplorerAction::Move(e) if e.id != explorer.id => Some((e.id, e.position)),
+            super::ExplorerAction::Leave(_) => None,
+            _ => None,
+        });
+        let read_events = ReadEvents {
+            explorer: explorer_it.collect(),
+            message: messages.into_iter().map(|m| m.id).collect(),
+            speaker_phone: speaker_phones.into_iter().map(|sp| sp.id).collect(),
+            reaction: reactions.into_iter().map(|r| r.id).collect(),
+        };
+        let event_stream = ctx.subscribe_events();
+        Self {
+            ctx,
+            explorer,
+            field_size,
+            read_events,
+            field_stream,
+            event_stream,
         }
-        SelectResult::Event(event) => when_received_event(event, status),
     }
-}
 
-async fn when_exploration_field_moved<Context>(
-    new_exploration_field: super::ExplorationField,
-    status: &mut ExplorerStatus<'_, Context>,
-) -> Result<Option<super::ExplorationFieldEvents>, tonic::Status>
-where
-    Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
-{
-    // publish explorer move event
-    status
-        .ctx
-        .update_explorer(crate::explore::UpdateExplorerParams {
-            id: status.explorer.id,
-            position: status.explorer.position,
-        })
-        .await
-        .map_err(IntoStatus::into_status)?;
+    fn into_stream(
+        mut self,
+    ) -> impl futures::Stream<Item = Result<super::ExplorationFieldEvents, tonic::Status>>
+           + Send
+           + use<'a, Context, E> {
+        use futures::{future, stream, StreamExt};
 
-    // collect newly contained events
-
-    // messages
-    let new_area_messages = status
-        .ctx
-        .get_messages_in_area(crate::message::GetMessagesInAreaParams {
-            center: new_exploration_field.position,
-            size: new_exploration_field.size,
-        })
-        .await
-        .map_err(IntoStatus::into_status)?;
-
-    let messages = new_area_messages
-        .iter()
-        .filter_map(|new_message| {
-            if !status.old_area_messages_cache.contains(new_message) {
-                Some(new_message.clone())
-            } else {
-                None
+        let (tx, rx) = tokio::sync::mpsc::channel(2);
+        let generate = async move {
+            while let Some(event) = self.yield_next().await? {
+                tx.send(Ok(event)).await.unwrap();
             }
-        })
-        .collect::<Vec<_>>();
+            Ok(None)
+        };
+        let tx_stream = stream::once(generate).filter_map(|g| future::ready(g.transpose()));
+        let rx_stream = tokio_stream::wrappers::ReceiverStream::new(rx);
+        stream::select(tx_stream, rx_stream)
+    }
 
-    // speaker_phones
-    let new_area_speaker_phones = status
-        .ctx
-        .get_speaker_phones_in_area(crate::speaker_phone::GetSpeakerPhonesInAreaParams {
-            center: new_exploration_field.position,
-            size: new_exploration_field.size,
-        })
-        .await
-        .map_err(IntoStatus::into_status)?;
+    async fn yield_next(&mut self) -> Result<Option<super::ExplorationFieldEvents>, tonic::Status> {
+        use futures::stream::{StreamExt, TryStreamExt};
 
-    let speaker_phones = new_area_speaker_phones
-        .iter()
-        .filter_map(|new_speaker_phone| {
-            if !status
-                .old_area_speaker_phones_cache
-                .contains(new_speaker_phone)
+        enum Update {
+            Field(super::ExplorationField),
+            Event(crate::event::Event),
+        }
+
+        loop {
+            let update = tokio::select! {
+                field = self.field_stream.next() => field.map(Update::Field),
+                event = self.event_stream.try_next() =>
+                    event.map_err(IntoStatus::into_status)?.map(Update::Event),
+            };
+            let flow = match update {
+                Some(Update::Field(field)) => self.update_field(field).await?,
+                Some(Update::Event(event)) => self.update_event(event).await?,
+                None => return Ok(None),
+            };
+            match flow {
+                ControlFlow::Break(e) => return Ok(e),
+                ControlFlow::Continue(()) => (),
+            }
+        }
+    }
+
+    // MARK: ExploreState::update_field
+
+    async fn update_field(
+        &mut self,
+        field: super::ExplorationField,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        let id = self.explorer.id;
+        let position = field.position;
+
+        match self
+            .ctx
+            .check_coordinate(crate::world::CheckCoordinateParams {
+                coordinate: position,
+            })
+            .await
+            .map_err(IntoStatus::into_status)?
+        {
+            crate::world::CheckCoordinateAnswer::Valid(_) => {}
+            crate::world::CheckCoordinateAnswer::Invalid => {
+                tracing::warn!(?position, "Received invalid position");
+                return Ok(ControlFlow::Break(None));
+            }
+        }
+
+        self.explorer = self
+            .ctx
+            .update_explorer(super::UpdateExplorerParams { id, position })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        self.field_size = field.size;
+
+        let explorer_actions = self.update_field_explorer_actions().await?;
+        let messages = self.update_field_messages().await?;
+        let speaker_phones = self.update_field_speaker_phones().await?;
+        let reactions = self.update_field_reactions().await?;
+
+        if explorer_actions.is_empty()
+            && messages.is_empty()
+            && speaker_phones.is_empty()
+            && reactions.is_empty()
+        {
+            return Ok(ControlFlow::Continue(()));
+        }
+
+        let events = super::ExplorationFieldEvents {
+            explorer_actions,
+            messages,
+            speaker_phones,
+            reactions,
+        };
+        Ok(ControlFlow::Break(Some(events)))
+    }
+
+    async fn update_field_explorer_actions(
+        &mut self,
+    ) -> Result<Vec<super::ExplorerAction>, tonic::Status> {
+        let id = self.explorer.id;
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let explorers = self
+            .ctx
+            .get_explorers_in_area(super::GetExplorersInAreaParams::Rect { center, size })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let explorer_actions = explorers.into_iter().filter_map(|e| {
+            if e.id == id {
+                return None;
+            }
+            match self.read_events.explorer.get(&e.id) {
+                Some(pos) if pos == &e.position => None,
+                Some(_) => Some(super::ExplorerAction::Move(e)),
+                None => Some(super::ExplorerAction::Arrive(e)),
+            }
+        });
+        let explorer_actions: Vec<_> = explorer_actions.collect();
+        self.read_events
+            .explorer
+            .extend(explorer_actions.iter().map(|e| match e {
+                super::ExplorerAction::Arrive(e) => (e.id, e.position),
+                super::ExplorerAction::Move(e) => (e.id, e.position),
+                super::ExplorerAction::Leave(_) => unreachable!(),
+            }));
+        Ok(explorer_actions)
+    }
+
+    async fn update_field_messages(
+        &mut self,
+    ) -> Result<Vec<crate::message::Message>, tonic::Status> {
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let messages = self
+            .ctx
+            .get_messages_in_area(crate::message::GetMessagesInAreaParams { center, size })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let messages: Vec<_> = messages
+            .into_iter()
+            .filter(|m| !self.read_events.message.contains(&m.id))
+            .collect();
+        self.read_events
+            .message
+            .extend(messages.iter().map(|m| m.id));
+        Ok(messages)
+    }
+
+    async fn update_field_speaker_phones(
+        &mut self,
+    ) -> Result<Vec<crate::speaker_phone::SpeakerPhone>, tonic::Status> {
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let speaker_phones = self
+            .ctx
+            .get_speaker_phones_in_area(crate::speaker_phone::GetSpeakerPhonesInAreaParams {
+                center,
+                size,
+            })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let speaker_phones: Vec<_> = speaker_phones
+            .into_iter()
+            .filter(|sp| !self.read_events.speaker_phone.contains(&sp.id))
+            .collect();
+        self.read_events
+            .speaker_phone
+            .extend(speaker_phones.iter().map(|sp| sp.id));
+        Ok(speaker_phones)
+    }
+
+    async fn update_field_reactions(
+        &mut self,
+    ) -> Result<Vec<crate::reaction::Reaction>, tonic::Status> {
+        let center = self.explorer.position;
+        let size = self.field_size;
+
+        let reactions = self
+            .ctx
+            .get_reactions_in_area(crate::reaction::GetReactionsInAreaParams { center, size })
+            .await
+            .map_err(IntoStatus::into_status)?;
+        let reactions: Vec<_> = reactions
+            .into_iter()
+            .filter(|r| !self.read_events.reaction.contains(&r.id))
+            .collect();
+        self.read_events
+            .reaction
+            .extend(reactions.iter().map(|r| r.id));
+        Ok(reactions)
+    }
+
+    // MARK: ExploreState::update_event
+
+    async fn update_event(
+        &mut self,
+        event: crate::event::Event,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        use super::ExplorerAction;
+        use crate::event::Event;
+
+        match event {
+            Event::Explorer(ExplorerAction::Arrive(e))
+                if e.id != self.explorer.id && self.is_inside(e.position) =>
             {
-                Some(new_speaker_phone.clone())
-            } else {
-                None
+                self.update_explorer_arrive(e).await
             }
-        })
-        .collect::<Vec<_>>();
-
-    // reactions
-    let new_area_reactions = status
-        .ctx
-        .get_reactions_in_area(crate::reaction::GetReactionsInAreaParams {
-            center: new_exploration_field.position,
-            size: new_exploration_field.size,
-        })
-        .await
-        .map_err(IntoStatus::into_status)?;
-
-    let reactions = new_area_reactions
-        .iter()
-        .filter_map(|new_reaction| {
-            if !status.old_area_reactions_cache.contains(new_reaction) {
-                Some(new_reaction.clone())
-            } else {
-                None
+            Event::Explorer(ExplorerAction::Move(e))
+                if e.id != self.explorer.id && self.is_inside(e.position) =>
+            {
+                self.update_explorer_move(e).await
             }
-        })
-        .collect::<Vec<_>>();
-
-    // explorers
-    let new_area_explorers = status
-        .ctx
-        .get_explorers_in_area(crate::explore::GetExplorersInAreaParams::Rect {
-            center: new_exploration_field.position,
-            size: new_exploration_field.size,
-        })
-        .await
-        .map_err(IntoStatus::into_status)?;
-
-    let explorer_actions = new_area_explorers
-        .iter()
-        .filter_map(|new_explorer| {
-            if !status.old_area_explorers_cache.contains(new_explorer) {
-                Some(super::ExplorerAction::Arrive(new_explorer.clone()))
-            } else {
-                None
+            Event::Explorer(ExplorerAction::Leave(e))
+                if e.id != self.explorer.id && self.is_inside(e.position) =>
+            {
+                self.update_explorer_leave(e).await
             }
-        })
-        .collect::<Vec<_>>();
-
-    // update exploration field / cache
-    status.explorer.position = new_exploration_field.position;
-    status.exploration_field_size = new_exploration_field.size;
-    status.old_area_messages_cache = new_area_messages;
-    status.old_area_speaker_phones_cache = new_area_speaker_phones;
-    status.old_area_explorers_cache = new_area_explorers;
-
-    // exploration field events
-    Ok(Some(super::ExplorationFieldEvents {
-        messages,
-        speaker_phones,
-        reactions,
-        explorer_actions,
-    }))
-}
-
-fn when_received_event<Context>(
-    event: crate::event::Event,
-    status: &mut ExplorerStatus<'_, Context>,
-) -> Result<Option<super::ExplorationFieldEvents>, tonic::Status>
-where
-    Context: ProvideEventService
-        + ProvideUserService
-        + ProvideMessageService
-        + ProvideSpeakerPhoneService
-        + ProvideExplorerService
-        + ProvideReactionService,
-{
-    match event {
-        crate::event::Event::Explorer(explorer_action) => {
-            if is_inside(
-                status.explorer.position,
-                status.exploration_field_size,
-                explorer_action.explorer().position,
-            ) {
-                Ok(Some(super::ExplorationFieldEvents {
-                    messages: vec![],
-                    speaker_phones: vec![],
-                    reactions: vec![],
-                    explorer_actions: vec![explorer_action],
-                }))
-            } else {
-                Ok(None)
+            Event::Message(m)
+                if !self.read_events.message.contains(&m.id) && self.is_inside(m.position) =>
+            {
+                self.update_new_message(m).await
             }
-        }
-        crate::event::Event::SpeakerPhone(speaker_phone) => {
-            if is_inside(
-                status.explorer.position,
-                status.exploration_field_size,
-                speaker_phone.position,
-            ) {
-                Ok(Some(super::ExplorationFieldEvents {
-                    messages: vec![],
-                    speaker_phones: vec![speaker_phone],
-                    reactions: vec![],
-                    explorer_actions: vec![],
-                }))
-            } else {
-                Ok(None)
+            Event::SpeakerPhone(sp)
+                if !self.read_events.speaker_phone.contains(&sp.id)
+                    && self.is_inside(sp.position) =>
+            {
+                self.update_new_speaker_phone(sp).await
             }
-        }
-        crate::event::Event::Message(message) => {
-            if is_inside(
-                status.explorer.position,
-                status.exploration_field_size,
-                message.position,
-            ) {
-                Ok(Some(super::ExplorationFieldEvents {
-                    messages: vec![message],
-                    speaker_phones: vec![],
-                    reactions: vec![],
-                    explorer_actions: vec![],
-                }))
-            } else {
-                Ok(None)
+            Event::Reaction(r)
+                if !self.read_events.reaction.contains(&r.id) && self.is_inside(r.position) =>
+            {
+                self.update_new_reaction(r).await
             }
-        }
-        crate::event::Event::Reaction(reaction) => {
-            if is_inside(
-                status.explorer.position,
-                status.exploration_field_size,
-                reaction.position,
-            ) {
-                Ok(Some(super::ExplorationFieldEvents {
-                    messages: vec![],
-                    speaker_phones: vec![],
-                    reactions: vec![reaction],
-                    explorer_actions: vec![],
-                }))
-            } else {
-                Ok(None)
-            }
+            _ => Ok(ControlFlow::Continue(())),
         }
     }
-}
 
-fn is_inside(
-    center: crate::world::Coordinate,
-    size: crate::world::Size,
-    position: crate::world::Coordinate,
-) -> bool {
-    let x_min = center.x.saturating_sub(size.width >> 1);
-    let x_max = center.x.saturating_add(size.width >> 1);
-    let y_min = center.y.saturating_sub(size.height >> 1);
-    let y_max = center.y.saturating_add(size.height >> 1);
-    x_min < position.x && position.x < x_max && y_min < position.y && position.y < y_max
+    async fn update_explorer_arrive(
+        &mut self,
+        explorer: super::Explorer,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        match self
+            .read_events
+            .explorer
+            .insert(explorer.id, explorer.position)
+        {
+            Some(p) if p == explorer.position => return Ok(ControlFlow::Continue(())),
+            _ => (),
+        };
+        let events = super::ExplorationFieldEvents {
+            explorer_actions: vec![super::ExplorerAction::Arrive(explorer)],
+            ..Default::default()
+        };
+        Ok(ControlFlow::Break(Some(events)))
+    }
+
+    async fn update_explorer_move(
+        &mut self,
+        explorer: super::Explorer,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        match self
+            .read_events
+            .explorer
+            .insert(explorer.id, explorer.position)
+        {
+            Some(p) if p == explorer.position => return Ok(ControlFlow::Continue(())),
+            _ => (),
+        };
+        let events = super::ExplorationFieldEvents {
+            explorer_actions: vec![super::ExplorerAction::Move(explorer)],
+            ..Default::default()
+        };
+        Ok(ControlFlow::Break(Some(events)))
+    }
+
+    async fn update_explorer_leave(
+        &mut self,
+        explorer: super::Explorer,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        match self.read_events.explorer.remove(&explorer.id) {
+            Some(_) => {
+                let events = super::ExplorationFieldEvents {
+                    explorer_actions: vec![super::ExplorerAction::Leave(explorer)],
+                    ..Default::default()
+                };
+                Ok(ControlFlow::Break(Some(events)))
+            }
+            None => Ok(ControlFlow::Continue(())),
+        }
+    }
+
+    async fn update_new_message(
+        &mut self,
+        message: crate::message::Message,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        if self.read_events.message.insert(message.id) {
+            let events = super::ExplorationFieldEvents {
+                messages: vec![message],
+                ..Default::default()
+            };
+            Ok(ControlFlow::Break(Some(events)))
+        } else {
+            Ok(ControlFlow::Continue(()))
+        }
+    }
+
+    async fn update_new_speaker_phone(
+        &mut self,
+        speaker_phone: crate::speaker_phone::SpeakerPhone,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        if self.read_events.speaker_phone.insert(speaker_phone.id) {
+            let events = super::ExplorationFieldEvents {
+                speaker_phones: vec![speaker_phone],
+                ..Default::default()
+            };
+            Ok(ControlFlow::Break(Some(events)))
+        } else {
+            Ok(ControlFlow::Continue(()))
+        }
+    }
+
+    async fn update_new_reaction(
+        &mut self,
+        reaction: crate::reaction::Reaction,
+    ) -> Result<ControlFlow<Option<super::ExplorationFieldEvents>>, tonic::Status> {
+        if self.read_events.reaction.insert(reaction.id) {
+            let events = super::ExplorationFieldEvents {
+                reactions: vec![reaction],
+                ..Default::default()
+            };
+            Ok(ControlFlow::Break(Some(events)))
+        } else {
+            Ok(ControlFlow::Continue(()))
+        }
+    }
+
+    fn is_inside(&self, point: crate::world::Coordinate) -> bool {
+        let x_min = u32::saturating_sub(self.explorer.position.x, self.field_size.width >> 1);
+        let x_max = u32::saturating_add(self.explorer.position.x, self.field_size.width >> 1);
+        let y_min = u32::saturating_sub(self.explorer.position.y, self.field_size.height >> 1);
+        let y_max = u32::saturating_add(self.explorer.position.y, self.field_size.height >> 1);
+        x_min < point.x && point.x < x_max && y_min < point.y && point.y < y_max
+    }
 }
