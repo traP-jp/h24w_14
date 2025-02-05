@@ -168,7 +168,9 @@ where
     async fn handle_message(&mut self, message: crate::message::Message) -> anyhow::Result<()> {
         let synced_message = self
             .ctx
-            .check_message_synced(message.clone())
+            .check_message_sent(crate::traq::message::CheckMessageSentParams {
+                message: message.clone(),
+            })
             .await
             .context("Failed to check traQ message")?;
         if let Some(synced_message) = synced_message {
