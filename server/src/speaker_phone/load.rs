@@ -240,6 +240,18 @@ where
         traq_message: crate::traq::message::TraqMessage,
         speaker_phone: super::SpeakerPhone,
     ) -> anyhow::Result<()> {
+        let synced_message = self
+            .ctx
+            .check_message_received(crate::traq::message::CheckMessageReceivedParams {
+                traq_message: traq_message.clone(),
+            })
+            .await
+            .context("Failed to check message synced")?;
+        if let Some(synced_message) = synced_message {
+            tracing::info!(message_id = ?synced_message.inner.id, "Message already synced");
+            return Ok(());
+        }
+
         let user = self
             .ctx
             .find_traq_user(crate::traq::user::FindTraqUserParams {
@@ -264,28 +276,25 @@ where
                     )
                 })?,
         };
-        let _user = user.inner;
-        anyhow::bail!("Unimplemented");
+        let user = user.inner;
 
-        // TODO: 以降の処理は書きかけ
-        //       ProvideMessageService::create_messageでは,
-        //       traQのメッセージとサービスのメッセージを同期したことにならない
+        let receive_params = crate::traq::message::RecvMessageParams {
+            traq_message,
+            user_id: user.id,
+            position: speaker_phone.position,
+        };
+        let message = self
+            .ctx
+            .recv_message(receive_params)
+            .await
+            .context("Failed to receive traQ message")?;
 
-        // let message = self
-        //     .ctx
-        //     .create_message(crate::message::CreateMessageParams {
-        //         user_id: user.id,
-        //         position: speaker_phone.position,
-        //         content: traq_message.content,
-        //     })
-        //     .await
-        //     .context("Failed to sync traQ message to service")?;
-        // tracing::info!(
-        //     message_id = ?message.id,
-        //     user_id = ?user.id,
-        //     "Synced traQ message to service"
-        // );
-        // Ok(())
+        tracing::info!(
+            message_id = ?message.id,
+            user_id = ?user.id,
+            "Synced traQ message to service"
+        );
+        Ok(())
     }
 }
 
