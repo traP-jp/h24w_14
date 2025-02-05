@@ -508,6 +508,14 @@ where
         let speaker_phones = self.update_field_speaker_phones().await?;
         let reactions = self.update_field_reactions().await?;
 
+        if explorer_actions.is_empty()
+            && messages.is_empty()
+            && speaker_phones.is_empty()
+            && reactions.is_empty()
+        {
+            return Ok(ControlFlow::Continue(()));
+        }
+
         let events = super::ExplorationFieldEvents {
             explorer_actions,
             messages,
