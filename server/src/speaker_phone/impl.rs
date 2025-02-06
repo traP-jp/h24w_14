@@ -228,19 +228,6 @@ where
         .await
         .map_err(IntoStatus::into_status)?;
 
-    let channel_map: std::collections::HashMap<
-        super::SpeakerPhoneId,
-        crate::traq::channel::TraqChannel,
-    > = speaker_phones
-        .iter()
-        .filter_map(|speaker_phone| {
-            channels
-                .iter()
-                .find(|channel| channel.path == speaker_phone.name.0)
-                .map(|channel| (speaker_phone.id, channel.clone()))
-        })
-        .collect();
-
     let ctx_clone = ctx.clone();
     let task_manager: &crate::task::TaskManager = (*ctx_clone).as_ref();
     task_manager
@@ -253,7 +240,7 @@ where
                 traq_message_service,
                 event_service,
                 speaker_phones,
-                channel_map,
+                channels,
             )
             .await;
         })
@@ -267,7 +254,7 @@ async fn run_subscription_loop(
     traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
     event_service: &impl crate::event::ProvideEventService,
     mut speaker_phones: Vec<super::SpeakerPhone>,
-    channel_map: HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
+    channels: Vec<crate::traq::channel::TraqChannel>,
 ) {
     let mut speaker_phone_rx = event_service
         .subscribe_speaker_phones()
@@ -277,7 +264,7 @@ async fn run_subscription_loop(
         .map_err(|e| super::Error::from(e.into_status()));
 
     loop {
-        let channel_map = channel_map.clone();
+        let channels = channels.clone();
         tokio::select! {
             speaker_phone = speaker_phone_rx.try_next() => {
                 let speaker_phone = match speaker_phone {
@@ -289,7 +276,7 @@ async fn run_subscription_loop(
                     }
                 };
 
-                speaker_phones.push(speaker_phone);
+                speaker_phones.push(speaker_phone.clone());
             }
 
             message = message_rx.try_next() => {
@@ -307,7 +294,7 @@ async fn run_subscription_loop(
                         traq_user_service,
                         traq_message_service,
                         speaker_phone,
-                        &channel_map,
+                        &channels,
                         &message,
                     ).await;
                 }
@@ -320,7 +307,7 @@ async fn post_message_to_traq(
     traq_user_service: &impl crate::traq::user::ProvideTraqUserService,
     traq_message_service: &impl crate::traq::message::ProvideTraqMessageService,
     speaker_phone: &super::SpeakerPhone,
-    channel_map: &HashMap<super::SpeakerPhoneId, crate::traq::channel::TraqChannel>,
+    channels: &[crate::traq::channel::TraqChannel],
     message: &crate::message::Message,
 ) {
     if message.content.starts_with("[]()") {
@@ -334,9 +321,13 @@ async fn post_message_to_traq(
         return;
     }
 
-    let channel = channel_map
-        .get(&speaker_phone.id)
-        .expect("SpeakerPhoneのチャンネルが存在する");
+    let channel = channels
+        .iter()
+        .find(|channel| channel.path == speaker_phone.name.0);
+    let Some(channel) = channel else {
+        tracing::error!("Channel not found");
+        return;
+    };
 
     let traq_user = traq_user_service
         .find_traq_user_by_app_user_id(crate::traq::user::FindTraqUserByAppUserIdParams {
